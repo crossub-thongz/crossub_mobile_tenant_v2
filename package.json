@@ -1,0 +1,22 @@
+{
+  "name": "crossub-mobile-tenant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CROSSUB tenant app — Expo client for tenants. Same workspace shape as the inspector app in crossub_mobile.",
+  "scripts": {
+    "preinstall": "npx -y only-allow pnpm",
+    "dev:native": "pnpm --filter @crossub/tenant-native start",
+    "ios": "pnpm --filter @crossub/tenant-native ios",
+    "android": "pnpm --filter @crossub/tenant-native android",
+    "web": "pnpm --filter @crossub/tenant-native web",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm --filter @crossub/tenant-native typecheck"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9",
+    "npm": "please-use-pnpm",
+    "yarn": "please-use-pnpm"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote",
+    "requireCommit": false
+  },
+  "build": {
+    "staging": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_API_URL": "https://crossub-api-staging.onrender.com"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://crossub-api-prod.onrender.com"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "staging": {
+      "ios": {
+        "ascAppId": "6832879934",
+        "appleTeamId": "KQ997HDJ7H",
+        "companyName": "CROSSUB PROPERTY MANAGEMENT PTY LTD"
+      },
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    },
+    "production": {
+      "ios": {
+        "ascAppId": "6832879337",
+        "appleTeamId": "KQ997HDJ7H",
+        "companyName": "CROSSUB PROPERTY MANAGEMENT PTY LTD"
+      },
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}
