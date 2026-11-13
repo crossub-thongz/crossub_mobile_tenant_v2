@@ -128,6 +128,7 @@ export type VacatingDto = {
   cleaningArrangement: string;
   refundAmount: number | null;
   debtAmount: number | null;
+  keysReturnAddress: string | null;
   repairQuoteSettlementSummary: {
     unpaidRent: number;
     unpaidBills: number;
@@ -139,7 +140,60 @@ export type VacatingDto = {
 
 export type OnboardingStepDto = { id: string; status: string; amount?: number | null };
 
-export type OnboardingDto = { steps: OnboardingStepDto[] };
+export type KeyCollectionDto = {
+  status: string;
+  time: string | null;
+  timeEnd: string | null;
+  location: string | null;
+  photos?: string[];
+};
+
+export type OnboardingDto = { steps: OnboardingStepDto[]; keyCollection?: KeyCollectionDto | null };
+
+export type RoutineInspectionDto = {
+  id: string;
+  flow: 'self' | 'in_person';
+  status: string;
+  scheduledAt: string | null;
+  tenantActionRequired: boolean;
+  propertyAddress: string | null;
+};
+
+export type RoutineSelfArea = {
+  areaName: string;
+  skipped?: boolean;
+  notes?: string;
+  photoUrls: string[];
+};
+
+export type RoutineInspectionDetail = RoutineInspectionDto & {
+  scheduleId?: string;
+  bedrooms?: number | null;
+  sections?: { id: string; room: string; photos: string[] }[];
+  selfDraft?: { areas: RoutineSelfArea[]; areaIndex?: number; areaOrder?: string[] } | null;
+};
+
+export type OutgoingSection = {
+  id: string;
+  room: string;
+  description: string;
+  photos: string[];
+  referencePhotos: string[];
+  disputed: boolean;
+  disputeComment: string | null;
+};
+
+export type OutgoingInspection = {
+  id: string;
+  vacatingCaseId: string;
+  propertyAddress: string | null;
+  scheduledAt: string | null;
+  status: 'scheduled' | 'awaiting_report' | 'awaiting_confirmation' | 'confirmed';
+  tenantApproved: boolean;
+  tenantOutgoingAttendance: 'pending' | 'yes' | 'no';
+  sectionCount: number;
+  sections?: OutgoingSection[];
+};
 
 const v1 = '/api/v1';
 
@@ -160,6 +214,52 @@ export const tenantApi = {
   messages: () => apiJson<MessageDto[]>(`${v1}/tenant/messages`),
   notifications: () => apiJson<NotificationDto[]>(`${v1}/tenant/notifications`),
   inspections: () => pages<InspectionDto>('/tenant/inspections'),
+
+  routineInspections: async () => {
+    const data = await apiJson<RoutineInspectionDto[] | { items?: RoutineInspectionDto[] }>(`${v1}/tenant/routine-inspections`);
+    return Array.isArray(data) ? data : (data.items ?? []);
+  },
+
+  getRoutineInspection: (id: string) =>
+    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}`),
+
+  startRoutineSelf: (id: string) =>
+    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}/start-self`, { method: 'POST' }),
+
+  saveRoutineSelfDraft: (id: string, body: { areaIndex?: number; areaOrder?: string[]; areas: RoutineSelfArea[] }) =>
+    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}/self-draft`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  submitRoutineSelf: (id: string, sections: { areaName: string; photoUrls: string[]; comment?: string }[]) =>
+    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}/submit-self`, {
+      method: 'POST',
+      body: JSON.stringify({ sections }),
+    }),
+
+  outgoingInspections: async () => {
+    const data = await apiJson<OutgoingInspection[] | { items?: OutgoingInspection[] }>(`${v1}/tenant/outgoing-inspections`);
+    return Array.isArray(data) ? data : (data.items ?? []);
+  },
+
+  getOutgoingInspection: (id: string) =>
+    apiJson<OutgoingInspection>(`${v1}/tenant/outgoing-inspections/${encodeURIComponent(id)}`),
+
+  disputeOutgoing: (id: string, body: { area: string; description: string; sectionId?: string }) =>
+    apiJson<OutgoingInspection>(`${v1}/tenant/outgoing-inspections/${encodeURIComponent(id)}/disputes`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  approveOutgoing: (id: string) =>
+    apiJson<OutgoingInspection>(`${v1}/tenant/outgoing-inspections/${encodeURIComponent(id)}/approve`, { method: 'PATCH' }),
+
+  setOutgoingAttendance: (caseId: string, attendance: 'yes' | 'no') =>
+    apiJson(`${v1}/tenant/vacating-cases/${encodeURIComponent(caseId)}/outgoing-attendance`, {
+      method: 'PATCH',
+      body: JSON.stringify({ attendance }),
+    }),
   rentReviews: () => apiJson<RentReviewDto[]>(`${v1}/tenant/rent-reviews`),
   vacatingCases: () => apiJson<VacatingDto[]>(`${v1}/tenant/vacating-cases`),
   onboarding: () => apiJson<OnboardingDto>(`${v1}/tenant/leasing/onboarding`),
@@ -263,6 +363,23 @@ export const tenantApi = {
 
   recordLeaseSigning: () =>
     apiJson(`${v1}/tenant/leasing/onboarding/agreement/record-signing`, { method: 'POST' }),
+
+  uploadKeyCollectionPhoto: (file: EvidenceFile) =>
+    apiJson<{ url: string }>(`${v1}/tenant/leasing/onboarding/key-collection/photos/upload`, {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
+        contentBase64: file.contentBase64,
+      }),
+    }),
+
+  submitKeyCollection: (body: { time: string; location: string; photoUrls: string[]; timeEnd?: string }) =>
+    apiJson(`${v1}/tenant/leasing/onboarding/key-collection`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 
   acknowledgeWelcome: () =>
     apiJson(`${v1}/tenant/onboarding/welcome/acknowledge`, { method: 'POST' }),

@@ -1,14 +1,18 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useState } from 'react';
+
+import { ledgerPdfBytes, sharePdf } from '@/src/api/files';
 import { money } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Notice, Screen } from '@/src/ui/ui';
 
 export function LedgerScreen() {
-  const { scenario, notify, ledger, rentPaidTo, property } = useDemo();
-  if (!scenario.ledger) return <Hidden title="Rent ledger" body="A ledger is shown only when Crossub Accounting holds the rent records for this tenancy." />;
+  const { scenario, ledger, rentPaidTo, property } = useDemo();
+  const [error, setError] = useState<string | null>(null);
+  if (!scenario.ledger) return <Hidden title="Rent ledger" body="Your agent manages this trust account. The rent ledger stays with the agency." />;
   const rows = ledger.map((item) => [item.when || 'Undated', item.amount == null ? '—' : money(item.amount), item.detail] as const);
   return (
     <Screen>
@@ -31,7 +35,24 @@ export function LedgerScreen() {
           </View>
         ))}
       </Card>
-      <Button label="Download ledger PDF" tone="outline" onPress={() => notify('Ledger export will use an authorised, expiring file link.')} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Button
+        label="Download ledger PDF"
+        tone="outline"
+        onPress={() => {
+          setError(null);
+          const lines = [
+            'Rent ledger',
+            property.title,
+            `Rent paid to ${rentPaidTo || '—'}`,
+            `Weekly rent ${money(property.rent)}`,
+            ...rows.map(([date, amount, detail]) => `${date}  ${amount}  ${detail}`),
+          ];
+          void sharePdf('rent-ledger.pdf', ledgerPdfBytes(lines)).catch((err) =>
+            setError(err instanceof Error ? err.message : 'Could not share the ledger'),
+          );
+        }}
+      />
     </Screen>
   );
 }
@@ -48,9 +69,7 @@ export function RentDetailsScreen() {
         <Text style={styles.amount}>{money(property.rent)}</Text>
         <Text style={styles.muted}>{property.frequency}</Text>
         <Text style={styles.body}>
-          {scenario.ledger
-            ? 'Open the ledger for paid-to, arrears and part payments.'
-            : 'Paid-to, arrears and receipts are unavailable because this trust account is outside Crossub Accounting.'}
+          {scenario.accounting}
         </Text>
       </Card>
       <Button label="Contact the responsible team" tone="outline" onPress={() => router.push('/flow/new-message')} />
@@ -80,7 +99,7 @@ export function InvoicesScreen() {
 
 export function ReceiptsScreen() {
   const { scenario } = useDemo();
-  if (!scenario.ledger) return <Hidden title="Rent receipts" body="Receipts are issued from Crossub Accounting. They are not created from a payment screenshot." />;
+  if (!scenario.ledger) return <Hidden title="Rent receipts" body="Your agent manages this trust account. Receipts stay with the agency." />;
   return (
     <Screen>
       <BackButton />
@@ -126,4 +145,5 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   tiles: { flexDirection: 'row', gap: 8 },
   tile: { flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, padding: 14, gap: 6 },
+  error: { color: colors.danger, fontSize: 13 },
 });

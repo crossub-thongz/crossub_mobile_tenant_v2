@@ -47,8 +47,8 @@ export default function InboxScreen() {
       {threads.map((thread) => (
         <Card key={thread.id} onPress={() => router.push(thread.route)}>
           <View style={styles.between}>
-            <Text style={styles.title}>{thread.subject}</Text>
-            <Text style={styles.muted}>Today</Text>
+            <Text style={styles.subject}>{thread.subject}</Text>
+            <Text style={styles.when}>Today</Text>
           </View>
           <Text style={styles.muted}>{thread.preview}</Text>
           <Tag label={thread.category} tone={thread.status === 'Completed' ? 'green' : 'neutral'} />
@@ -64,6 +64,8 @@ export default function InboxScreen() {
 
 const styles = StyleSheet.create({
   title: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  subject: { flexGrow: 1, flexShrink: 1, flexBasis: 0, color: colors.ink, fontSize: 15, fontWeight: '700' },
+  when: { flexShrink: 0, color: colors.muted, fontSize: 12, lineHeight: 18 },
   muted: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   link: { color: colors.green, fontWeight: '700' },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -71,5 +73,5 @@ const styles = StyleSheet.create({
   pillOn: { backgroundColor: colors.green, borderColor: colors.green },
   pillText: { color: '#78857b', fontSize: 12, fontWeight: '600' },
   pillTextOn: { color: '#fff' },
-  between: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  between: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
 });

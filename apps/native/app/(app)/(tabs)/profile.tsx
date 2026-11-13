@@ -41,8 +41,8 @@ export default function ProfileScreen() {
         <RowItem icon="help-circle-outline" title="Help" subtitle="FAQ, tutorial, and the access agreement" onPress={() => router.push('/help')} />
       </Card>
 
-      <Section title="Preview scenario" />
-      <Text style={styles.muted}>Local preview of management and accounting. The live app will read these flags from the tenancy, not from this list.</Text>
+      <Section title="Account type" />
+      <Text style={styles.muted}>The only difference is how rent payments are accounted.</Text>
       <View style={styles.scenarios}>
         {SCENARIOS.map((scenario) => {
           const selected = scenario.id === demo.scenarioId;

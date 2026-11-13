@@ -1,16 +1,18 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ONBOARDING_LABEL, ONBOARDING_STEPS } from '@/src/demo/applications';
+import { ONBOARDING_LABEL, ONBOARDING_STEPS, type OnboardingStepId } from '@/src/demo/applications';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Card, Screen, Tag } from '@/src/ui/ui';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { onboarding, applications } = useDemo();
+  const { onboarding, applications, onboardingActive } = useDemo();
+  const liveIds: OnboardingStepId[] = ['deposit', 'bond', 'lease_signing', 'key_pickup'];
+  const steps = onboardingActive ? ONBOARDING_STEPS.filter((step) => liveIds.includes(step.id)) : ONBOARDING_STEPS;
   const approved = applications.find((item) => item.status === 'approved');
-  const done = ONBOARDING_STEPS.filter((step) => onboarding[step.id] === 'completed').length;
+  const done = steps.filter((step) => onboarding[step.id] === 'completed').length;
 
   return (
     <Screen>
@@ -22,12 +24,12 @@ export default function OnboardingScreen() {
           : 'After an application is approved, the deposit, bond, lease, and key steps appear here.'}
       </Text>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${(done / ONBOARDING_STEPS.length) * 100}%` }]} />
+        <View style={[styles.progressFill, { width: `${steps.length === 0 ? 0 : (done / steps.length) * 100}%` }]} />
       </View>
       <Text style={styles.body}>
-        {done}/{ONBOARDING_STEPS.length} complete
+        {done}/{steps.length} complete
       </Text>
-      {ONBOARDING_STEPS.map((step, index) => (
+      {steps.map((step, index) => (
         <Card key={step.id} onPress={() => router.push(`/onboarding/${step.id}`)}>
           <Text style={styles.step}>Step {index + 1}</Text>
           <Text style={styles.address}>{step.title}</Text>

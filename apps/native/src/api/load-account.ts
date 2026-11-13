@@ -11,6 +11,7 @@ import {
   type NotificationDto,
   type OnboardingDto,
   type RentReviewDto,
+  type RoutineInspectionDto,
   type TenancyDto,
   type VacatingDto,
 } from '@/src/api/tenant';
@@ -59,6 +60,7 @@ export type LiveVacating = {
   reason: string;
   vacateDate: string;
   keysReturned: boolean;
+  keysReturnAddress: string | null;
   photoUrls: string[];
   submitted: boolean;
   cleaning: string;
@@ -69,6 +71,16 @@ export type LiveVacating = {
   refund: number | null;
 };
 
+export type LiveKeyCollection = { time: string | null; location: string | null; status: string };
+
+export type LiveRoutineAction = {
+  id: string;
+  flow: 'self' | 'in_person';
+  status: string;
+  scheduledAt: string | null;
+  address: string;
+};
+
 export type LoadedAccount = {
   accountStatus: 'ready';
   accountError: string | null;
@@ -76,6 +88,8 @@ export type LoadedAccount = {
   propertyUuid: string | null;
   liveProperty: Property | null;
   rentPaidTo: string;
+  rentPaidToIso: string | null;
+  paymentCycle: string | null;
   paymentReference: string;
   maintenance: LiveMaintenance[];
   threads: Thread[];
@@ -93,6 +107,9 @@ export type LoadedAccount = {
   keyReturnSubmitted: boolean;
   keyReturnPhotos: string[];
   onboarding: Record<OnboardingStepId, OnboardingStatus>;
+  onboardingAmounts: Partial<Record<OnboardingStepId, number>>;
+  keyCollection: LiveKeyCollection | null;
+  routineAction: LiveRoutineAction | null;
   guideSeen: boolean;
   inspectionConfirmed: boolean;
   nextRoutineAt: string | null;
@@ -228,6 +245,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
     vacating,
     onboarding,
     welcome,
+    routines,
   ] = await Promise.all([
     settled(() => tenantApi.tenancies(), [] as TenancyDto[]),
     settled(() => tenantApi.ledger(), []),
@@ -241,15 +259,21 @@ export async function loadAccount(): Promise<LoadedAccount> {
     settled(() => tenantApi.vacatingCases(), [] as VacatingDto[]),
     settled(() => tenantApi.onboarding(), null as OnboardingDto | null),
     settled(() => tenantApi.welcome(), null as { acknowledged: boolean } | null),
+    settled(() => tenantApi.routineInspections(), [] as RoutineInspectionDto[]),
   ]);
 
   const tenancy = tenancies.value.find((item) => item.status === 'ACTIVE') ?? tenancies.value[0] ?? null;
   const review = reviews.value.find((item) => item.waitingFor === 'TENANT') ?? reviews.value[0] ?? null;
   const vacatingCase = vacating.value.find((item) => item.status === 'open') ?? vacating.value[0] ?? null;
   const steps = emptyOnboarding();
+  const onboardingAmounts: Partial<Record<OnboardingStepId, number>> = {};
   for (const step of onboarding.value?.steps ?? []) {
     if (step.id in steps) steps[step.id as OnboardingStepId] = onboardingStatus(step.status);
+    if (typeof step.amount === 'number') onboardingAmounts[step.id as OnboardingStepId] = step.amount;
   }
+  const routineList = Array.isArray(routines.value) ? routines.value : [];
+  const routineNeedingAction = routineList.find((item) => item.tenantActionRequired) ?? null;
+  const key = onboarding.value?.keyCollection;
   const settlement = vacatingCase?.repairQuoteSettlementSummary;
   const failures = [tenancies, ledger, messages, notifications].filter((item) => !item.ok).map((item) => item.error);
   const authFailed = failures.some((item) => item?.toLowerCase().includes('session') || item?.includes('401'));
@@ -261,6 +285,8 @@ export async function loadAccount(): Promise<LoadedAccount> {
     propertyUuid: tenancy?.propertyId ?? null,
     liveProperty: tenancy ? mapProperty(tenancy) : null,
     rentPaidTo: dateLabel(tenancy?.rentPaidTo),
+    rentPaidToIso: tenancy?.rentPaidTo ?? null,
+    paymentCycle: tenancy?.paymentCycle ?? null,
     paymentReference: tenancy?.paymentReference || '',
     maintenance: maintenance.value.map(mapMaintenance),
     threads: messages.value.map((item) => ({
@@ -343,6 +369,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
           reason: vacatingCase.terminationReason || 'End of lease',
           vacateDate: dateLabel(vacatingCase.vacatingDate),
           keysReturned: vacatingCase.keysReturned,
+          keysReturnAddress: vacatingCase.keysReturnAddress,
           photoUrls: vacatingCase.keyReturnPhotoUrls ?? [],
           submitted: Boolean(vacatingCase.tenantKeyReturnSubmittedAt),
           cleaning: vacatingCase.cleaningArrangement,
@@ -358,9 +385,24 @@ export async function loadAccount(): Promise<LoadedAccount> {
     keyReturnSubmitted: Boolean(vacatingCase?.tenantKeyReturnSubmittedAt),
     keyReturnPhotos: vacatingCase?.keyReturnPhotoUrls ?? [],
     onboarding: steps,
+    onboardingAmounts,
+    keyCollection: key
+      ? { time: key.time, location: key.location, status: key.status }
+      : null,
+    routineAction: routineNeedingAction
+      ? {
+          id: routineNeedingAction.id,
+          flow: routineNeedingAction.flow === 'self' ? 'self' : 'in_person',
+          status: routineNeedingAction.status,
+          scheduledAt: routineNeedingAction.scheduledAt,
+          address: routineNeedingAction.propertyAddress || '',
+        }
+      : null,
     guideSeen: Boolean(welcome.value?.acknowledged),
     inspectionConfirmed: inspections.value.some((item) => item.type === 'ROUTINE' && item.status !== 'CANCELLED' && item.status !== 'DRAFT'),
     nextRoutineAt:
+      routineNeedingAction?.scheduledAt ??
+      routineList.find((item) => item.status !== 'completed' && item.scheduledAt)?.scheduledAt ??
       inspections.value.find((item) => item.type === 'ROUTINE' && item.status !== 'COMPLETED' && item.status !== 'CANCELLED' && item.scheduledDate)?.scheduledDate ??
       tenancy?.nextRoutineInspectionAt ??
       null,

@@ -4,10 +4,11 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { pickEvidence } from '@/src/api/pick-evidence';
 import type { EvidenceFile } from '@/src/api/tenant';
-import { ROOMS } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Field, Input, Notice, RowItem, Screen, Tag, TaskHeader, Timeline } from '@/src/ui/ui';
+
+export { SelfInspectionScreen } from '@/src/flows/self-routine';
 
 export function InspectionScreen() {
   const router = useRouter();
@@ -73,11 +74,10 @@ export function RescheduleScreen() {
 export function InspectionsScreen() {
   const router = useRouter();
   const demo = useDemo();
-  const { selfSubmitted, selfVersion } = demo;
   const rows = [
     ...demo.inspections.map((item) => [item.title, item.when || item.status, '/flow/inspection'] as const),
     ['Routine inspection', 'Confirm or reschedule', '/flow/inspection'],
-    ['Routine self-inspection', selfSubmitted ? `Version ${selfVersion} locked` : 'At least 3 photos per room', '/flow/self-inspection'],
+    ['Routine self-inspection', 'Photograph the rooms and submit', '/flow/self-inspection'],
     ['Entry condition report', 'Your own acknowledgement', '/flow/entry'],
     ['Final inspection', 'Respond to each finding', '/flow/final'],
     ['Open inspection', 'View notice', '/flow/open-inspection'],
@@ -130,53 +130,6 @@ export function OpenInspectionScreen() {
       </Card>
       <Button label="Request change" tone="secondary" onPress={() => router.push('/flow/reschedule')} />
       <Notice>A change request does not move the published time. The manager updates the notice.</Notice>
-    </Screen>
-  );
-}
-
-export function SelfInspectionScreen() {
-  const router = useRouter();
-  const demo = useDemo();
-  const complete = ROOMS.filter((room) => (demo.photoCounts[room] ?? 0) >= 3).length;
-  return (
-    <Screen>
-      <BackButton />
-      <Text style={styles.h2}>Self-inspection</Text>
-      <Text style={styles.muted}>Version {demo.selfVersion}. At least 3 photos in every room. Drafts stay on this device until submit.</Text>
-      <Card>
-        <Text style={styles.title}>
-          {complete} / {ROOMS.length} rooms complete
-        </Text>
-      </Card>
-      {ROOMS.map((room) => {
-        const count = demo.photoCounts[room] ?? 0;
-        return (
-          <Card key={room}>
-            <View style={styles.between}>
-              <Text style={styles.title}>{room}</Text>
-              <Tag label={`${count} / 3 photos`} tone={count >= 3 ? 'green' : 'amber'} />
-            </View>
-            <Button
-              label={demo.selfSubmitted ? 'Locked' : 'Add photo'}
-              tone="secondary"
-              onPress={() => demo.addRoomPhoto(room)}
-            />
-          </Card>
-        );
-      })}
-      {demo.selfSubmitted ? (
-        <>
-          <Notice>This version is locked. A revision is a new version. The original is kept.</Notice>
-          <Button label="Start revision" tone="outline" onPress={demo.startRevision} />
-        </>
-      ) : (
-        <Button
-          label="Submit inspection"
-          onPress={() => {
-            if (demo.submitSelf()) router.replace('/flow/inspections');
-          }}
-        />
-      )}
     </Screen>
   );
 }

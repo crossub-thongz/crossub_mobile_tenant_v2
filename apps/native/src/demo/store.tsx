@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { useAuth } from '@/src/auth/auth-context';
 import { ApiError } from '@/src/api/http';
-import { loadAccount, type LiveDocument, type LiveInspection, type LiveLedgerRow, type LiveMaintenance, type LiveReview, type LiveVacating } from '@/src/api/load-account';
+import { loadAccount, type LiveDocument, type LiveInspection, type LiveKeyCollection, type LiveLedgerRow, type LiveMaintenance, type LiveReview, type LiveRoutineAction, type LiveVacating } from '@/src/api/load-account';
 import { departmentFor, tenantApi, type EvidenceFile } from '@/src/api/tenant';
 import {
   FINDINGS,
@@ -59,7 +59,10 @@ type DemoState = {
   propertyUuid: string | null;
   liveProperty: Property | null;
   rentPaidTo: string;
+  rentPaidToIso: string | null;
+  paymentCycle: string | null;
   paymentReference: string;
+  rentPaymentNote: { amount: number; at: string } | null;
   ledger: LiveLedgerRow[];
   documents: LiveDocument[];
   inspections: LiveInspection[];
@@ -85,6 +88,9 @@ type DemoState = {
   checkIns: Record<string, CheckIn>;
   applications: ApplicationRecord[];
   onboarding: Record<OnboardingStepId, OnboardingStatus>;
+  onboardingAmounts: Partial<Record<OnboardingStepId, number>>;
+  keyCollection: LiveKeyCollection | null;
+  routineAction: LiveRoutineAction | null;
   onboardingProofs: Record<string, string>;
   tutorialDone: boolean;
   guideSeen: boolean;
@@ -120,7 +126,10 @@ const initialState: DemoState = {
   propertyUuid: null,
   liveProperty: null,
   rentPaidTo: '',
+  rentPaidToIso: null,
+  paymentCycle: null,
   paymentReference: '',
+  rentPaymentNote: null,
   ledger: [],
   documents: [],
   inspections: [],
@@ -146,6 +155,9 @@ const initialState: DemoState = {
   checkIns: {},
   applications: [],
   onboarding: emptyOnboarding(),
+  onboardingAmounts: {},
+  keyCollection: null,
+  routineAction: null,
   onboardingProofs: {},
   tutorialDone: false,
   guideSeen: false,
@@ -177,6 +189,7 @@ type DemoApi = DemoState & {
   attachKeyPhoto: () => void;
   submitKeyEvidence: () => boolean;
   refreshAccount: () => Promise<void>;
+  noteRentPayment: (amount: number) => void;
   addMaintenance: (title: string, urgent: boolean, photos: EvidenceFile[], video: string) => Promise<string | null>;
   addKeyReturnPhoto: (file: EvidenceFile) => string | null;
   removeKeyReturnPhoto: (name: string) => void;
@@ -199,6 +212,7 @@ type DemoApi = DemoState & {
   uploadApplicationDocument: (id: string, name: string) => void;
   uploadOnboardingProof: (stepId: OnboardingStepId, file: EvidenceFile) => string | null;
   confirmOnboarding: (stepId: OnboardingStepId) => void;
+  submitKeyCollection: (time: string, location: string, file: EvidenceFile) => void;
   finishTutorial: () => void;
   finishGuide: () => void;
   acceptAgreement: (name: string) => string | null;
@@ -263,8 +277,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, [refreshAccount, status]);
 
   const api = useMemo<DemoApi>(() => {
-    const baseScenario = scenarioById(state.scenarioId);
-    const scenario = state.accountStatus === 'ready' ? { ...baseScenario, ledger: state.ledgerConnected } : baseScenario;
+    const scenario = scenarioById(state.scenarioId);
     const property =
       state.liveProperty ??
       (state.accountStatus === 'ready'
@@ -289,6 +302,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       property,
       current,
       refreshAccount,
+      noteRentPayment: (amount) => {
+        patch({ rentPaymentNote: { amount, at: new Date().toISOString() } });
+        notify('Payment noted. The ledger updates when the transfer clears.');
+      },
       setScenario: (scenarioId) => patch({ scenarioId }),
       setProperty: (propertyId) => patch({ propertyId }),
       setActivityFilter: (activityFilter) => patch({ activityFilter }),
@@ -632,8 +649,26 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             .catch((err) => notify(failureMessage(err, 'Could not record the lease signing')));
           return;
         }
-        patch({ onboarding: { ...state.onboarding, [stepId]: 'completed' } });
-        notify('Step updated');
+        if (stepId === 'key_pickup') {
+          notify('Add the collection time, location, and a photo');
+          return;
+        }
+        notify('This step is updated when your property manager confirms it');
+      },
+      submitKeyCollection: (time, location, file) => {
+        void (async () => {
+          try {
+            const uploaded = await tenantApi.uploadKeyCollectionPhoto(file);
+            await tenantApi.submitKeyCollection({ time, location, photoUrls: [uploaded.url] });
+            patch({
+              onboarding: { ...state.onboarding, key_pickup: 'completed' },
+              keyCollection: { time, location, status: 'completed' },
+            });
+            notify('Key collection sent');
+          } catch (err) {
+            notify(failureMessage(err, 'Could not save key collection'));
+          }
+        })();
       },
       finishTutorial: () => {
         patch({ tutorialDone: true });

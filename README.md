@@ -10,9 +10,9 @@ Five tabs: Home, Activity, Inbox, Payments, Profile. The screens follow the conf
 
 Sign in with any email and password. On Profile, switch the preview scenario:
 
-- Full Service · Crossub Trust shows the verified ledger, part payments, receipts and arrears.
-- Full Service · Agent Trust, and Self-Manage · Agent Trust, keep contractual rent and published payment instructions. They do not invent paid-to or arrears.
-- Self-Manage · Crossub Accounting keeps the agency as the contact and still shows the verified ledger.
+- Full Service Crossub Trust: Crossub manages the trust account, so paid-to, arrears, the ledger and receipts come from Crossub Accounting.
+- Full Service Agent Trust: the agent manages their own trust account. Contractual rent stays visible. Paid-to, arrears and receipts are not invented.
+- Self Manage Crossub Accounting: the agent uses Crossub Accounting for their own trust account, so the same rent records are shown.
 
 There is no Pay Now action. A previous tenancy can be opened from My properties, and new maintenance stays closed there.
 

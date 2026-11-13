@@ -30,8 +30,16 @@ export default function ActivityScreen() {
     },
     {
       name: 'Key collection',
-      detail: demo.keyBooked ? 'Appointment requested' : 'Book your key handover',
-      kind: demo.keyBooked ? 'In Progress' : 'Action Required',
+      detail: demo.vacating?.keysReturnAddress
+        ? `Return keys to ${demo.vacating.keysReturnAddress}`
+        : demo.keyCollection?.time
+          ? `Collection ${demo.keyCollection.time.slice(0, 16).replace('T', ' ')}`
+          : demo.onboarding.key_pickup === 'completed'
+            ? 'Key collection recorded'
+            : demo.keyReturnSubmitted
+              ? 'Key return submitted'
+              : 'Confirm key collection or return',
+      kind: demo.onboarding.key_pickup === 'completed' || demo.keyReturnSubmitted ? 'In Progress' : 'Action Required',
       type: 'Key Handover',
       href: '/flow/keys',
       currentOnly: true,

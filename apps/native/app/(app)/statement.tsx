@@ -26,7 +26,7 @@ export default function StatementScreen() {
       <BackButton fallback="/payments" />
       <Text style={styles.title}>Final statement</Text>
       {!scenario.ledger ? (
-        <Notice>This tenancy's rent records stay with your agent. The app does not calculate a refund from them.</Notice>
+        <Notice>Your agent manages this trust account. The app does not calculate a refund from those rent records.</Notice>
       ) : (
         <>
           <Text style={styles.body}>{vacating?.address || property.title}</Text>

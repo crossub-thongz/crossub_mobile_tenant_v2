@@ -1,4 +1,4 @@
-export type ScenarioId = 'crossub' | 'agent-trust' | 'self-agent' | 'self-accounting';
+export type ScenarioId = 'crossub' | 'agent-trust' | 'self-accounting';
 export type PropertyId = 'berry' | 'halifax';
 export type ActivityFilter = 'Action Required' | 'In Progress' | 'History';
 export type InboxFilter = 'All' | 'Unread' | 'Maintenance' | 'Inspection' | 'Leasing' | 'General';
@@ -10,7 +10,10 @@ export type ThreadStatus = 'Open' | 'Completed';
 export type Scenario = {
   id: ScenarioId;
   label: string;
+  /** Rent payments are recorded in Crossub Accounting. */
   ledger: boolean;
+  /** Who accounts for the rent. This is the only difference between account types. */
+  accounting: string;
   team: string;
   trustName: string;
 };
@@ -18,31 +21,27 @@ export type Scenario = {
 export const SCENARIOS: Scenario[] = [
   {
     id: 'crossub',
-    label: 'Full Service · Crossub Trust',
+    label: 'Full Service Crossub Trust',
     ledger: true,
+    accounting: 'Crossub manages this trust account as part of full service. Rent is recorded in Crossub Accounting.',
     team: 'Crossub Management',
     trustName: 'Crossub Trust Account',
   },
   {
     id: 'agent-trust',
-    label: 'Full Service · Agent Trust',
+    label: 'Full Service Agent Trust',
     ledger: false,
+    accounting: 'Your agent manages their own trust account. Paid-to dates, arrears and receipts stay with the agency.',
     team: 'Crossub Management',
     trustName: 'Agency Trust Account',
   },
   {
-    id: 'self-agent',
-    label: 'Self-Manage · Agent Trust',
-    ledger: false,
-    team: 'Your Agency',
-    trustName: 'Agency Trust Account',
-  },
-  {
     id: 'self-accounting',
-    label: 'Self-Manage · Crossub Accounting',
+    label: 'Self Manage Crossub Accounting',
     ledger: true,
-    team: 'Your Agency',
-    trustName: 'Crossub Trust Account',
+    accounting: 'Your agent uses Crossub Accounting to manage their own trust account.',
+    team: 'Crossub Management',
+    trustName: 'Crossub Accounting',
   },
 ];
 

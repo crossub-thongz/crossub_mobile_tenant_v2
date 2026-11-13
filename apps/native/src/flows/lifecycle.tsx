@@ -3,10 +3,13 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { pickEvidence } from '@/src/api/pick-evidence';
-import { FINDINGS, money, type CleaningChoice, type KeyMode } from '@/src/demo/model';
+import { type CleaningChoice } from '@/src/demo/model';
+import { KeyCollectionForm } from '@/src/flows/key-collection';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen, TaskHeader, Timeline } from '@/src/ui/ui';
+
+export { FinalScreen } from '@/src/flows/outgoing-report';
 
 export const CLEANING: { id: CleaningChoice; body: string }[] = [
   { id: 'Crossub Cleaning', body: 'Brightness coordinates cleaning. This is a request, not a booked quote.' },
@@ -14,7 +17,6 @@ export const CLEANING: { id: CleaningChoice; body: string }[] = [
   { id: 'Tenant Arranged', body: 'Your cleaner, or you. Upload completion photos and the date.' },
 ];
 
-const KEY_MODES: KeyMode[] = ['Crossub Booking', 'Agent Record Only', 'Agent Booking'];
 const SETTLEMENTS = ['Separate payment', 'Bond deduction', 'Split settlement'];
 
 export function RenewalScreen() {
@@ -47,31 +49,26 @@ export function RenewalScreen() {
 export function KeysScreen() {
   const demo = useDemo();
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const booking = demo.keyMode !== 'Agent Record Only';
+  const collecting = demo.onboardingActive && demo.onboarding.key_pickup !== 'completed';
+  const returning = Boolean(demo.vacating);
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Key handover</Text>
-      <Text style={styles.muted}>Move-in collection. The responsible party is chosen by the agency, not by you.</Text>
-      <Card>
-        <Text style={styles.title}>Handover mode</Text>
-        {KEY_MODES.map((mode) => (
-          <Choice key={mode} title={mode} body={mode === 'Agent Record Only' ? 'Arranged outside the app' : 'Book a slot or request a time'} selected={demo.keyMode === mode} onPress={() => demo.setKeyMode(mode)} />
-        ))}
-        {booking ? <Button label={demo.keyBooked ? 'Booking requested' : 'Request appointment'} onPress={demo.bookKey} /> : <Notice>Record the exchange below. No in-app booking is required.</Notice>}
-      </Card>
-      <Card>
-        <Text style={styles.title}>Handover evidence</Text>
-        <Button label={demo.keyPhoto ? 'Photo attached' : 'Attach photo'} tone="secondary" onPress={demo.attachKeyPhoto} />
-        <Field label="Key quantity">
-          <Input value="2" editable={false} />
-        </Field>
-        <Field label="Actual handover time">
-          <Input value="2 Dec 2026, 10:00 AM" editable={false} />
-        </Field>
-        <Button label="Submit handover record" onPress={demo.submitKeyEvidence} />
-      </Card>
-      {demo.keyRecorded ? <Notice>Waiting for the responsible party to confirm. Key return does not end the tenancy or change rent paid-to.</Notice> : null}
+      <Text style={styles.muted}>Move-in collection is saved on the lease. Key return uses the address on the vacating case.</Text>
+      {collecting || demo.keyCollection ? <KeyCollectionForm /> : null}
+      {returning ? (
+        <Card>
+          <Text style={styles.title}>Return keys to</Text>
+          <Text style={styles.body}>
+            {demo.vacating?.keysReturnAddress || 'Your property manager will send the key return location shortly.'}
+          </Text>
+          {demo.vacating?.keysReturned ? <Notice>Keys are marked returned on this vacating case.</Notice> : null}
+        </Card>
+      ) : null}
+      {!collecting && !demo.keyCollection && !returning ? (
+        <Notice>Key collection appears here once a lease is being prepared. Key return appears on an open vacating case.</Notice>
+      ) : null}
       <Card>
         <Text style={styles.title}>Returned keys and access devices</Text>
         <Text style={styles.muted}>Add a clear photo of the keys, remotes, or cards you returned. Up to 4.</Text>
@@ -148,66 +145,6 @@ export function CleaningScreen() {
           }
           demo.notify('Choice recorded. The vacating task stays open.');
           router.replace('/flow/vacating');
-        }}
-      />
-    </Screen>
-  );
-}
-
-export function FinalScreen() {
-  const router = useRouter();
-  const demo = useDemo();
-  const [reasons, setReasons] = useState<Record<number, string>>({});
-  return (
-    <Screen>
-      <BackButton />
-      <Text style={styles.h2}>Final inspection</Text>
-      <Text style={styles.muted}>Respond to every finding. Accepting one does not change the others.</Text>
-      <Card>
-        <Text style={styles.title}>Published report</Text>
-        <Text style={styles.muted}>Findings, evidence and proposed charges. Owner pricing notes are not shown.</Text>
-      </Card>
-      {FINDINGS.map((finding) => {
-        const response = demo.findings[finding.id]?.response;
-        return (
-          <Card key={finding.id}>
-            <View style={styles.between}>
-              <Text style={styles.title}>{finding.name}</Text>
-              <Text style={styles.title}>{money(finding.amount)}</Text>
-            </View>
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <Button label="Accept" tone={response === 'Accept' ? 'primary' : 'secondary'} onPress={() => demo.setFinding(finding.id, 'Accept')} />
-              </View>
-              <View style={styles.flex}>
-                <Button label="Dispute" tone={response === 'Dispute' ? 'primary' : 'secondary'} onPress={() => demo.setFinding(finding.id, 'Dispute', reasons[finding.id])} />
-              </View>
-            </View>
-            {response === 'Dispute' ? (
-              <Field label="Reason">
-                <Input
-                  multiline
-                  value={reasons[finding.id] ?? ''}
-                  onChangeText={(reason) => {
-                    setReasons((current) => ({ ...current, [finding.id]: reason }));
-                    demo.setFinding(finding.id, 'Dispute', reason);
-                  }}
-                  placeholder="What should be reviewed?"
-                />
-              </Field>
-            ) : null}
-          </Card>
-        );
-      })}
-      <Button
-        label="Submit all responses"
-        onPress={() => {
-          if (!demo.findingsReady()) {
-            demo.notify('Respond to every finding');
-            return;
-          }
-          demo.notify('Responses submitted. Each finding keeps its own history.');
-          router.replace('/flow/settlement');
         }}
       />
     </Screen>

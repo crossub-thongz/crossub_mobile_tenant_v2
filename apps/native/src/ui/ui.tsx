@@ -6,10 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
+import { AppMenuButton } from '@/src/ui/app-menu';
 
-export function Screen({ children, tab = false }: { children: ReactNode; tab?: boolean }) {
+export function Screen({ children, tab = false, background }: { children: ReactNode; tab?: boolean; background?: string }) {
   return (
-    <SafeAreaView style={styles.safe} edges={tab ? ['top'] : ['top', 'bottom']}>
+    <SafeAreaView style={[styles.safe, background ? { backgroundColor: background } : null]} edges={tab ? ['top'] : ['top', 'bottom']}>
       <ScrollView contentContainerStyle={[styles.scroll, tab && styles.tabScroll]} keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
@@ -26,15 +27,18 @@ export function TabHeader({ kicker, title }: { kicker: string; title: string }) 
         <Text style={styles.kicker}>{kicker}</Text>
         <Text style={styles.h1}>{title}</Text>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Notifications"
-        onPress={() => router.push('/flow/notifications')}
-        style={styles.iconBtn}
-      >
-        <Ionicons name="notifications-outline" size={18} color={colors.ink} />
-        {unreadNotices ? <View style={styles.badge} /> : null}
-      </Pressable>
+      <View style={styles.headerTools}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+          onPress={() => router.push('/flow/notifications')}
+          style={styles.iconBtn}
+        >
+          <Ionicons name="notifications-outline" size={18} color={colors.ink} />
+          {unreadNotices ? <View style={styles.badge} /> : null}
+        </Pressable>
+        <AppMenuButton />
+      </View>
     </View>
   );
 }
@@ -229,6 +233,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: 32, gap: 12 },
   tabScroll: { paddingBottom: 28 },
   top: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  headerTools: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   grow: { flex: 1 },
   kicker: { color: colors.green, fontSize: 11, fontWeight: '700', letterSpacing: 1.4 },
   h1: { color: colors.ink, fontSize: 28, fontWeight: '700', letterSpacing: -0.6, marginTop: 4 },

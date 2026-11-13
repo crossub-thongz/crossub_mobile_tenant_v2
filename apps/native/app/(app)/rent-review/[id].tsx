@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
+import { downloadAuthedPdf } from '@/src/api/files';
 import { money } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
@@ -38,6 +39,27 @@ export default function RentReviewDetailScreen() {
         <Text style={styles.body}>Effective {review.effective || 'the date on the notice'}</Text>
       </Card>
       <Notice>Accepting records your answer. It does not sign a lease extension. The agreement arrives separately.</Notice>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Button
+        label="Download notice of rent increase"
+        tone="outline"
+        onPress={() => {
+          setError(null);
+          void downloadAuthedPdf(`/api/v1/tenant/rent-reviews/${review.id}/notice-of-rent-increase.pdf`, 'notice-of-rent-increase.pdf').catch((err) =>
+            setError(err instanceof Error ? err.message : 'Could not download the notice'),
+          );
+        }}
+      />
+      <Button
+        label="Download lease agreement"
+        tone="outline"
+        onPress={() => {
+          setError(null);
+          void downloadAuthedPdf(`/api/v1/tenant/rent-reviews/${review.id}/residential-tenancy-agreement.pdf`, 'residential-tenancy-agreement.pdf').catch((err) =>
+            setError(err instanceof Error ? err.message : 'Could not download the agreement'),
+          );
+        }}
+      />
       {demo.rentReviewStatus === 'pending' ? (
         <>
           <Button label="Accept the increase" onPress={demo.acceptRentReview} />
