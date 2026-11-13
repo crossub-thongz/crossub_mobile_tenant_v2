@@ -1,25 +1,10 @@
+import type { components } from '@crossub-thongz/api-contract';
+
+import { crossub, unwrap } from '@/src/api/client';
 import { apiJson } from '@/src/api/http';
 import type { Listing } from '@/src/demo/listings';
 
-type PublicListingDto = {
-  id: string;
-  address: string;
-  suburb: string | null;
-  status: string;
-  acceptingApplications: boolean;
-  propertyType: string;
-  rentWeekly: number | null;
-  bondAmount: number | null;
-  depositAmount: number | null;
-  availableFrom: string | null;
-  leaseTerm: string | null;
-  openInspectionAt: string | null;
-  openInspectionEndAt: string | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  parking: number | null;
-  features: string[];
-};
+type PublicListingDto = components['schemas']['PublicListingResponseDto'];
 
 function label(type: string): string {
   return type.charAt(0) + type.slice(1).toLowerCase().replaceAll('_', ' ');
@@ -42,7 +27,7 @@ export function mapListing(dto: PublicListingDto): Listing {
     id: dto.id,
     address: dto.address,
     suburb: dto.suburb ?? '',
-    rentWeekly: dto.rentWeekly,
+    rentWeekly: dto.rentWeekly ?? null,
     bondAmount: dto.bondAmount ?? undefined,
     depositAmount: dto.depositAmount ?? undefined,
     propertyType: label(dto.propertyType || 'Property'),
@@ -51,7 +36,7 @@ export function mapListing(dto: PublicListingDto): Listing {
     parking: dto.parking ?? undefined,
     availableFrom: dto.availableFrom ? dto.availableFrom.slice(0, 10) : 'TBC',
     leaseTerm: dto.leaseTerm ?? undefined,
-    openInspection: when(dto.openInspectionAt, dto.openInspectionEndAt),
+    openInspection: when(dto.openInspectionAt ?? null, dto.openInspectionEndAt ?? null),
     features: dto.features ?? [],
     status: dto.acceptingApplications ? 'Showing' : dto.status,
     canApply: dto.acceptingApplications,
@@ -62,8 +47,8 @@ let cache: Promise<Listing[]> | null = null;
 
 export function loadPublicListings(force = false): Promise<Listing[]> {
   if (!cache || force) {
-    cache = apiJson<PublicListingDto[] | { items: PublicListingDto[] }>('/api/v1/public/listings', undefined, false)
-      .then((body) => (Array.isArray(body) ? body : body.items ?? []).map(mapListing))
+    cache = unwrap(crossub.GET('/public/listings'))
+      .then((body) => body.items.map(mapListing))
       .catch((err) => {
         cache = null;
         throw err;
@@ -73,13 +58,8 @@ export function loadPublicListings(force = false): Promise<Listing[]> {
 }
 
 export async function loadPublicListing(id: string): Promise<Listing | null> {
-  try {
-    const dto = await apiJson<PublicListingDto>(`/api/v1/public/listings/${encodeURIComponent(id)}`, undefined, false);
-    return mapListing(dto);
-  } catch {
-    const all = await loadPublicListings();
-    return all.find((item) => item.id === id) ?? null;
-  }
+  const all = await loadPublicListings();
+  return all.find((item) => item.id === id) ?? null;
 }
 
 export type GuestApplicationInput = {
@@ -94,10 +74,11 @@ export type GuestApplicationInput = {
 };
 
 export function submitGuestApplication(propertyId: string, body: GuestApplicationInput) {
-  return apiJson<{ id: string; reference: string }>(
-    `/api/v1/public/listings/${encodeURIComponent(propertyId)}/applications`,
-    { method: 'POST', body: JSON.stringify(body) },
-    false,
+  return unwrap(
+    crossub.POST('/public/listings/{propertyId}/applications', {
+      params: { path: { propertyId } },
+      body,
+    }),
   );
 }
 

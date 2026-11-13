@@ -1,14 +1,13 @@
+import { crossub, unwrap } from '@/src/api/client';
 import { apiJson } from '@/src/api/http';
-import { clearSession, saveSession } from '@/src/auth/session';
+import { clearSession, getRefreshToken, saveSession } from '@/src/auth/session';
 import { isTenantUser, parseAuthUser, type AuthUser } from '@/src/auth/types';
 
-type MobileAuth = { accessToken?: string; refreshToken?: string; user?: unknown };
-
 export async function loginWithPassword(email: string, password: string): Promise<AuthUser> {
-  const body = await apiJson<MobileAuth>(
-    '/api/v1/auth/login',
-    { method: 'POST', body: JSON.stringify({ email: email.trim().toLowerCase(), password }) },
-    false,
+  const body = await unwrap(
+    await crossub.POST('/auth/login', {
+      body: { email: email.trim().toLowerCase(), password },
+    }),
   );
   const user = parseAuthUser(body.user);
   if (!body.accessToken || !body.refreshToken || !user) {
@@ -22,11 +21,10 @@ export async function loginWithPassword(email: string, password: string): Promis
 }
 
 export async function logoutRequest(): Promise<void> {
-  const { getRefreshToken } = await import('@/src/auth/session');
   const refreshToken = await getRefreshToken();
   try {
     if (refreshToken) {
-      await apiJson('/api/v1/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }, false);
+      await unwrap(await crossub.POST('/auth/logout', { body: { refreshToken } }));
     }
   } catch {
     // The local session is cleared either way.

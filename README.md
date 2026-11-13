@@ -8,7 +8,7 @@ The phone icon, splash image and Android adaptive icon are the inspector app ico
 
 Five tabs: Home, Activity, Inbox, Payments, Profile. The screens follow the confirmed tenant prototype: action-first home, one task list, Cros inside Inbox, and payments that change with the accounting source.
 
-Sign in with any email and password. On Profile, switch the preview scenario:
+Sign in with a tenant account. The app calls the same `/api/v1` contract as the inspector app, through `@crossub-thongz/api-contract`. On Profile, switch the preview scenario:
 
 - Full Service Crossub Trust: Crossub manages the trust account, so paid-to, arrears, the ledger and receipts come from Crossub Accounting.
 - Full Service Agent Trust: the agent manages their own trust account. Contractual rent stays visible. Paid-to, arrears and receipts are not invented.
@@ -18,7 +18,7 @@ There is no Pay Now action. A previous tenancy can be opened from My properties,
 
 ## What this build does not do
 
-It does not call the inspector API. Tenant reads and writes need their own facade over the existing tenancy, maintenance, inspection, accounting and conversation services. Until that facade exists, actions update local preview state on the device.
+It does not call the inspector API. Tenant reads and writes go through the tenant routes on the mobile contract (`/api/v1/tenant/...`). Inspection photo drafts and the profile scenario switcher stay on the device.
 
 ## Run
 

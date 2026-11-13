@@ -1,4 +1,9 @@
-import { apiJson, collectPages } from '@/src/api/http';
+import type { components } from '@crossub-thongz/api-contract';
+
+import { crossub, unwrap } from '@/src/api/client';
+import { collectPages } from '@/src/api/http';
+
+type Department = components['schemas']['CreateTenantMessageThreadDto']['department'];
 
 export type EvidenceFile = {
   fileName: string;
@@ -195,113 +200,105 @@ export type OutgoingInspection = {
   sections?: OutgoingSection[];
 };
 
-const v1 = '/api/v1';
+function fileBody(file: EvidenceFile) {
+  return {
+    fileName: file.fileName,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
+    contentBase64: file.contentBase64,
+  };
+}
 
-function pages<T>(path: string): Promise<T[]> {
-  return collectPages(async (page, pageSize) => {
-    const data = await apiJson<Page<T>>(`${v1}${path}?page=${page}&pageSize=${pageSize}`);
-    return { items: data.items ?? [], hasMore: Boolean(data.hasMore) };
-  });
+function pages<T>(load: (page: number, pageSize: number) => Promise<Page<T>>): Promise<T[]> {
+  return collectPages(load);
 }
 
 export const tenantApi = {
-  tenancies: () => pages<TenancyDto>('/tenant/tenancies'),
-  ledger: () => pages<LedgerDto>('/tenant/ledger'),
-  properties: () => pages<{ id: string; address: string; suburb: string | null }>('/tenant/properties'),
-  documents: () => apiJson<DocumentDto[]>(`${v1}/tenant/documents`),
-  applications: () => pages<ApplicationDto>('/tenant/applications'),
-  maintenance: () => pages<MaintenanceDto>('/tenant/maintenance-requests'),
-  messages: () => apiJson<MessageDto[]>(`${v1}/tenant/messages`),
-  notifications: () => apiJson<NotificationDto[]>(`${v1}/tenant/notifications`),
-  inspections: () => pages<InspectionDto>('/tenant/inspections'),
+  tenancies: () =>
+    pages(async (page, pageSize) => unwrap(await crossub.GET('/tenant/tenancies', { params: { query: { page, pageSize } } }))),
+  ledger: () =>
+    pages(async (page, pageSize) => unwrap(await crossub.GET('/tenant/ledger', { params: { query: { page, pageSize } } }))),
+  properties: () =>
+    pages(async (page, pageSize) => unwrap(await crossub.GET('/tenant/properties', { params: { query: { page, pageSize } } }))),
+  documents: () => unwrap(crossub.GET('/tenant/documents')),
+  applications: () =>
+    pages(async (page, pageSize) => unwrap(await crossub.GET('/tenant/applications', { params: { query: { page, pageSize } } }))),
+  maintenance: () =>
+    pages(async (page, pageSize) =>
+      unwrap(await crossub.GET('/tenant/maintenance-requests', { params: { query: { page, pageSize } } })),
+    ),
+  messages: () => unwrap(crossub.GET('/tenant/messages')),
+  notifications: () => unwrap(crossub.GET('/tenant/notifications')),
+  inspections: () =>
+    pages(async (page, pageSize) => unwrap(await crossub.GET('/tenant/inspections', { params: { query: { page, pageSize } } }))),
 
-  routineInspections: async () => {
-    const data = await apiJson<RoutineInspectionDto[] | { items?: RoutineInspectionDto[] }>(`${v1}/tenant/routine-inspections`);
-    return Array.isArray(data) ? data : (data.items ?? []);
-  },
+  routineInspections: () => unwrap(crossub.GET('/tenant/routine-inspections')),
 
   getRoutineInspection: (id: string) =>
-    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}`),
+    unwrap(crossub.GET('/tenant/routine-inspections/{id}', { params: { path: { id } } })),
 
   startRoutineSelf: (id: string) =>
-    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}/start-self`, { method: 'POST' }),
+    unwrap(crossub.POST('/tenant/routine-inspections/{id}/start-self', { params: { path: { id } } })),
 
   saveRoutineSelfDraft: (id: string, body: { areaIndex?: number; areaOrder?: string[]; areas: RoutineSelfArea[] }) =>
-    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}/self-draft`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }),
+    unwrap(crossub.PATCH('/tenant/routine-inspections/{id}/self-draft', { params: { path: { id } }, body })),
 
   submitRoutineSelf: (id: string, sections: { areaName: string; photoUrls: string[]; comment?: string }[]) =>
-    apiJson<RoutineInspectionDetail>(`${v1}/tenant/routine-inspections/${encodeURIComponent(id)}/submit-self`, {
-      method: 'POST',
-      body: JSON.stringify({ sections }),
-    }),
+    unwrap(crossub.POST('/tenant/routine-inspections/{id}/submit-self', { params: { path: { id } }, body: { sections } })),
 
-  outgoingInspections: async () => {
-    const data = await apiJson<OutgoingInspection[] | { items?: OutgoingInspection[] }>(`${v1}/tenant/outgoing-inspections`);
-    return Array.isArray(data) ? data : (data.items ?? []);
-  },
+  outgoingInspections: () => unwrap(crossub.GET('/tenant/outgoing-inspections')),
 
   getOutgoingInspection: (id: string) =>
-    apiJson<OutgoingInspection>(`${v1}/tenant/outgoing-inspections/${encodeURIComponent(id)}`),
+    unwrap(crossub.GET('/tenant/outgoing-inspections/{inspectionId}', { params: { path: { inspectionId: id } } })),
 
   disputeOutgoing: (id: string, body: { area: string; description: string; sectionId?: string }) =>
-    apiJson<OutgoingInspection>(`${v1}/tenant/outgoing-inspections/${encodeURIComponent(id)}/disputes`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+    unwrap(
+      crossub.POST('/tenant/outgoing-inspections/{inspectionId}/disputes', {
+        params: { path: { inspectionId: id } },
+        body,
+      }),
+    ),
 
   approveOutgoing: (id: string) =>
-    apiJson<OutgoingInspection>(`${v1}/tenant/outgoing-inspections/${encodeURIComponent(id)}/approve`, { method: 'PATCH' }),
+    unwrap(crossub.PATCH('/tenant/outgoing-inspections/{inspectionId}/approve', { params: { path: { inspectionId: id } } })),
 
   setOutgoingAttendance: (caseId: string, attendance: 'yes' | 'no') =>
-    apiJson(`${v1}/tenant/vacating-cases/${encodeURIComponent(caseId)}/outgoing-attendance`, {
-      method: 'PATCH',
-      body: JSON.stringify({ attendance }),
-    }),
-  rentReviews: () => apiJson<RentReviewDto[]>(`${v1}/tenant/rent-reviews`),
-  vacatingCases: () => apiJson<VacatingDto[]>(`${v1}/tenant/vacating-cases`),
-  onboarding: () => apiJson<OnboardingDto>(`${v1}/tenant/leasing/onboarding`),
-  welcome: () => apiJson<{ acknowledged: boolean }>(`${v1}/tenant/onboarding/welcome`),
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/outgoing-attendance', {
+        params: { path: { caseId } },
+        body: { attendance },
+      }),
+    ),
+  rentReviews: () => unwrap(crossub.GET('/tenant/rent-reviews')),
+  vacatingCases: () => unwrap(crossub.GET('/tenant/vacating-cases')),
+  onboarding: () => unwrap(crossub.GET('/tenant/leasing/onboarding')),
+  welcome: () => unwrap(crossub.GET('/tenant/onboarding/welcome')),
 
   uploadMaintenancePhoto: (file: EvidenceFile) =>
-    apiJson<{ url: string }>(`${v1}/tenant/maintenance-requests/photos/upload`, {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: file.fileName,
-        mimeType: file.mimeType,
-        sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
-        contentBase64: file.contentBase64,
-      }),
-    }),
+    unwrap(crossub.POST('/tenant/maintenance-requests/photos/upload', { body: fileBody(file) })),
 
   createMaintenance: (body: { description: string; urgent: boolean; photos: string[]; propertyId?: string }) =>
-    apiJson<{ id: string; orderNumber: string | null }>(`${v1}/tenant/maintenance-requests`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+    unwrap(crossub.POST('/tenant/maintenance-requests', { body })),
 
   respondSchedule: (requestId: string, decision: 'approved' | 'declined', declineReason?: string) =>
-    apiJson(`${v1}/tenant/maintenance-requests/${requestId}/schedule-response`, {
-      method: 'PATCH',
-      body: JSON.stringify({ decision, ...(declineReason ? { declineReason } : {}) }),
-    }),
+    unwrap(
+      crossub.PATCH('/tenant/maintenance-requests/{requestId}/schedule-response', {
+        params: { path: { requestId } },
+        body: { decision, ...(declineReason ? { declineReason } : {}) },
+      }),
+    ),
 
-  createMessage: (body: { subject: string; body: string; department: string; propertyId?: string }) =>
-    apiJson<MessageDto>(`${v1}/tenant/messages`, { method: 'POST', body: JSON.stringify(body) }),
+  createMessage: (body: { subject: string; body: string; department: Department; propertyId?: string }) =>
+    unwrap(crossub.POST('/tenant/messages', { body })),
 
   replyMessage: (threadId: string, body: string) =>
-    apiJson<MessageDto>(`${v1}/tenant/messages/${encodeURIComponent(threadId)}/reply`, {
-      method: 'POST',
-      body: JSON.stringify({ body }),
-    }),
+    unwrap(crossub.POST('/tenant/messages/{threadId}/reply', { params: { path: { threadId } }, body: { body } })),
 
   markMessageRead: (threadId: string) =>
-    apiJson(`${v1}/tenant/messages/${encodeURIComponent(threadId)}/read`, { method: 'PATCH' }),
+    unwrap(crossub.PATCH('/tenant/messages/{threadId}/read', { params: { path: { threadId } } })),
 
   markNotificationRead: (id: string) =>
-    apiJson(`${v1}/tenant/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' }),
+    unwrap(crossub.PATCH('/tenant/notifications/{notificationId}/read', { params: { path: { notificationId: id } } })),
 
   respondRentReview: (
     reviewId: string,
@@ -313,79 +310,57 @@ export const tenantApi = {
       expectedVersion?: number;
     },
   ) =>
-    apiJson(`${v1}/tenant/rent-reviews/${reviewId}/respond`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }),
+    unwrap(crossub.PATCH('/tenant/rent-reviews/{reviewId}/respond', { params: { path: { reviewId } }, body })),
 
   createVacating: (body: { expectedVacateDate: string; propertyId?: string; terminationReason?: string }) =>
-    apiJson<VacatingDto>(`${v1}/tenant/vacating-cases`, { method: 'POST', body: JSON.stringify(body) }),
+    unwrap(crossub.POST('/tenant/vacating-cases', { body })),
 
   uploadKeyReturnPhoto: (caseId: string, file: EvidenceFile) =>
-    apiJson<{ url: string }>(`${v1}/tenant/vacating-cases/${encodeURIComponent(caseId)}/key-return/photos/upload`, {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: file.fileName,
-        mimeType: file.mimeType,
-        sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
-        contentBase64: file.contentBase64,
+    unwrap(
+      crossub.POST('/tenant/vacating-cases/{caseId}/key-return/photos/upload', {
+        params: { path: { caseId } },
+        body: fileBody(file),
       }),
-    }),
+    ),
 
   submitKeyReturn: (caseId: string, photoUrls: string[]) =>
-    apiJson(`${v1}/tenant/vacating-cases/${encodeURIComponent(caseId)}/key-return`, {
-      method: 'PATCH',
-      body: JSON.stringify({ photoUrls }),
-    }),
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/key-return', {
+        params: { path: { caseId } },
+        body: { photoUrls },
+      }),
+    ),
 
   setCleaning: (caseId: string, choice: 'own_arrangement' | 'booked') =>
-    apiJson(`${v1}/tenant/vacating-cases/${encodeURIComponent(caseId)}/cleaning`, {
-      method: 'PATCH',
-      body: JSON.stringify({ choice }),
-    }),
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/cleaning', {
+        params: { path: { caseId } },
+        body: { choice },
+      }),
+    ),
 
   uploadProof: (kind: 'deposit' | 'bond', file: EvidenceFile) =>
-    apiJson<{ url: string }>(`${v1}/tenant/leasing/onboarding/${kind}/proof/upload`, {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: file.fileName,
-        mimeType: file.mimeType,
-        sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
-        contentBase64: file.contentBase64,
-      }),
-    }),
+    kind === 'deposit'
+      ? unwrap(crossub.POST('/tenant/leasing/onboarding/deposit/proof/upload', { body: fileBody(file) }))
+      : unwrap(crossub.POST('/tenant/leasing/onboarding/bond/proof/upload', { body: fileBody(file) })),
 
   submitProof: (kind: 'deposit' | 'bond', proofUrl: string, fileName: string) =>
-    apiJson(`${v1}/tenant/leasing/onboarding/${kind}/proof`, {
-      method: 'PATCH',
-      body: JSON.stringify({ proofUrl, fileName }),
-    }),
+    kind === 'deposit'
+      ? unwrap(crossub.PATCH('/tenant/leasing/onboarding/deposit/proof', { body: { proofUrl, fileName } }))
+      : unwrap(crossub.PATCH('/tenant/leasing/onboarding/bond/proof', { body: { proofUrl, fileName } })),
 
-  recordLeaseSigning: () =>
-    apiJson(`${v1}/tenant/leasing/onboarding/agreement/record-signing`, { method: 'POST' }),
+  recordLeaseSigning: () => unwrap(crossub.POST('/tenant/leasing/onboarding/agreement/record-signing')),
 
   uploadKeyCollectionPhoto: (file: EvidenceFile) =>
-    apiJson<{ url: string }>(`${v1}/tenant/leasing/onboarding/key-collection/photos/upload`, {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: file.fileName,
-        mimeType: file.mimeType,
-        sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
-        contentBase64: file.contentBase64,
-      }),
-    }),
+    unwrap(crossub.POST('/tenant/leasing/onboarding/key-collection/photos/upload', { body: fileBody(file) })),
 
   submitKeyCollection: (body: { time: string; location: string; photoUrls: string[]; timeEnd?: string }) =>
-    apiJson(`${v1}/tenant/leasing/onboarding/key-collection`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }),
+    unwrap(crossub.PATCH('/tenant/leasing/onboarding/key-collection', { body })),
 
-  acknowledgeWelcome: () =>
-    apiJson(`${v1}/tenant/onboarding/welcome/acknowledge`, { method: 'POST' }),
+  acknowledgeWelcome: () => unwrap(crossub.POST('/tenant/onboarding/welcome/acknowledge')),
 };
 
-export function departmentFor(category: string): string {
+export function departmentFor(category: string): Department {
   if (category === 'Maintenance') return 'MAINTENANCE';
   if (category === 'Inspection') return 'INSPECTION';
   if (category === 'Leasing') return 'LEASING';

@@ -5,6 +5,7 @@
   "description": "CROSSUB tenant app — Expo client for tenants. Same workspace shape as the inspector app in crossub_mobile.",
   "scripts": {
     "preinstall": "npx -y only-allow pnpm",
+    "postinstall": "pnpm --filter @crossub-thongz/api-contract build",
     "dev:native": "pnpm --filter @crossub/tenant-native start",
     "ios": "pnpm --filter @crossub/tenant-native ios",
     "android": "pnpm --filter @crossub/tenant-native android",

@@ -1,15 +1,7 @@
-import { getApiOrigin, getV1BaseUrl } from '@/src/config/api-url';
-import { clearSession, getAccessToken, getRefreshToken, saveSession } from '@/src/auth/session';
-import { parseAuthUser } from '@/src/auth/types';
+import { ApiError, fetchWithBearer } from '@/src/api/client';
+import { getApiOrigin } from '@/src/config/api-url';
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+export { ApiError };
 
 function messageFromBody(body: unknown, fallback: string): string {
   if (!body || typeof body !== 'object') return fallback;
@@ -27,63 +19,22 @@ async function readError(res: Response, fallback: string): Promise<string> {
   }
 }
 
-let refreshInFlight: Promise<boolean> | null = null;
-
-async function refreshSession(): Promise<boolean> {
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      const refreshToken = await getRefreshToken();
-      if (!refreshToken) return false;
-      const res = await fetch(`${getV1BaseUrl()}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-      if (!res.ok) return false;
-      const body = (await res.json()) as { accessToken?: string; refreshToken?: string; user?: unknown };
-      if (!body.accessToken || !body.refreshToken) return false;
-      await saveSession(
-        { accessToken: body.accessToken, refreshToken: body.refreshToken },
-        parseAuthUser(body.user),
-      );
-      return true;
-    })().finally(() => {
-      refreshInFlight = null;
-    });
-  }
-  return refreshInFlight;
-}
-
-function isAuthPath(path: string): boolean {
-  return /\/auth\/(login|login-with-token|refresh|logout|forgot-password|reset-password)/.test(path);
-}
-
-/** Fetch the same Nest API the tenant web app uses. Authenticated calls send the mobile bearer token. */
+/**
+ * Routes outside the mobile contract (password reset, open-viewing check-in, file bytes).
+ * Authenticated calls use the same bearer fetch as `createCrossubClient`.
+ */
 export async function apiFetch(path: string, init?: RequestInit, auth = true): Promise<Response> {
   const url = path.startsWith('http') ? path : `${getApiOrigin()}${path.startsWith('/') ? path : `/${path}`}`;
   const headers = new Headers(init?.headers);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');
   if (init?.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  if (auth) {
-    const token = await getAccessToken();
-    if (token) headers.set('Authorization', `Bearer ${token}`);
-  }
-  let res: Response;
   try {
-    res = await fetch(url, { ...init, headers });
-  } catch {
+    if (!auth) return await fetch(url, { ...init, headers });
+    return await fetchWithBearer(url, { ...init, headers });
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
     throw new ApiError(0, `Could not reach ${getApiOrigin()}. Check your connection.`);
   }
-  if (res.status === 401 && auth && !isAuthPath(path) && (await refreshSession())) {
-    const retryHeaders = new Headers(headers);
-    const token = await getAccessToken();
-    if (token) retryHeaders.set('Authorization', `Bearer ${token}`);
-    res = await fetch(url, { ...init, headers: retryHeaders });
-  }
-  if (res.status === 401 && auth && !isAuthPath(path)) {
-    await clearSession();
-  }
-  return res;
 }
 
 export async function apiJson<T>(path: string, init?: RequestInit, auth = true): Promise<T> {

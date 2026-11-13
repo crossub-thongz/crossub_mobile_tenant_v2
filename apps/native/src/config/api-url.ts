@@ -9,3 +9,7 @@ export function getApiOrigin(): string {
 export function getV1BaseUrl(): string {
   return `${getApiOrigin()}/api/v1`;
 }
+
+export function isApiOriginUrl(url: string): boolean {
+  return url.startsWith(getApiOrigin());
+}
