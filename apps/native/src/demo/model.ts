@@ -103,7 +103,27 @@ export type Thread = {
   caseRoute?: string;
   unread?: boolean;
   attachment?: string;
+  /** When the latest message was sent. */
+  lastAt?: string | null;
+  messages?: { body: string; fromSelf: boolean; at?: string; attachments?: { fileName: string; url: string }[] }[];
 };
+
+/** Inbox timestamp. Today and yesterday keep the day word and always include the clock time. */
+export function messageWhen(value: string | null | undefined): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const time = parsed.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const day = new Date(parsed);
+  day.setHours(0, 0, 0, 0);
+  const diff = Math.round((start.getTime() - day.getTime()) / 86_400_000);
+  if (diff === 0) return `Today, ${time}`;
+  if (diff === 1) return `Yesterday, ${time}`;
+  const date = parsed.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${date}, ${time}`;
+}
 
 export const SEED_THREADS: Thread[] = [
   {

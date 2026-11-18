@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { InboxFilter } from '@/src/demo/model';
+import { messageWhen, type InboxFilter } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { Card, Screen, Section, TabHeader, Tag } from '@/src/ui/ui';
@@ -48,16 +48,12 @@ export default function InboxScreen() {
         <Card key={thread.id} onPress={() => router.push(thread.route)}>
           <View style={styles.between}>
             <Text style={styles.subject}>{thread.subject}</Text>
-            <Text style={styles.when}>Today</Text>
+            <Text style={styles.when}>{messageWhen(thread.lastAt)}</Text>
           </View>
           <Text style={styles.muted}>{thread.preview}</Text>
           <Tag label={thread.category} tone={thread.status === 'Completed' ? 'green' : 'neutral'} />
         </Card>
       ))}
-      <Card onPress={() => router.push('/flow/completed-chat')}>
-        <Text style={styles.title}>Completed conversation</Text>
-        <Text style={styles.muted}>Closed by your manager. Replies are locked.</Text>
-      </Card>
     </Screen>
   );
 }

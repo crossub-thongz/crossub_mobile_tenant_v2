@@ -1,4 +1,6 @@
+import { scenarioForAccounting } from '@/src/account/rent-accounting';
 import type { ApplicationRecord, OnboardingStatus, OnboardingStepId } from '@/src/demo/applications';
+import type { ScenarioId } from '@/src/demo/model';
 import { emptyOnboarding } from '@/src/demo/applications';
 import type { Property, Thread } from '@/src/demo/model';
 import type { RentReviewStatus } from '@/src/demo/tenancy-notices';
@@ -7,13 +9,11 @@ import {
   tenantApi,
   type ContactDto,
   type MaintenanceDto,
-  type MessageDto,
   type NotificationDto,
   type OnboardingDto,
   type RentReviewDto,
   type RoutineInspectionDto,
   type TenancyDto,
-  type VacatingDto,
 } from '@/src/api/tenant';
 
 export type LiveMaintenance = {
@@ -28,6 +28,10 @@ export type LiveMaintenance = {
   scheduleApprovalPending: boolean;
   scheduleProposedTimes: string | null;
   completionApprovalPending: boolean;
+  responsibility: 'tenant' | 'landlord' | 'strata' | null;
+  responsibilityAckRequired: boolean;
+  responsibilityAckStatus: 'pending' | 'agreed' | 'disagreed' | null;
+  questions: { issueId: string; questionKey: string; question: string; answer: string | null }[];
   buildingName: string;
   strataPlan: string;
   managerName: string;
@@ -40,7 +44,18 @@ export type LiveMaintenance = {
 
 export type LiveLedgerRow = { id: string; when: string; amount: number | null; detail: string; type: string; direction: string };
 export type LiveDocument = { id: string; name: string; uploaded: string; url: string; category: string };
-export type LiveInspection = { id: string; title: string; when: string; scheduledAt: string | null; status: string; address: string };
+export type LiveInspection = { id: string; type: string; title: string; when: string; scheduledAt: string | null; status: string; address: string };
+export type LiveTenancy = {
+  id: string;
+  propertyId: string | null;
+  address: string;
+  place: string;
+  start: string;
+  end: string;
+  rent: number;
+  frequency: string;
+  current: boolean;
+};
 export type LiveReview = {
   id: string;
   address: string;
@@ -69,6 +84,10 @@ export type LiveVacating = {
   bills: number;
   deductions: number;
   refund: number | null;
+  debt: number | null;
+  hasSummary: boolean;
+  settlementStatus: 'pending' | 'accepted' | 'declined';
+  movingReferralRequestedAt: string | null;
 };
 
 export type LiveKeyCollection = { time: string | null; location: string | null; status: string };
@@ -82,6 +101,8 @@ export type LiveRoutineAction = {
 };
 
 export type LoadedAccount = {
+  scenarioId: ScenarioId;
+  accountingKnown: boolean;
   accountStatus: 'ready';
   accountError: string | null;
   ledgerConnected: boolean;
@@ -93,9 +114,10 @@ export type LoadedAccount = {
   paymentReference: string;
   maintenance: LiveMaintenance[];
   threads: Thread[];
-  notices: { id: string; title: string; body: string; href: string; read: boolean }[];
+  notices: { id: string; title: string; body: string; href: string; read: boolean; type: string }[];
   applications: ApplicationRecord[];
   documents: LiveDocument[];
+  tenancies: LiveTenancy[];
   ledger: LiveLedgerRow[];
   inspections: LiveInspection[];
   rentReview: LiveReview | null;
@@ -132,16 +154,44 @@ function contact(value: ContactDto | undefined, fallbackName: string) {
   };
 }
 
+const INSPECTION_KIND = { ROUTINE: 'ROUTINE', OPEN: 'OPEN', INGOING: 'INGOING', OUTGOING: 'OUTGOING' } as const;
+
+/** The phone screen for one inspection, matching the tenant website's inspection links. */
+export function inspectionPath(type: string, id: string, selfInspectionId?: string | null): string {
+  if (type === INSPECTION_KIND.INGOING) return '/flow/entry';
+  if (type === INSPECTION_KIND.OUTGOING) return '/flow/final';
+  if (type === INSPECTION_KIND.OPEN) return '/flow/open-inspection';
+  if (type === INSPECTION_KIND.ROUTINE && selfInspectionId && id === selfInspectionId) return '/flow/self-inspection';
+  return `/flow/inspection?id=${encodeURIComponent(id)}`;
+}
+
+function recordId(href: string): string | null {
+  return href.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0] ?? null;
+}
+
 function noticeHref(href: string, type: string): string {
-  const path = `${href} ${type}`.toLowerCase();
-  if (path.includes('repair') || path.includes('maintenance')) return '/flow/maintenance';
-  if (path.includes('message')) return '/inbox';
-  if (path.includes('rent-review') || path.includes('rent_review')) return '/rent-review';
+  const raw = href.trim();
+  const path = `${raw} ${type}`.toLowerCase();
+  const id = recordId(raw);
+  if (raw.startsWith('/flow') || raw.startsWith('/rent-review') || raw.startsWith('/lease') || raw.startsWith('/inbox') || raw.startsWith('/applications') || raw.startsWith('/onboarding') || raw.startsWith('/listings') || raw.startsWith('/payments') || raw.startsWith('/termination') || raw.startsWith('/statement') || raw.startsWith('/help') || raw.startsWith('/move-out-services')) {
+    return raw;
+  }
+  if (path.includes('repair') || path.includes('maintenance')) return id ? `/flow/maintenance?job=${id}` : '/flow/maintenance';
+  if (path.includes('message')) return id ? `/flow/conversation?thread=${id}` : '/inbox';
+  if (path.includes('rent-review') || path.includes('rent_review')) return id ? `/rent-review/${id}` : '/rent-review';
+  if (path.includes('ingoing')) return '/flow/entry';
+  if (path.includes('outgoing')) return '/flow/final';
+  if (path.includes('self-inspection') || path.includes('self_inspection')) return '/flow/self-inspection';
+  if (path.includes('routine')) return id ? `/flow/inspection?id=${id}` : '/flow/inspection';
   if (path.includes('inspection')) return '/flow/inspections';
   if (path.includes('vacat') || path.includes('terminat')) return '/termination';
-  if (path.includes('lease') || path.includes('document')) return '/lease';
-  if (path.includes('ledger') || path.includes('rent')) return '/payments';
-  if (href.startsWith('/flow') || href.startsWith('/rent-review') || href.startsWith('/lease') || href.startsWith('/inbox')) return href;
+  if (path.includes('onboarding')) return '/onboarding';
+  if (path.includes('application')) return id ? `/applications/${id}` : '/applications';
+  if (path.includes('statement')) return '/statement';
+  if (path.includes('document')) return '/flow/documents';
+  if (path.includes('lease')) return '/lease';
+  if (path.includes('ledger') || path.includes('accounting') || path.includes('payment') || path.includes('rent')) return '/payments';
+  if (path.includes('property') || path.includes('tenancy')) return '/flow/tenancy';
   return '/flow/notifications';
 }
 
@@ -154,9 +204,9 @@ function threadCategory(department: string): Thread['category'] {
 
 function caseRoute(department: string, reviewId: string | null): string | undefined {
   if (department === 'MAINTENANCE') return '/flow/maintenance';
-  if (department === 'INSPECTION') return '/flow/inspection';
-  if (department === 'LEASING') return '/flow/renewal';
+  if (department === 'INSPECTION') return '/flow/inspections';
   if (department === 'RENT_REVIEW' && reviewId) return `/rent-review/${reviewId}`;
+  if (department === 'ACCOUNTING') return '/payments';
   return undefined;
 }
 
@@ -185,7 +235,7 @@ function mapMaintenance(item: MaintenanceDto): LiveMaintenance {
   const strata = contact(item.strataContact, '');
   return {
     id: item.id,
-    title: (item.description || 'Repair request').slice(0, 80),
+    title: item.description || 'Repair request',
     urgent: item.urgent,
     tracking: item.orderNumber || item.id.slice(0, 8),
     photos: item.photos ?? [],
@@ -195,6 +245,15 @@ function mapMaintenance(item: MaintenanceDto): LiveMaintenance {
     scheduleApprovalPending: Boolean(item.scheduleApprovalPending),
     scheduleProposedTimes: item.scheduleProposedTimes ?? null,
     completionApprovalPending: Boolean(item.completionApprovalPending),
+    responsibility: item.responsibility ?? null,
+    responsibilityAckRequired: Boolean(item.responsibilityAckRequired),
+    responsibilityAckStatus: item.responsibilityAckStatus ?? null,
+    questions: (item.questions ?? []).map((question) => ({
+      issueId: question.issueId,
+      questionKey: question.questionKey,
+      question: question.question,
+      answer: question.answer,
+    })),
     buildingName: item.buildingName || '',
     strataPlan: item.strataPlanNumber || '',
     managerName: manager.name,
@@ -206,19 +265,40 @@ function mapMaintenance(item: MaintenanceDto): LiveMaintenance {
   };
 }
 
-function mapProperty(tenancy: TenancyDto): Property {
-  const ended = tenancy.status === 'ENDED';
+const CURRENT_TENANCY = new Set(['ACTIVE', 'SIGNED', 'PARTIALLY_SIGNED', 'SENT']);
+
+function tenancyFrequency(cycle: string | null): string {
+  if (!cycle) return 'Weekly';
+  return cycle[0].toUpperCase() + cycle.slice(1);
+}
+
+function mapTenancy(tenancy: TenancyDto): LiveTenancy {
   return {
-    id: 'berry',
-    title: tenancy.propertyAddress || 'Your property',
+    id: tenancy.id,
+    propertyId: tenancy.propertyId,
+    address: tenancy.propertyAddress || 'Your property',
     place: tenancy.propertySuburb || '',
-    status: ended ? 'Previous' : 'Current',
-    type: tenancy.contractType || tenancy.leaseTerm || 'Tenancy',
     start: dateLabel(tenancy.startDate),
     end: dateLabel(tenancy.endDate) || 'Periodic',
     rent: tenancy.weeklyRent ?? 0,
-    frequency: tenancy.paymentCycle ? tenancy.paymentCycle[0].toUpperCase() + tenancy.paymentCycle.slice(1) : 'Weekly',
-    extras: tenancy.paymentReference ? `Payment reference ${tenancy.paymentReference}` : '',
+    frequency: tenancyFrequency(tenancy.paymentCycle),
+    current: CURRENT_TENANCY.has(tenancy.status),
+  };
+}
+
+function mapProperty(tenancy: TenancyDto): Property {
+  const row = mapTenancy(tenancy);
+  return {
+    id: 'berry',
+    title: row.address,
+    place: row.place,
+    status: row.current ? 'Current' : 'Previous',
+    type: tenancy.contractType || tenancy.leaseTerm || 'Tenancy',
+    start: row.start,
+    end: row.end,
+    rent: row.rent,
+    frequency: row.frequency,
+    extras: '',
   };
 }
 
@@ -247,16 +327,16 @@ export async function loadAccount(): Promise<LoadedAccount> {
     welcome,
     routines,
   ] = await Promise.all([
-    settled(() => tenantApi.tenancies(), [] as TenancyDto[]),
+    settled(() => tenantApi.tenancies(), [] as Awaited<ReturnType<typeof tenantApi.tenancies>>),
     settled(() => tenantApi.ledger(), []),
     settled(() => tenantApi.documents(), []),
     settled(() => tenantApi.applications(), []),
     settled(() => tenantApi.maintenance(), [] as MaintenanceDto[]),
-    settled(() => tenantApi.messages(), [] as MessageDto[]),
+    settled(() => tenantApi.messages(), [] as Awaited<ReturnType<typeof tenantApi.messages>>),
     settled(() => tenantApi.notifications(), [] as NotificationDto[]),
     settled(() => tenantApi.inspections(), []),
     settled(() => tenantApi.rentReviews(), [] as RentReviewDto[]),
-    settled(() => tenantApi.vacatingCases(), [] as VacatingDto[]),
+    settled(() => tenantApi.vacatingCases(), []),
     settled(() => tenantApi.onboarding(), null as OnboardingDto | null),
     settled(() => tenantApi.welcome(), null as { acknowledged: boolean } | null),
     settled(() => tenantApi.routineInspections(), [] as RoutineInspectionDto[]),
@@ -277,8 +357,11 @@ export async function loadAccount(): Promise<LoadedAccount> {
   const settlement = vacatingCase?.repairQuoteSettlementSummary;
   const failures = [tenancies, ledger, messages, notifications].filter((item) => !item.ok).map((item) => item.error);
   const authFailed = failures.some((item) => item?.toLowerCase().includes('session') || item?.includes('401'));
+  const accounting = scenarioForAccounting(tenancy?.accounting);
 
   return {
+    scenarioId: accounting ?? 'crossub',
+    accountingKnown: accounting !== null,
     accountStatus: 'ready',
     accountError: authFailed ? 'Sign in again to load this tenancy.' : failures[0] && !tenancy ? failures[0] : null,
     ledgerConnected: ledger.ok,
@@ -298,6 +381,13 @@ export async function loadAccount(): Promise<LoadedAccount> {
       route: `/flow/conversation?thread=${item.id}`,
       caseRoute: caseRoute(item.department, review?.id ?? null),
       unread: item.unread > 0,
+      lastAt: item.lastAt || item.messages.at(-1)?.at || null,
+      messages: item.messages.map((message) => ({
+        body: message.body,
+        fromSelf: message.fromSelf,
+        at: message.at,
+        attachments: message.attachments?.map((file) => ({ fileName: file.fileName, url: file.url })),
+      })),
     })),
     notices: notifications.value.map((item) => ({
       id: item.id,
@@ -305,6 +395,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
       body: item.body,
       href: noticeHref(item.href, item.type),
       read: item.read,
+      type: item.type,
     })),
     applications: applications.value.map((item) => ({
       id: item.id,
@@ -321,6 +412,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
       employment: '',
       documents: [],
       missingDocuments: [],
+      isRenewal: item.isRenewal,
     })),
     documents: documents.value.map((item) => ({
       id: item.id,
@@ -329,6 +421,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
       url: item.url,
       category: item.category,
     })),
+    tenancies: tenancies.value.map(mapTenancy),
     ledger: ledger.value.map((item) => ({
       id: item.id,
       when: dateLabel(item.occurredAt),
@@ -339,6 +432,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
     })),
     inspections: inspections.value.map((item) => ({
       id: item.id,
+      type: item.type,
       title: item.type.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()),
       when: dateLabel(item.scheduledDate),
       scheduledAt: item.scheduledDate,
@@ -378,6 +472,10 @@ export async function loadAccount(): Promise<LoadedAccount> {
           bills: settlement?.unpaidBills ?? 0,
           deductions: settlement?.maintenanceCost ?? 0,
           refund: settlement?.netRefund ?? vacatingCase.refundAmount,
+          debt: settlement?.debtAmount ?? vacatingCase.debtAmount,
+          hasSummary: Boolean(settlement),
+          movingReferralRequestedAt: vacatingCase.movingReferralRequestedAt,
+          settlementStatus: vacatingCase.tenantSettlementStatus,
         }
       : null,
     terminationStarted: Boolean(vacatingCase && vacatingCase.status !== 'cancelled'),

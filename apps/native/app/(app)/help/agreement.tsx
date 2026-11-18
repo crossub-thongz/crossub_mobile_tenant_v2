@@ -17,13 +17,13 @@ export default function AgreementScreen() {
       <Text style={styles.kicker}>REQUIRED BEFORE YOU RELY ON THE PORTAL</Text>
       <Text style={styles.title}>System access agreement</Text>
       <Text style={styles.body}>
-        Before using the CROSSUB tenant portal, read and accept the system access agreement. Your signed acceptance is stored for compliance. This preview keeps the signature on the device.
+        Before using the CROSSUB tenant portal, read and accept the system access agreement. Accepting sends that acceptance to your tenancy. It does not replace the signed agreement PDF.
       </Text>
       <Card>
         <Text style={styles.item}>What you are agreeing to</Text>
         <Text style={styles.body}>Use the app only for your own tenancy. Keep your password to yourself. Do not upload another person's documents. The portal records who accepted this agreement and when.</Text>
       </Card>
-      {agreementName ? <Notice>{`${agreementName} has accepted this agreement on this device.`}</Notice> : null}
+      {agreementName ? <Notice>{`Acceptance was sent for ${agreementName}.`}</Notice> : null}
       <Field label="Full legal name">
         <Input value={name} onChangeText={setName} autoComplete="name" />
       </Field>

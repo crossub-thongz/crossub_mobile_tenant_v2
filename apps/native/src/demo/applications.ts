@@ -15,6 +15,7 @@ export type ApplicationRecord = {
   employment: string;
   documents: string[];
   missingDocuments: string[];
+  isRenewal: boolean;
 };
 
 export const SEED_APPLICATIONS: ApplicationRecord[] = [
@@ -33,6 +34,7 @@ export const SEED_APPLICATIONS: ApplicationRecord[] = [
     employment: 'Full time · $96,000',
     documents: ['Photo ID', 'Proof of income', 'Rental ledger'],
     missingDocuments: [],
+    isRenewal: false,
   },
   {
     id: 'app-halifax',
@@ -49,6 +51,7 @@ export const SEED_APPLICATIONS: ApplicationRecord[] = [
     employment: 'Full time · $96,000',
     documents: ['NSW application form'],
     missingDocuments: ['Photo ID', 'Proof of income'],
+    isRenewal: false,
   },
 ];
 

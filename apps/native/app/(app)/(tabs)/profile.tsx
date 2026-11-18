@@ -1,23 +1,43 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { SCENARIOS } from '@/src/demo/model';
+import { tenantApi } from '@/src/api/tenant';
 import { useAuth } from '@/src/auth/auth-context';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
-import { Card, RowItem, Screen, Section, TabHeader } from '@/src/ui/ui';
+import { Card, Notice, RowItem, Screen, Section, TabHeader } from '@/src/ui/ui';
+
+function displayName(first: string | null | undefined, last: string | null | undefined): string {
+  const name = [first, last].map((part) => part?.trim()).filter(Boolean).join(' ');
+  return name || 'Name not recorded';
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { email, logout } = useAuth();
+  const { email, user, logout } = useAuth();
   const demo = useDemo();
+  const [name, setName] = useState(displayName(user?.firstName, user?.lastName));
+
+  useEffect(() => {
+    let cancelled = false;
+    void tenantApi
+      .profile()
+      .then((profile) => {
+        if (!cancelled) setName(displayName(profile.firstName, profile.lastName));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Screen tab>
       <TabHeader kicker="ACCOUNT & TENANCY" title="Profile" />
       <Card onPress={() => router.push('/flow/personal')}>
-        <Text style={styles.name}>Daniel Zhou</Text>
-        <Text style={styles.muted}>{email ?? 'daniel@example.com'}</Text>
+        <Text style={styles.name}>{name}</Text>
+        <Text style={styles.muted}>{email || 'No email on this account'}</Text>
       </Card>
 
       <Section title="My tenancy" />
@@ -36,28 +56,22 @@ export default function ProfileScreen() {
       <Section title="Account" />
       <Card>
         <RowItem icon="person-outline" title="Personal information" subtitle="Email and phone need verification" onPress={() => router.push('/flow/personal')} />
-        <RowItem icon="notifications-outline" title="Notifications" subtitle="Routine updates only" onPress={() => router.push('/flow/notification-settings')} />
+        <RowItem icon="notifications-outline" title="Notifications" subtitle="Notices from your tenancy" onPress={() => router.push('/flow/notifications')} />
+        <RowItem icon="options-outline" title="Notification settings" subtitle="Which notices this phone shows" onPress={() => router.push('/flow/notification-settings')} />
         <RowItem icon="lock-closed-outline" title="Privacy and security" subtitle="Password, MFA, device unlock" onPress={() => router.push('/flow/security')} />
         <RowItem icon="help-circle-outline" title="Help" subtitle="FAQ, tutorial, and the access agreement" onPress={() => router.push('/help')} />
       </Card>
 
       <Section title="Account type" />
-      <Text style={styles.muted}>The only difference is how rent payments are accounted.</Text>
-      <View style={styles.scenarios}>
-        {SCENARIOS.map((scenario) => {
-          const selected = scenario.id === demo.scenarioId;
-          return (
-            <Pressable
-              key={scenario.id}
-              accessibilityRole="button"
-              onPress={() => demo.setScenario(scenario.id)}
-              style={[styles.scenario, selected && styles.scenarioOn]}
-            >
-              <Text style={[styles.scenarioText, selected && styles.scenarioTextOn]}>{scenario.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {demo.accountStatus === 'ready' && demo.accountingKnown ? (
+        <Card>
+          <Text style={styles.name}>{demo.scenario.label}</Text>
+          <Text style={styles.muted}>{demo.scenario.accounting}</Text>
+        </Card>
+      ) : null}
+      {demo.accountStatus === 'ready' && !demo.accountingKnown ? (
+        <Notice>Account type is not on this tenancy. It comes from the agency, and this account cannot change it.</Notice>
+      ) : null}
 
       <Pressable accessibilityRole="button" onPress={() => logout()} style={styles.signOut}>
         <Text style={styles.signOutText}>Sign out</Text>
@@ -69,11 +83,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   name: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   muted: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  scenarios: { gap: 8 },
-  scenario: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, borderRadius: 12, padding: 12 },
-  scenarioOn: { borderColor: colors.green, backgroundColor: colors.soft },
-  scenarioText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-  scenarioTextOn: { color: colors.green },
   signOut: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   signOutText: { color: colors.danger, fontWeight: '700' },
 });

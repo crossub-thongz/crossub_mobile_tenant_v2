@@ -1,84 +1,132 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { inspectionPath } from '@/src/api/load-account';
+import { STATUS_LABEL } from '@/src/demo/applications';
 import type { ActivityFilter } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { Card, Screen, TabHeader, Tag } from '@/src/ui/ui';
 
 const FILTERS: ActivityFilter[] = ['Action Required', 'In Progress', 'History'];
+const CLOSED_INSPECTION = new Set(['COMPLETED', 'PUBLISHED', 'CANCELLED']);
+const CLOSED_REPAIR = new Set(['COMPLETED', 'CANCELLED']);
+
+type ActivityItem = {
+  key: string;
+  name: string;
+  detail: string;
+  kind: ActivityFilter;
+  type: string;
+  href: string;
+  currentOnly: boolean;
+};
+
+function statusLabel(status: string): string {
+  return status
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
 
 export default function ActivityScreen() {
   const router = useRouter();
   const demo = useDemo();
-  const items = [
-    {
-      name: 'Routine inspection',
-      detail: demo.inspectionConfirmed ? 'Scheduled · 12 Nov' : 'Confirm attendance',
-      kind: demo.inspectionConfirmed ? 'In Progress' : 'Action Required',
+  const items: ActivityItem[] = [];
+
+  for (const inspection of demo.inspections) {
+    if (inspection.status === 'DRAFT') continue;
+    const closed = CLOSED_INSPECTION.has(inspection.status);
+    const needsAction = demo.routineAction?.id === inspection.id;
+    items.push({
+      key: `inspection-${inspection.id}`,
+      name: inspection.title,
+      detail: [statusLabel(inspection.status), inspection.when].filter(Boolean).join(' · '),
+      kind: needsAction ? 'Action Required' : closed ? 'History' : 'In Progress',
       type: 'Inspection',
-      href: '/flow/inspection',
+      href: inspectionPath(inspection.type, inspection.id, demo.routineAction?.flow === 'self' ? demo.routineAction.id : null),
+      currentOnly: !closed,
+    });
+  }
+
+  if (demo.routineAction && !demo.inspections.some((item) => item.id === demo.routineAction?.id)) {
+    items.push({
+      key: `routine-${demo.routineAction.id}`,
+      name: 'Routine inspection',
+      detail: [statusLabel(demo.routineAction.status), demo.routineAction.scheduledAt?.slice(0, 10)].filter(Boolean).join(' · '),
+      kind: 'Action Required',
+      type: 'Inspection',
+      href: demo.routineAction.flow === 'self' ? '/flow/self-inspection' : '/flow/inspection',
       currentOnly: true,
-    },
-    {
+    });
+  }
+
+  for (const application of demo.applications) {
+    if (!application.isRenewal) continue;
+    const closed = application.status === 'approved' || application.status === 'declined';
+    items.push({
+      key: `renewal-${application.id}`,
       name: 'Lease renewal',
-      detail: demo.renewalResponded ? 'Response submitted' : 'Review renewal offer',
-      kind: demo.renewalResponded ? 'In Progress' : 'Action Required',
+      detail: `${application.propertyAddress} · ${STATUS_LABEL[application.status]}`,
+      kind: application.status === 'missing_information' ? 'Action Required' : closed ? 'History' : 'In Progress',
       type: 'Leasing',
       href: '/flow/renewal',
-      currentOnly: true,
-    },
-    {
-      name: 'Key collection',
-      detail: demo.vacating?.keysReturnAddress
-        ? `Return keys to ${demo.vacating.keysReturnAddress}`
-        : demo.keyCollection?.time
-          ? `Collection ${demo.keyCollection.time.slice(0, 16).replace('T', ' ')}`
-          : demo.onboarding.key_pickup === 'completed'
-            ? 'Key collection recorded'
-            : demo.keyReturnSubmitted
-              ? 'Key return submitted'
-              : 'Confirm key collection or return',
-      kind: demo.onboarding.key_pickup === 'completed' || demo.keyReturnSubmitted ? 'In Progress' : 'Action Required',
+      currentOnly: !closed,
+    });
+  }
+
+  const keyDone = demo.onboarding.key_pickup === 'completed';
+  const keyDetail = demo.keyCollection?.time
+    ? `Collection ${demo.keyCollection.time.slice(0, 16).replace('T', ' ')}`
+    : demo.vacating?.keysReturnAddress
+      ? `Return keys to ${demo.vacating.keysReturnAddress}`
+      : demo.keyReturnSubmitted
+        ? 'Key return submitted'
+        : keyDone
+          ? 'Key collection recorded'
+          : demo.vacating?.keysReturned
+            ? 'Keys returned'
+            : '';
+  if (keyDetail) {
+    items.push({
+      key: 'keys',
+      name: 'Keys',
+      detail: keyDetail,
+      kind: keyDone || demo.keyReturnSubmitted || demo.vacating?.keysReturned ? 'History' : 'Action Required',
       type: 'Key Handover',
       href: '/flow/keys',
       currentOnly: true,
-    },
-    {
-      name: 'Kitchen tap repair',
-      detail: 'Contractor scheduling',
-      kind: 'In Progress',
-      type: 'Maintenance',
-      href: '/flow/maintenance',
-      currentOnly: true,
-    },
-    {
-      name: 'Moving out checklist',
-      detail: 'Cleaning and final inspection',
-      kind: 'In Progress',
-      type: 'Vacating',
-      href: '/flow/vacating',
-      currentOnly: true,
-    },
-    ...demo.maintenance.map((item) => ({
-      name: item.title,
-      detail: 'Submitted · Under review',
-      kind: 'In Progress' as const,
-      type: 'Maintenance',
-      href: '/flow/maintenance',
-      currentOnly: true,
-    })),
-    {
-      name: 'Entry condition report',
-      detail: demo.entryAcknowledged ? 'Acknowledged by you' : 'Published PDF',
-      kind: 'History',
-      type: 'Inspection',
-      href: '/flow/entry',
-      currentOnly: false,
-    },
-  ].filter((item) => (demo.current ? true : !item.currentOnly));
+    });
+  }
 
-  const visible = items.filter((item) => item.kind === demo.activityFilter);
+  for (const repair of demo.maintenance) {
+    const closed = CLOSED_REPAIR.has(repair.status);
+    const needsAction = repair.completionApprovalPending || repair.scheduleApprovalPending || repair.responsibilityAckRequired;
+    items.push({
+      key: `repair-${repair.id}`,
+      name: repair.title,
+      detail: statusLabel(repair.status),
+      kind: needsAction ? 'Action Required' : closed ? 'History' : 'In Progress',
+      type: 'Maintenance',
+      href: `/flow/maintenance?job=${repair.id}`,
+      currentOnly: !closed,
+    });
+  }
+
+  if (demo.vacating && demo.terminationStarted) {
+    const settled = demo.vacating.settlementStatus === 'accepted';
+    items.push({
+      key: `vacating-${demo.vacating.id}`,
+      name: 'Moving out',
+      detail: demo.vacating.vacateDate ? `Vacate ${demo.vacating.vacateDate}` : demo.vacating.reason,
+      kind: settled ? 'History' : 'In Progress',
+      type: 'Vacating',
+      href: '/termination',
+      currentOnly: !settled,
+    });
+  }
+
+  const visible = items.filter((item) => (demo.current || !item.currentOnly) && item.kind === demo.activityFilter);
 
   return (
     <Screen tab>
@@ -103,7 +151,7 @@ export default function ActivityScreen() {
         <Text style={styles.empty}>Nothing in {demo.activityFilter.toLowerCase()} for this tenancy.</Text>
       ) : (
         visible.map((item) => (
-          <Card key={`${item.type}-${item.name}`} onPress={() => router.push(item.href)}>
+          <Card key={item.key} onPress={() => router.push(item.href)}>
             <Text style={styles.title}>{item.name}</Text>
             <Text style={styles.muted}>{item.detail}</Text>
             <Tag label={item.type} />

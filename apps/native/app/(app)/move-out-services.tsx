@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { CLEANING } from '@/src/flows/lifecycle';
 import { useDemo } from '@/src/demo/store';
@@ -23,14 +23,24 @@ export default function MoveOutServicesScreen() {
       ) : (
         <Notice>End-of-lease cleaning can be arranged once a vacating date is confirmed.</Notice>
       )}
-      <Pressable accessibilityRole="button" onPress={demo.requestMoving} style={styles.row}>
-        <Text style={styles.item}>{demo.movingRequested ? 'Moving service requested' : 'Request a moving service'}</Text>
-        <Text style={styles.body}>Partner referral. A quote comes back separately.</Text>
-      </Pressable>
-      <Button label={demo.movingRequested ? 'Request sent' : 'Send moving request'} onPress={demo.requestMoving} />
+      {demo.vacating?.id ? (
+        demo.vacating.movingReferralRequestedAt ? (
+          <Notice>{`A moving referral was requested${referralWhen(demo.vacating.movingReferralRequestedAt)}. This does not book a mover.`}</Notice>
+        ) : (
+          <Button label="Ask for a moving referral" onPress={() => demo.requestMoving()} />
+        )
+      ) : (
+        <Notice>A moving referral needs an open vacating case.</Notice>
+      )}
       <Button label="Back to vacating steps" tone="outline" onPress={() => router.push('/flow/vacating')} />
     </Screen>
   );
+}
+
+function referralWhen(iso: string): string {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return ` on ${parsed.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 }
 
 const styles = StyleSheet.create({

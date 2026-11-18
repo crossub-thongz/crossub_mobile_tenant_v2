@@ -441,6 +441,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenant/applications/{applicationId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a checklist file to an application the tenant submitted. */
+        post: operations["TenantAccountController_addApplicationDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenant/household": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List people on the tenancies the signed-in tenant belongs to.
+         * @description Names and roles only. Other members’ email addresses and phone numbers are not returned.
+         */
+        get: operations["TenantAccountController_listHousehold"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tenant/new-leasing": {
         parameters: {
             query?: never;
@@ -1116,6 +1153,23 @@ export interface paths {
         head?: never;
         /** Choose how the end-of-lease clean is arranged (tenant arranges it, or CROSSUB books it). */
         patch: operations["TenantAccountController_setVacatingCleaning"];
+        trace?: never;
+    };
+    "/tenant/vacating-cases/{caseId}/moving-referral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a moving referral on an open vacating case. This does not book a mover. */
+        post: operations["TenantAccountController_requestMovingReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/tenant/vacating-cases/{caseId}/key-return": {
@@ -9070,6 +9124,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agent/agencies/{agencyId}/owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Owners this agency already has, to link to a property.
+         * @description Search by name, email, phone or CP reference; paged. Owners only.
+         */
+        get: operations["AgentPropertyIntakeController_searchAgencyOwners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/properties/{propertyId}/owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The owners on a property, primary contact first, with their shares. */
+        get: operations["AgentPropertyIntakeController_listOwners"];
+        /**
+         * Save the whole owner set of a draft property in one step.
+         * @description Owners left out are removed, kept owners are updated and new ones are added, all or nothing. Needs at least one owner, exactly one primary contact, and shares on every owner totalling 100 or on none.
+         */
+        put: operations["AgentPropertyIntakeController_saveOwners"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/properties/{propertyId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a draft property.
+         * @description Checks the address, the owners and that the agency has no other property at this address, and returns every failure together. Needs no tenancy, fees, strata or documents. Activating an active property returns it unchanged.
+         */
+        post: operations["AgentPropertyIntakeController_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent/conversations": {
         parameters: {
             query?: never;
@@ -9304,7 +9419,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Add a tenancy by hand, without starting leasing (Self-Manage).
+         * Add a tenancy by hand, without starting leasing (Self-Manage, Full Service, Legacy).
          * @description Records the tenants and lease details only: no leasing cycle and no ingoing inspection. A draft may be incomplete. A tenancy starting after today (Sydney) is upcoming. A non-draft tenancy is refused when its dates overlap another live tenancy here.
          */
         post: operations["AgentPropertyTenanciesController_addManualTenancy"];
@@ -9324,7 +9439,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Remove a tenancy added by hand by mistake (Self-Manage).
+         * Remove a tenancy added by hand by mistake (Self-Manage, Full Service, Legacy).
          * @description Only agreements Add tenancy wrote on this property, while a draft or upcoming. A draft is deleted; an upcoming tenancy is filed under Past tenancies as withdrawn before it started. A tenancy that has started ends through Archive tenancy (400).
          */
         post: operations["AgentPropertyTenanciesController_removeManualTenancy"];
@@ -9575,6 +9690,41 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the phone number on the signed-in account. */
+        patch: operations["MeController_updateMe"];
+        trace?: never;
+    };
+    "/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List live sign-ins for this account. Tokens are not returned. */
+        get: operations["MeController_listSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke one sign-in for this account. */
+        delete: operations["MeController_revokeSession"];
         options?: never;
         head?: never;
         patch?: never;
@@ -10021,6 +10171,11 @@ export interface components {
              * @example DS633468
              */
             paymentReference: string | null;
+            /**
+             * @description Who accounts for rent on this tenancy, taken from the agency that holds the property. The tenant does not choose it. Null when the tenancy has no property.
+             * @enum {string|null}
+             */
+            accounting: "crossub_trust" | "agent_trust" | "self_managed" | null;
         };
         PaginatedTenantTenanciesDto: {
             /**
@@ -10303,6 +10458,47 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             documents: components["schemas"]["TenantApplicationDocumentDto"][];
+        };
+        PublicApplicationDocumentDto: {
+            /** @enum {string} */
+            category: "identity" | "income" | "supporting";
+            /**
+             * @description Document type slug from the NSW application checklist.
+             * @example drivers_licence
+             */
+            documentType: string;
+            /** @example Driver's licence */
+            label: string;
+            /** @example 30 */
+            points?: number;
+            /** @example drivers-licence.pdf */
+            fileName: string;
+            /** @example application/pdf */
+            mimeType: string;
+            /**
+             * @description Decoded byte size (≤ 25 MB).
+             * @example 184321
+             */
+            sizeBytes: number;
+            /** @description Object key from POST /public/listings/:id/documents/upload-session. Prefer this over contentBase64. */
+            storageKey?: string;
+            /** @description File contents, base64-encoded (no data: URI prefix). Required only when storageKey is omitted. */
+            contentBase64?: string;
+        };
+        TenantHouseholdMemberDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Alex Chen */
+            name: string | null;
+            /**
+             * @example CO_TENANT
+             * @enum {string}
+             */
+            role: "PRIMARY_TENANT" | "CO_TENANT" | "OCCUPANT" | "GUARANTOR";
+            /** @description True when this row is the signed-in tenant. */
+            isSelf: boolean;
+            /** @example 7 Demo Street, Sydney */
+            propertyAddress: string | null;
         };
         TenantNewLeasingResponseDto: {
             /** Format: uuid */
@@ -10928,6 +11124,11 @@ export interface components {
             tenantBondAckSentAt: string | null;
             tenantResponsibilityItems: components["schemas"]["TenantVacatingRepairQuoteItemDto"][];
             repairQuoteSettlementSummary: components["schemas"]["TenantVacatingSettlementSummaryDto"] | null;
+            /**
+             * Format: date-time
+             * @description When the tenant requested a moving referral on this case.
+             */
+            movingReferralRequestedAt: string | null;
         };
         CancelTenantVacatingCaseDto: {
             reason?: string;
@@ -10968,6 +11169,12 @@ export interface components {
              */
             photoUrls: string[];
         };
+        TenantMessageAttachmentResponseDto: {
+            fileName: string;
+            mimeType: string;
+            sizeBytes: number;
+            url: string;
+        };
         TenantThreadMessageResponseDto: {
             /** Format: uuid */
             id: string;
@@ -10991,6 +11198,7 @@ export interface components {
              * @enum {string}
              */
             channel: "APP" | "EMAIL" | "VOICE" | "INTERNAL_NOTE" | "PUSH" | "SMS" | "WHATSAPP";
+            attachments?: components["schemas"]["TenantMessageAttachmentResponseDto"][];
         };
         TenantMessageThreadResponseDto: {
             /** Format: uuid */
@@ -11024,10 +11232,29 @@ export interface components {
             unread: number;
             messages: components["schemas"]["TenantThreadMessageResponseDto"][];
         };
+        TenantMessageAttachmentUploadDto: {
+            /** @example leak.jpg */
+            fileName: string;
+            /** @example image/jpeg */
+            mimeType: string;
+            /**
+             * @description Decoded byte size.
+             * @example 184321
+             */
+            sizeBytes: number;
+            /**
+             * Format: base64
+             * @description The file contents, base64-encoded (no data: URI prefix).
+             */
+            contentBase64: string;
+        };
         CreateTenantMessageThreadDto: {
             /** @example Kitchen tap repair */
             subject: string;
-            /** @example The kitchen tap is leaking — could someone take a look? */
+            /**
+             * @description Message body. May be empty when attachments are provided.
+             * @example The kitchen tap is leaking — could someone take a look?
+             */
             body: string;
             /**
              * @description Staff queue to route the thread to. Defaults to GENERAL.
@@ -11040,10 +11267,15 @@ export interface components {
              * @description The leased property the thread is about. Omit for a general enquiry.
              */
             propertyId?: string;
+            attachments?: components["schemas"]["TenantMessageAttachmentUploadDto"][];
         };
         SendTenantMessageDto: {
-            /** @example Tuesday 10am works — thanks. */
+            /**
+             * @description Message body. May be empty when attachments are provided.
+             * @example Tuesday 10am works — thanks.
+             */
             body: string;
+            attachments?: components["schemas"]["TenantMessageAttachmentUploadDto"][];
         };
         TenantNotificationResponseDto: {
             /** Format: uuid */
@@ -11402,32 +11634,6 @@ export interface components {
              * @description Open inspection session — required when the listing is apply-via-inspection only.
              */
             viewingSessionId?: string;
-        };
-        PublicApplicationDocumentDto: {
-            /** @enum {string} */
-            category: "identity" | "income" | "supporting";
-            /**
-             * @description Document type slug from the NSW application checklist.
-             * @example drivers_licence
-             */
-            documentType: string;
-            /** @example Driver's licence */
-            label: string;
-            /** @example 30 */
-            points?: number;
-            /** @example drivers-licence.pdf */
-            fileName: string;
-            /** @example application/pdf */
-            mimeType: string;
-            /**
-             * @description Decoded byte size (≤ 25 MB).
-             * @example 184321
-             */
-            sizeBytes: number;
-            /** @description Object key from POST /public/listings/:id/documents/upload-session. Prefer this over contentBase64. */
-            storageKey?: string;
-            /** @description File contents, base64-encoded (no data: URI prefix). Required only when storageKey is omitted. */
-            contentBase64?: string;
         };
         PublicApplicationCoApplicantDto: {
             /** @example Jessica Morris */
@@ -14105,6 +14311,11 @@ export interface components {
         AgentPropertyResponseDto: {
             /** Format: uuid */
             id: string;
+            /**
+             * @description Property reference, the same one CROSSUB staff see on the admin Property page.
+             * @example PRP-6761
+             */
+            reference: string;
             /** Format: uuid */
             agencyId: string;
             /** @example 27 Victoria Avenue */
@@ -14325,6 +14536,22 @@ export interface components {
             pinnedTenancyId: string | null;
             /** @description Public cover image URL for listings and the property profile. */
             imageUrl: string | null;
+            /**
+             * @description How furnished the property is. Null when not recorded.
+             * @enum {string|null}
+             */
+            furnishing: "UNFURNISHED" | "PARTLY_FURNISHED" | "FULLY_FURNISHED" | null;
+            /** @description Internal area in square metres. */
+            internalAreaSqm: number | null;
+            /** @description Land area in square metres. */
+            landAreaSqm: number | null;
+            /** @example Level 11 */
+            floorLevel: string | null;
+            storageSpaces: number | null;
+            features: ("AIR_CONDITIONING" | "BALCONY" | "DISHWASHER" | "BUILT_IN_WARDROBES" | "SECURE_PARKING" | "STORAGE_CAGE" | "GYM" | "SWIMMING_POOL")[];
+            /** @description The agent said a tenancy is already arranged for this vacant property. */
+            upcomingTenancyArranged: boolean;
+            googlePlaceId: string | null;
             /** @description Present on PATCH when a newly saved tenant email triggered an automatic Tenant app invite. */
             tenantPortalInvite?: components["schemas"]["AgentTenantPortalInviteDto"];
         };
@@ -14461,6 +14688,25 @@ export interface components {
              */
             isPrimary: boolean;
         };
+        AgentPropertyDetailsDto: {
+            bedrooms?: number | null;
+            bathrooms?: number | null;
+            parking?: number | null;
+            /** @enum {string|null} */
+            furnishing?: "UNFURNISHED" | "PARTLY_FURNISHED" | "FULLY_FURNISHED" | null;
+            /** @description Square metres. */
+            internalAreaSqm?: number | null;
+            /** @description Square metres. */
+            landAreaSqm?: number | null;
+            /** @example Level 11 */
+            floorLevel?: string | null;
+            storageSpaces?: number | null;
+            features?: ("AIR_CONDITIONING" | "BALCONY" | "DISHWASHER" | "BUILT_IN_WARDROBES" | "SECURE_PARKING" | "STORAGE_CAGE" | "GYM" | "SWIMMING_POOL")[];
+            /** @description A tenancy is already arranged for this vacant property. A prompt only. */
+            upcomingTenancyArranged?: boolean;
+            /** @description The Google place the address was picked from; null when typed by hand. */
+            googlePlaceId?: string | null;
+        };
         CreateAgentPropertyDto: {
             name?: string;
             address: string;
@@ -14519,6 +14765,7 @@ export interface components {
             registryDraft?: {
                 [key: string]: unknown;
             } | null;
+            details?: components["schemas"]["AgentPropertyDetailsDto"];
             /** @enum {number} */
             routineInspectionFrequency?: 2 | 3;
         };
@@ -14593,6 +14840,7 @@ export interface components {
             registryDraft?: {
                 [key: string]: unknown;
             } | null;
+            details?: components["schemas"]["AgentPropertyDetailsDto"];
             /** @enum {number} */
             routineInspectionFrequency?: 2 | 3;
         };
@@ -15319,6 +15567,11 @@ export interface components {
             createdAt: string;
             /**
              * Format: date-time
+             * @description When this record last changed, so the agent sees the latest progress first.
+             */
+            updatedAt: string;
+            /**
+             * Format: date-time
              * @description When the 48-hour inspector-confirm window ends. Null once an inspector has accepted.
              */
             inspectorConfirmDeadlineAt?: string | null;
@@ -15473,6 +15726,12 @@ export interface components {
             type: "TENANT_REQUEST" | "PROPERTY_MAINTENANCE" | "STRATA" | "UNKNOWN";
             /** @enum {string} */
             status: "OPEN" | "APPROVED" | "QUOTING" | "SCHEDULED" | "INVOICED" | "COMPLETED" | "CANCELLED";
+            /**
+             * @description The stage the admin console shows for this job, read from the workflow record. `status` is the stored column, which can lag and cannot tell every stage apart.
+             * @example pending_schedule
+             * @enum {string}
+             */
+            workflowStatus: "under_review" | "pending_evidence" | "pending_quotation" | "pending_approval" | "pending_schedule" | "in_progress" | "tenant_rejected" | "completed" | "closed" | "deleted";
             /** @example false */
             urgent: boolean;
             /** @example Leaking kitchen tap */
@@ -15567,6 +15826,11 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             /**
+             * Format: date-time
+             * @description When this record last changed, so the agent sees the latest progress first.
+             */
+            updatedAt: string;
+            /**
              * @description Agent lease-type choice at create — fixed or periodic.
              * @enum {string|null}
              */
@@ -15602,6 +15866,11 @@ export interface components {
             bondOnHold: string | null;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: date-time
+             * @description When this record last changed, so the agent sees the latest progress first.
+             */
+            updatedAt: string;
         };
         AgentTenantSelectionDto: {
             /** Format: uuid */
@@ -15663,6 +15932,11 @@ export interface components {
             availableFrom: string | null;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: date-time
+             * @description When this record last changed, so the agent sees the latest progress first.
+             */
+            updatedAt: string;
             /** @enum {string} */
             mainStatus: "awaiting_confirmation" | "preparation" | "active_leasing" | "offer_pending" | "onboarding" | "key_handover" | "completed" | "paused" | "cancelled";
             /** @enum {string|null} */
@@ -15746,6 +16020,11 @@ export interface components {
             hearingDate?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: date-time
+             * @description When this record last changed, so the agent sees the latest progress first.
+             */
+            updatedAt: string;
         };
         AgentArchivedLeasingCycleDto: {
             /** Format: uuid */
@@ -16412,6 +16691,12 @@ export interface components {
             type: "TENANT_REQUEST" | "PROPERTY_MAINTENANCE" | "STRATA" | "UNKNOWN";
             /** @enum {string} */
             status: "OPEN" | "APPROVED" | "QUOTING" | "SCHEDULED" | "INVOICED" | "COMPLETED" | "CANCELLED";
+            /**
+             * @description The stage the admin console shows for this job, read from the workflow record. `status` is the stored column, which can lag and cannot tell every stage apart.
+             * @example pending_schedule
+             * @enum {string}
+             */
+            workflowStatus: "under_review" | "pending_evidence" | "pending_quotation" | "pending_approval" | "pending_schedule" | "in_progress" | "tenant_rejected" | "completed" | "closed" | "deleted";
             /** @example false */
             urgent: boolean;
             /** @example Leaking kitchen tap */
@@ -17345,6 +17630,20 @@ export interface components {
             /** @description For a contractor recipient: the job-scoped contractor key, checked against this job's own contractors. Still a key, never an address. Ignored for every other role. */
             contractorId?: string;
         };
+        MaintenanceCaseEmailAttachmentDto: {
+            /** @example kitchen.jpg */
+            fileName: string;
+            /**
+             * @description Photo, video, or paperwork (PDF, Word, Excel, CSV, plain text). The service refuses anything else, including HTML and SVG.
+             * @example image/jpeg
+             */
+            mimeType: string;
+            /**
+             * Format: base64
+             * @description File contents, base64-encoded, without a data: URI prefix.
+             */
+            contentBase64: string;
+        };
         SendMaintenanceCaseEmailDto: {
             /**
              * @description Reply intent. Provenance only — recorded on the audit row and hub label; it does not change delivery.
@@ -17359,6 +17658,8 @@ export interface components {
             bodyText: string;
             /** @description Provenance only: the web row id of the email being answered (e.g. `audit-email-<auditId>`). Never used for delivery. */
             inReplyToId?: string;
+            /** @description Files the officer picked in the composer. Only these are attached — the job's existing photos are not added automatically. Photos and documents up to 8 MB, video up to 15 MB, eight files and 15 MB in total. */
+            attachments?: components["schemas"]["MaintenanceCaseEmailAttachmentDto"][];
         };
         TakeControlDto: {
             /** @description Why the Account Manager is taking control — recorded on the override + audit event. */
@@ -17745,6 +18046,11 @@ export interface components {
             urgent: boolean;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: date-time
+             * @description When this record last changed, so the agent sees the latest progress first.
+             */
+            updatedAt: string;
             /**
              * Format: date-time
              * @description When the 48-hour inspector-confirm window ends. Null once an inspector has accepted.
@@ -20617,6 +20923,82 @@ export interface components {
             applications: components["schemas"]["PersonApplicationDto"][];
             createdAt: string;
         };
+        AgentPropertyOwnerDto: {
+            /** Format: uuid */
+            contactId: string;
+            personId: string | null;
+            /** @example Alex Chen */
+            name: string | null;
+            email: string | null;
+            phone: string | null;
+            isPrimary: boolean;
+            /** @example 50 */
+            ownershipPercent: number | null;
+        };
+        AgentPropertyOwnersResponseDto: {
+            /** @description Primary contact first. */
+            owners: components["schemas"]["AgentPropertyOwnerDto"][];
+        };
+        AgentPropertyOwnerInputDto: {
+            /**
+             * Format: uuid
+             * @description The owner already on this property that this row keeps. Leave out for a new owner.
+             */
+            contactId?: string;
+            /** @description An existing person of this agency to link as the owner. */
+            personId?: string;
+            /**
+             * @description Full legal name, or the company’s legal name.
+             * @example Alex Chen
+             */
+            name: string;
+            /**
+             * Format: email
+             * @example alex@example.com
+             */
+            email?: string;
+            /** @example 0412 345 678 */
+            phone?: string;
+            /** @description Exactly one owner is the primary contact. */
+            isPrimary: boolean;
+            /**
+             * @description This owner’s share. Leave out on every owner, or give one on every owner totalling 100.
+             * @example 50
+             */
+            ownershipPercent?: number;
+        };
+        SaveAgentPropertyOwnersDto: {
+            owners: components["schemas"]["AgentPropertyOwnerInputDto"][];
+        };
+        AgentPropertyIntakeErrorDto: {
+            /** @enum {string} */
+            field: "address" | "suburb" | "state" | "postcode" | "owners";
+            /** @enum {string} */
+            code: "REQUIRED" | "DUPLICATE_PROPERTY" | "OWNER_REQUIRED" | "OWNER_NAME_REQUIRED" | "OWNER_CONTACT_REQUIRED" | "OWNER_PHONE_INVALID" | "OWNER_DUPLICATE" | "PRIMARY_REQUIRED" | "PRIMARY_NOT_UNIQUE" | "OWNERSHIP_INCOMPLETE" | "OWNERSHIP_TOTAL";
+            /** @example Postcode is required */
+            message: string;
+        };
+        AgentPropertyIntakeFailureDto: {
+            /** @enum {string} */
+            code: "PROPERTY_OWNERS_INVALID" | "PROPERTY_ACTIVATION_FAILED";
+            /** Format: uuid */
+            propertyId: string;
+            /** @example The property could not be activated */
+            message: string;
+            errors: components["schemas"]["AgentPropertyIntakeErrorDto"][];
+            /**
+             * Format: uuid
+             * @description The property already registered at this address, when that is why activation failed.
+             */
+            duplicatePropertyId: string | null;
+        };
+        ActivateAgentPropertyDto: {
+            /**
+             * @example APARTMENT
+             * @enum {string}
+             */
+            propertyType: "APARTMENT" | "HOUSE" | "TOWNHOUSE" | "UNIT" | "STUDIO" | "DUPLEX" | "COMMERCIAL" | "GRANNY_FLAT" | "BOARDING_HOUSE" | "OTHER";
+        };
         AgentConversationParticipantDto: {
             name: string;
             /** @description tenant, landlord, contractor, agent, … */
@@ -21306,6 +21688,19 @@ export interface components {
              * @description External-party domain anchor (Person id); null for internal staff.
              */
             personId: string | null;
+            /** @description True when authenticator setup is finished on this account. */
+            mfaEnabled: boolean;
+        };
+        UpdateMeProfileDto: {
+            /** @example 0412 000 111 */
+            phone: string;
+        };
+        MeSessionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            userAgent: string | null;
         };
         WebPushKeyResponseDto: {
             /** @description The VAPID public key, base64url; null when web push is not configured on this server. */
@@ -22251,6 +22646,64 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    TenantAccountController_addApplicationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicApplicationDocumentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantApplicationDetailResponseDto"];
+                };
+            };
+            /** @description Application not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application is closed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TenantAccountController_listHousehold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantHouseholdMemberDto"][];
+                };
             };
         };
     };
@@ -23664,6 +24117,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TenantVacatingCaseResponseDto"];
                 };
+            };
+        };
+    };
+    TenantAccountController_requestMovingReferral: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantVacatingCaseResponseDto"];
+                };
+            };
+            /** @description End-leasing case not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The vacating case can no longer be updated. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -42050,6 +42538,153 @@ export interface operations {
             };
         };
     };
+    AgentPropertyIntakeController_searchAgencyOwners: {
+        parameters: {
+            query?: {
+                search?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                agencyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeopleListResponseDto"];
+                };
+            };
+            /** @description The agency is not in the caller’s book. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentPropertyIntakeController_listOwners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                propertyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPropertyOwnersResponseDto"];
+                };
+            };
+            /** @description The property is not in the caller’s book. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentPropertyIntakeController_saveOwners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                propertyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAgentPropertyOwnersDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPropertyOwnersResponseDto"];
+                };
+            };
+            /** @description The property, a kept owner or a linked person is not this agency’s. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The property is already active. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPropertyIntakeFailureDto"];
+                };
+            };
+        };
+    };
+    AgentPropertyIntakeController_activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                propertyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateAgentPropertyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPropertyResponseDto"];
+                };
+            };
+            /** @description The property is not in the caller’s book. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPropertyIntakeFailureDto"];
+                };
+            };
+        };
+    };
     AgentConversationController_list: {
         parameters: {
             query?: {
@@ -43190,6 +43825,81 @@ export interface operations {
             };
             /** @description Missing/invalid/expired token, or the user is not active. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MeController_updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMeProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeProfileResponseDto"];
+                };
+            };
+            /** @description Missing/invalid/expired token, or the user is not active. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MeController_listSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeSessionDto"][];
+                };
+            };
+        };
+    };
+    MeController_revokeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Session not found. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

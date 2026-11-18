@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import { useState } from 'react';
 
-import { ledgerPdfBytes, sharePdf } from '@/src/api/files';
+import { downloadAuthedPdf, isApiFile, ledgerPdfBytes, sharePdf } from '@/src/api/files';
 import { money } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
@@ -25,13 +25,13 @@ export function LedgerScreen() {
       </View>
       <Card>
         {rows.length === 0 ? <Text style={styles.muted}>No ledger lines on this tenancy yet.</Text> : null}
-        {rows.map(([date, amount, detail]) => (
-          <View key={date} style={styles.between}>
+        {ledger.map((item) => (
+          <View key={item.id} style={styles.between}>
             <View style={styles.flex}>
-              <Text style={styles.title}>{date}</Text>
-              <Text style={styles.muted}>{detail}</Text>
+              <Text style={styles.title}>{item.when || 'Undated'}</Text>
+              <Text style={styles.muted}>{item.detail}</Text>
             </View>
-            <Text style={styles.title}>{amount}</Text>
+            <Text style={styles.title}>{item.amount == null ? '—' : money(item.amount)}</Text>
           </View>
         ))}
       </Card>
@@ -77,43 +77,63 @@ export function RentDetailsScreen() {
   );
 }
 
+const DOCUMENT_CATEGORY = { INVOICE: 'maintenance_invoice' } as const;
+const LEDGER_TYPE = { RENT: 'RENT' } as const;
+
 export function InvoicesScreen() {
-  const { scenario } = useDemo();
-  const status = (paid: boolean) => (scenario.ledger ? (paid ? 'Paid' : 'Unpaid') : 'Status unavailable');
+  const { documents } = useDemo();
+  const [error, setError] = useState<string | null>(null);
+  const invoices = documents.filter((item) => item.category === DOCUMENT_CATEGORY.INVOICE);
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Tenant invoices</Text>
-      <Card>
-        <Text style={styles.title}>Replacement access card</Text>
-        <Text style={styles.muted}>$80.00 · {status(false)}</Text>
-      </Card>
-      <Card>
-        <Text style={styles.title}>Cleaning services</Text>
-        <Text style={styles.muted}>$120.00 · {status(true)}</Text>
-      </Card>
-      <Notice>Invoice payment status is an accounting record. Final settlement is closed manually by the manager.</Notice>
+      {invoices.length === 0 ? <Notice>No invoices are on this tenancy.</Notice> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {invoices.map((doc) => (
+        <Card key={doc.id} onPress={() => openDocument(doc.url, doc.name, setError)}>
+          <Text style={styles.title}>{doc.name}</Text>
+          <Text style={styles.muted}>{doc.uploaded || 'Date not recorded'}</Text>
+        </Card>
+      ))}
     </Screen>
   );
 }
 
 export function ReceiptsScreen() {
-  const { scenario } = useDemo();
+  const { scenario, ledger } = useDemo();
   if (!scenario.ledger) return <Hidden title="Rent receipts" body="Your agent manages this trust account. Receipts stay with the agency." />;
+  const receipts = ledger.filter((item) => item.type === LEDGER_TYPE.RENT);
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Rent receipts</Text>
-      <Card>
-        <Text style={styles.title}>REC-00125</Text>
-        <Text style={styles.muted}>5 Nov · $1,000.00</Text>
-      </Card>
-      <Card>
-        <Text style={styles.title}>REC-00118</Text>
-        <Text style={styles.muted}>29 Oct · $1,200.00</Text>
-      </Card>
+      <Text style={styles.muted}>Rent lines from the ledger. There is no separate receipt file on this account.</Text>
+      {receipts.length === 0 ? <Notice>No rent lines are on this tenancy yet.</Notice> : null}
+      {receipts.map((item) => (
+        <Card key={item.id}>
+          <Text style={styles.title}>{item.when || 'Undated'}</Text>
+          <Text style={styles.muted}>
+            {item.amount == null ? '—' : money(item.amount)} · {item.detail}
+          </Text>
+        </Card>
+      ))}
     </Screen>
   );
+}
+
+function openDocument(url: string, name: string, setError: (message: string | null) => void) {
+  setError(null);
+  if (!url) {
+    setError('This document has no file.');
+    return;
+  }
+  const fileName = `${name.replace(/[^\w.-]+/g, '-') || 'document'}.pdf`;
+  if (isApiFile(url)) {
+    void downloadAuthedPdf(url, fileName).catch((err) => setError(err instanceof Error ? err.message : 'Could not open this file'));
+    return;
+  }
+  void Linking.openURL(url).catch(() => setError('Could not open this file'));
 }
 
 function Hidden({ title, body }: { title: string; body: string }) {

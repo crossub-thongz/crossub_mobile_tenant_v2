@@ -71,6 +71,7 @@ export type GuestApplicationInput = {
   moveInDate: string;
   viewingSessionId?: string;
   formData?: Record<string, unknown>;
+  documents?: components['schemas']['PublicApplicationDocumentDto'][];
 };
 
 export function submitGuestApplication(propertyId: string, body: GuestApplicationInput) {

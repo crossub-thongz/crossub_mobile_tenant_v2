@@ -2,8 +2,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useAuth } from '@/src/auth/auth-context';
+import { pickEvidence } from '@/src/api/pick-evidence';
 import { usePublicListing } from '@/src/api/use-listings';
+import { APPLICATION_DOCUMENT_SLOTS, SUPPORTING_POINTS_MIN } from '@/src/leasing/application-slots';
+import { useAuth } from '@/src/auth/auth-context';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Field, Input, Notice, Screen } from '@/src/ui/ui';
@@ -20,12 +22,6 @@ const STEPS = [
   { id: 'declaration', title: 'I. Declaration' },
 ] as const;
 
-const POINTS: { name: string; points: number }[] = [
-  { name: 'Photo ID', points: 40 },
-  { name: 'Proof of income', points: 30 },
-  { name: 'Rental ledger', points: 30 },
-];
-
 export default function ApplyScreen() {
   const router = useRouter();
   const { status } = useAuth();
@@ -40,8 +36,8 @@ export default function ApplyScreen() {
     name: '',
     email: '',
     phone: '',
-    leaseTerm: property?.leaseTerm?.replace(' months', '') ?? '12',
-    occupants: '1',
+    leaseTerm: property?.leaseTerm?.replace(' months', '') ?? '',
+    occupants: '',
     pets: '',
     currentAddress: '',
     previousAddress: '',
@@ -49,7 +45,8 @@ export default function ApplyScreen() {
     income: '',
     emergencyName: '',
     emergencyPhone: '',
-    documents: [] as string[],
+    moveInDate: property?.availableFrom && property.availableFrom !== 'TBC' ? property.availableFrom : '',
+    files: {} as Record<string, { fileName: string; mimeType: string; contentBase64: string; sizeBytes?: number }>,
     agreed: false,
   });
 
@@ -100,23 +97,44 @@ export default function ApplyScreen() {
   }
 
   const current = STEPS[step];
-  const set = (key: 'name' | 'email' | 'phone' | 'leaseTerm' | 'occupants' | 'pets' | 'currentAddress' | 'previousAddress' | 'employment' | 'income' | 'emergencyName' | 'emergencyPhone') => (value: string) =>
+  const set = (key: 'name' | 'email' | 'phone' | 'leaseTerm' | 'occupants' | 'pets' | 'currentAddress' | 'previousAddress' | 'employment' | 'income' | 'emergencyName' | 'emergencyPhone' | 'moveInDate') => (value: string) =>
     setForm((item) => ({ ...item, [key]: value }));
 
-  const points = POINTS.filter((item) => form.documents.includes(item.name)).reduce((sum, item) => sum + item.points, 0);
+  const attached = APPLICATION_DOCUMENT_SLOTS.filter((slot) => form.files[slot.documentType]);
+  const identityCount = attached.filter((slot) => slot.category === 'identity').length;
+  const incomeCount = attached.filter((slot) => slot.category === 'income').length;
+  const supportingPoints = attached.filter((slot) => slot.category === 'supporting').reduce((sum, slot) => sum + slot.points, 0);
+  const documentsReady = identityCount > 0 && incomeCount > 0 && supportingPoints >= SUPPORTING_POINTS_MIN;
 
   const next = () => {
     if (current.id === 'personal' && (!form.name.trim() || !form.email.includes('@') || !form.phone.trim())) {
       setError('Enter your name, email, and phone number.');
       return;
     }
-    if (current.id === 'documents' && points < 100) {
-      setError('Attach documents that add up to 100 points.');
+    if (current.id === 'property' && (!form.leaseTerm.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(form.moveInDate.trim()))) {
+      setError('Enter the lease term in months and the move-in date as YYYY-MM-DD.');
+      return;
+    }
+    if (current.id === 'occupancy' && !form.occupants.trim()) {
+      setError('Enter how many adults will live here.');
+      return;
+    }
+    if (current.id === 'employment' && !Number(form.income.replace(/[^0-9.]/g, ''))) {
+      setError('Enter your annual income.');
+      return;
+    }
+    if (current.id === 'documents' && !documentsReady) {
+      setError('Add one identity document, one income document, and at least 40 points of supporting documents.');
       return;
     }
     if (current.id === 'declaration') {
       if (!form.agreed) {
         setError('Confirm the declaration before you submit.');
+        return;
+      }
+      const annualIncome = Number(form.income.replace(/[^0-9.]/g, ''));
+      if (!annualIncome || !documentsReady) {
+        setError('Income and the document checklist are required.');
         return;
       }
       void submitApplication({
@@ -125,10 +143,24 @@ export default function ApplyScreen() {
         applicantName: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        leaseTerm: form.leaseTerm.trim() || '12',
-        occupants: form.occupants.trim() || '1',
-        employment: `${form.employment.trim() || 'Not stated'}${form.income.trim() ? ` · income ${form.income.trim()}` : ''}`,
-        documents: form.documents,
+        leaseTerm: form.leaseTerm.trim(),
+        occupants: form.occupants.trim(),
+        employment: form.employment.trim(),
+        annualIncome,
+        moveInDate: form.moveInDate.trim(),
+        documents: attached.map((slot) => {
+          const file = form.files[slot.documentType];
+          return {
+            category: slot.category,
+            documentType: slot.documentType,
+            label: slot.label,
+            points: slot.points,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes ?? Math.ceil((file.contentBase64.length * 3) / 4),
+            contentBase64: file.contentBase64,
+          };
+        }),
       }).then((applicationId) => {
         if (applicationId) setSubmittedId(applicationId);
       });
@@ -150,6 +182,9 @@ export default function ApplyScreen() {
         <Card>
           <Field label="Lease term (months)">
             <Input value={form.leaseTerm} onChangeText={set('leaseTerm')} />
+          </Field>
+          <Field label="Move-in date">
+            <Input value={form.moveInDate} onChangeText={set('moveInDate')} placeholder="YYYY-MM-DD" />
           </Field>
         </Card>
       ) : null}
@@ -212,26 +247,38 @@ export default function ApplyScreen() {
       ) : null}
       {current.id === 'documents' ? (
         <Card>
-          <Text style={styles.body}>Select the documents you are attaching. You need 100 points.</Text>
-          <Text style={styles.points}>{points} points attached</Text>
-          {POINTS.map((item) => {
-            const on = form.documents.includes(item.name);
+          <Text style={styles.body}>Photograph each document. One identity file, one income file, and at least 40 supporting points.</Text>
+          <Text style={styles.points}>
+            Identity {identityCount} · Income {incomeCount} · Supporting {supportingPoints} points
+          </Text>
+          {APPLICATION_DOCUMENT_SLOTS.map((slot) => {
+            const file = form.files[slot.documentType];
             return (
               <Pressable
-                key={item.name}
+                key={slot.documentType}
                 accessibilityRole="button"
-                onPress={() =>
-                  setForm((currentForm) => ({
-                    ...currentForm,
-                    documents: on ? currentForm.documents.filter((name) => name !== item.name) : [...currentForm.documents, item.name],
-                  }))
-                }
+                onPress={() => {
+                  void pickEvidence()
+                    .then((picked) => {
+                      if (!picked) return;
+                      if (!picked.mimeType.startsWith('image/')) {
+                        setError('Choose a photo of the document. Video files are not accepted here.');
+                        return;
+                      }
+                      setError(null);
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        files: { ...currentForm.files, [slot.documentType]: picked },
+                      }));
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : 'Could not open the photo library'));
+                }}
                 style={styles.doc}
               >
                 <Text style={styles.docTitle}>
-                  {on ? 'Attached' : 'Attach'} · {item.name}
+                  {file ? 'Attached' : 'Attach'} · {slot.label}
                 </Text>
-                <Text style={styles.body}>{item.points} points</Text>
+                <Text style={styles.body}>{file ? file.fileName : `${slot.points} points · ${slot.category}`}</Text>
               </Pressable>
             );
           })}

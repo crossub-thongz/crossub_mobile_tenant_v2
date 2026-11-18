@@ -2,15 +2,65 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
+import { tenantApi } from '@/src/api/tenant';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Field, Input, Screen } from '@/src/ui/ui';
 
+function isoDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  const [year, month, day] = trimmed.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return null;
+  return trimmed;
+}
+
 export default function TerminationScreen() {
   const router = useRouter();
   const demo = useDemo();
-  const [moveOut, setMoveOut] = useState(demo.terminationMoveOut);
+  const [moveOut, setMoveOut] = useState('');
+  const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const openCase = demo.terminationStarted && demo.vacating ? demo.vacating : null;
+
+  async function changeDate() {
+    if (!openCase || busy) return;
+    const date = isoDate(moveOut);
+    if (!date) {
+      setError('Use the date as YYYY-MM-DD.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await tenantApi.updateVacateDate(openCase.id, date);
+      await demo.refreshAccount();
+      demo.notify('Vacate date updated');
+      setMoveOut('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not change the vacate date');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelCase() {
+    if (!openCase || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await tenantApi.cancelVacating(openCase.id, reason.trim() || undefined);
+      await demo.refreshAccount();
+      demo.notify('Vacating case withdrawn');
+      setReason('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not withdraw the vacating case');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <Screen>
@@ -23,25 +73,50 @@ export default function TerminationScreen() {
         {demo.vacating?.vacateDate ? <Text style={styles.body}>Vacate date {demo.vacating.vacateDate}</Text> : null}
       </Card>
       <Button label="Message Crossub" tone="outline" onPress={() => router.push('/flow/new-message')} />
-      {demo.terminationStarted ? (
+      {openCase ? (
         <Card>
-          <Text style={styles.address}>Move-out date {demo.terminationMoveOut}</Text>
-          <Text style={styles.body}>The vacating case is open on this device.</Text>
-          <Button label="Move-out services" onPress={() => router.push('/move-out-services')} />
+          <Text style={styles.address}>Move-out date {openCase.vacateDate || demo.terminationMoveOut}</Text>
+          <Field label="New vacate date">
+            <Input value={moveOut} onChangeText={setMoveOut} placeholder="2026-12-14" />
+          </Field>
+          <Button label="Change vacate date" onPress={() => void changeDate()} />
+          <Field label="Reason for staying, if you have one">
+            <Input value={reason} onChangeText={setReason} placeholder="Optional" />
+          </Field>
+          <Button label="I'm not moving out" tone="secondary" onPress={() => void cancelCase()} />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button label="Move-out services" tone="outline" onPress={() => router.push('/move-out-services')} />
         </Card>
       ) : (
         <Card>
           <Field label="Select move-out date">
-            <Input value={moveOut} onChangeText={setMoveOut} placeholder="14 Dec 2026" />
+            <Input value={moveOut} onChangeText={setMoveOut} placeholder="2026-12-14" />
           </Field>
           <Text style={styles.body}>Confirm when you plan to leave. Moving and cleaning can be arranged after that.</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             label="Confirm vacating date"
             onPress={() => {
-              const message = demo.confirmTermination(moveOut);
-              setError(message);
-              if (!message) router.push('/move-out-services');
+              const date = isoDate(moveOut);
+              if (!date) {
+                setError('Use the date as YYYY-MM-DD.');
+                return;
+              }
+              if (busy) return;
+              setBusy(true);
+              setError(null);
+              void tenantApi
+                .createVacating({
+                  expectedVacateDate: date,
+                  ...(demo.propertyUuid ? { propertyId: demo.propertyUuid } : {}),
+                })
+                .then(async () => {
+                  await demo.refreshAccount();
+                  demo.notify('Vacating case opened');
+                  router.push('/move-out-services');
+                })
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not open the vacating case'))
+                .finally(() => setBusy(false));
             }}
           />
         </Card>

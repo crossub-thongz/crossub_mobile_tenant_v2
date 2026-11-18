@@ -2,8 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { useAuth } from '@/src/auth/auth-context';
 import { ApiError } from '@/src/api/http';
-import { loadAccount, type LiveDocument, type LiveInspection, type LiveKeyCollection, type LiveLedgerRow, type LiveMaintenance, type LiveReview, type LiveRoutineAction, type LiveVacating } from '@/src/api/load-account';
-import { departmentFor, tenantApi, type EvidenceFile } from '@/src/api/tenant';
+import { loadAccount, type LiveDocument, type LiveInspection, type LiveKeyCollection, type LiveLedgerRow, type LiveMaintenance, type LiveReview, type LiveRoutineAction, type LiveTenancy, type LiveVacating } from '@/src/api/load-account';
+import type { GuestApplicationInput } from '@/src/api/listings';
+import { departmentFor, messageAttachment, tenantApi, type EvidenceFile } from '@/src/api/tenant';
 import {
   FINDINGS,
   PROPERTIES,
@@ -43,6 +44,7 @@ export type CheckIn = {
 
 type DemoState = {
   scenarioId: ScenarioId;
+  accountingKnown: boolean;
   propertyId: PropertyId;
   activityFilter: ActivityFilter;
   inboxFilter: InboxFilter;
@@ -65,6 +67,7 @@ type DemoState = {
   rentPaymentNote: { amount: number; at: string } | null;
   ledger: LiveLedgerRow[];
   documents: LiveDocument[];
+  tenancies: LiveTenancy[];
   inspections: LiveInspection[];
   rentReview: LiveReview | null;
   vacating: LiveVacating | null;
@@ -72,7 +75,7 @@ type DemoState = {
   keyReturnPhotos: string[];
   keyReturnFiles: Record<string, EvidenceFile>;
   keyReturnSubmitted: boolean;
-  notices: { id: string; title: string; body: string; href: string; read: boolean }[];
+  notices: { id: string; title: string; body: string; href: string; read: boolean; type: string }[];
   attachments: Record<string, string>;
   photoCounts: Record<string, number>;
   selfVersion: number;
@@ -110,6 +113,7 @@ const initialCounts = Object.fromEntries(ROOMS.map((room) => [room, 0]));
 
 const initialState: DemoState = {
   scenarioId: 'crossub',
+  accountingKnown: false,
   propertyId: 'berry',
   activityFilter: 'Action Required',
   inboxFilter: 'All',
@@ -132,6 +136,7 @@ const initialState: DemoState = {
   rentPaymentNote: null,
   ledger: [],
   documents: [],
+  tenancies: [],
   inspections: [],
   rentReview: null,
   vacating: null,
@@ -177,7 +182,6 @@ type DemoApi = DemoState & {
   scenario: ReturnType<typeof scenarioById>;
   property: (typeof PROPERTIES)[PropertyId];
   current: boolean;
-  setScenario: (id: ScenarioId) => void;
   setProperty: (id: PropertyId) => void;
   setActivityFilter: (filter: ActivityFilter) => void;
   setInboxFilter: (filter: InboxFilter) => void;
@@ -190,11 +194,12 @@ type DemoApi = DemoState & {
   submitKeyEvidence: () => boolean;
   refreshAccount: () => Promise<void>;
   noteRentPayment: (amount: number) => void;
-  addMaintenance: (title: string, urgent: boolean, photos: EvidenceFile[], video: string) => Promise<string | null>;
+  addMaintenance: (title: string, urgent: boolean, photos: EvidenceFile[], video: string, propertyId: string) => Promise<string | null>;
   addKeyReturnPhoto: (file: EvidenceFile) => string | null;
   removeKeyReturnPhoto: (name: string) => void;
   submitKeyReturn: () => boolean;
   markNoticeRead: (id: string) => void;
+  markAllNoticesRead: () => void;
   markThreadRead: (id: string) => void;
   attachToThread: (id: string, name: string) => void;
   addRoomPhoto: (room: string) => void;
@@ -205,11 +210,16 @@ type DemoApi = DemoState & {
   acknowledgeEntry: () => void;
   requestSettlement: (method: string) => void;
   sendCros: (text: string) => 'ok' | 'escalate' | 'empty';
-  sendChat: (threadId: string, text: string) => Promise<boolean>;
-  createThread: (input: { category: Thread['category']; subject: string; body: string; attachment?: string }) => Promise<string>;
+  sendChat: (threadId: string, text: string, file?: EvidenceFile | null) => Promise<boolean>;
+  createThread: (input: { category: Thread['category']; subject: string; body: string; file?: EvidenceFile | null }) => Promise<string>;
   submitCheckIn: (input: CheckIn) => Promise<string | null>;
-  submitApplication: (input: Omit<ApplicationRecord, 'id' | 'reference' | 'submittedAt' | 'status' | 'documents' | 'missingDocuments'> & { documents: string[] }) => Promise<string>;
-  uploadApplicationDocument: (id: string, name: string) => void;
+  submitApplication: (
+    input: Omit<ApplicationRecord, 'id' | 'reference' | 'submittedAt' | 'status' | 'documents' | 'missingDocuments' | 'isRenewal'> & {
+      annualIncome: number;
+      moveInDate: string;
+      documents: NonNullable<GuestApplicationInput['documents']>;
+    },
+  ) => Promise<string>;
   uploadOnboardingProof: (stepId: OnboardingStepId, file: EvidenceFile) => string | null;
   confirmOnboarding: (stepId: OnboardingStepId) => void;
   submitKeyCollection: (time: string, location: string, file: EvidenceFile) => void;
@@ -306,7 +316,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         patch({ rentPaymentNote: { amount, at: new Date().toISOString() } });
         notify('Payment noted. The ledger updates when the transfer clears.');
       },
-      setScenario: (scenarioId) => patch({ scenarioId }),
       setProperty: (propertyId) => patch({ propertyId }),
       setActivityFilter: (activityFilter) => patch({ activityFilter }),
       setInboxFilter: (inboxFilter) => patch({ inboxFilter }),
@@ -351,7 +360,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         notify('Evidence sent for confirmation');
         return true;
       },
-      addMaintenance: async (title, urgent, photos, video) => {
+      addMaintenance: async (title, urgent, photos, video, propertyId) => {
         const trimmed = title.trim();
         const files = video.trim() && photos.length === 0 ? [] : photos;
         if (!trimmed) {
@@ -362,7 +371,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('Add at least one photo or video');
           return null;
         }
-        if (!current) {
+        if (!propertyId) {
+          notify('Choose the property for this repair');
+          return null;
+        }
+        const selected = state.tenancies.find((item) => item.propertyId === propertyId && item.current);
+        if (!selected) {
           notify('This tenancy has ended. New requests are closed.');
           return null;
         }
@@ -373,12 +387,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             description: trimmed,
             urgent,
             photos: urls,
-            ...(state.propertyUuid ? { propertyId: state.propertyUuid } : {}),
+            propertyId,
           });
           const tracking = created.orderNumber || created.id.slice(0, 8);
           await refreshAccount();
           notify(`${tracking} issued.`);
-          return tracking;
+          return created.id;
         } catch (err) {
           notify(failureMessage(err, 'Could not submit the repair'));
           return null;
@@ -430,8 +444,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         return true;
       },
       markNoticeRead: (id) => {
-        patch({ notices: state.notices.map((item) => (item.id === id ? { ...item, read: true } : item)) });
-        void tenantApi.markNotificationRead(id).catch((err) => notify(failureMessage(err, 'Could not mark that notification read')));
+        void tenantApi
+          .markNotificationRead(id)
+          .then(() => refreshAccount())
+          .catch((err) => notify(failureMessage(err, 'Could not mark that notification read')));
+      },
+      markAllNoticesRead: () => {
+        void tenantApi
+          .markAllNotificationsRead()
+          .then(() => refreshAccount())
+          .catch((err) => notify(failureMessage(err, 'Could not mark notifications read')));
       },
       markThreadRead: (id) => {
         patch({ threads: state.threads.map((item) => (item.id === id ? { ...item, unread: false } : item)) });
@@ -497,35 +519,38 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         if (/permission|approval|landlord|manager/i.test(trimmed)) return 'escalate';
         return 'ok';
       },
-      sendChat: async (threadId, text) => {
+      sendChat: async (threadId, text, file) => {
         const trimmed = text.trim();
-        if (!trimmed) return false;
+        if (!trimmed && !file) return false;
         const thread = state.threads.find((item) => item.id === threadId);
         if (thread?.status === 'Completed') {
           notify('This conversation is closed. Start a new enquiry.');
           return false;
         }
         try {
-          await tenantApi.replyMessage(threadId, trimmed);
-          patch({ replies: { ...state.replies, [threadId]: trimmed } });
+          await tenantApi.replyMessage(threadId, {
+            body: trimmed,
+            ...(file ? { attachments: [messageAttachment(file)] } : {}),
+          });
+          await refreshAccount();
           return true;
         } catch (err) {
           notify(failureMessage(err, 'Could not send the message'));
           return false;
         }
       },
-      createThread: async ({ category, subject, body, attachment }) => {
-        if (!subject.trim() || !body.trim()) {
+      createThread: async ({ category, subject, body, file }) => {
+        if (!subject.trim() || (!body.trim() && !file)) {
           notify('Add a subject and a message');
           return '';
         }
-        const note = attachment?.trim() ? `\n\nAttachment: ${attachment.trim()}` : '';
         try {
           const created = await tenantApi.createMessage({
             subject: subject.trim(),
-            body: `${body.trim()}${note}`,
+            body: body.trim(),
             department: departmentFor(category),
             ...(state.propertyUuid ? { propertyId: state.propertyUuid } : {}),
+            ...(file ? { attachments: [messageAttachment(file)] } : {}),
           });
           await refreshAccount();
           notify(`Sent to ${scenario.team}`);
@@ -565,7 +590,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         }
       },
       submitApplication: async (input) => {
-        const income = Number(String(input.employment).replace(/[^0-9.]/g, '')) || 0;
         const employment = input.employment.toLowerCase();
         const employmentStatus = employment.includes('self')
           ? 'self_employed'
@@ -574,52 +598,26 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             : employment.includes('unemploy')
               ? 'unemployed'
               : 'employed';
+        const { documents, annualIncome, moveInDate, ...formData } = input;
         try {
           const { submitGuestApplication } = await import('@/src/api/listings');
           const created = await submitGuestApplication(input.propertyId, {
             fullName: input.applicantName,
             email: input.email,
             phone: input.phone,
-            annualIncome: income,
+            annualIncome,
             employmentStatus,
-            moveInDate: new Date().toISOString().slice(0, 10),
-            formData: { ...input },
+            moveInDate,
+            documents,
+            formData,
           });
-          const record: ApplicationRecord = {
-            ...input,
-            id: created.id,
-            reference: created.reference,
-            submittedAt: 'Today',
-            status: 'submitted',
-            missingDocuments: [],
-          };
-          patch({ applications: [record, ...state.applications] });
-          notify(`Application ${record.reference} submitted`);
+          notify(`Application ${created.reference} submitted`);
+          await refreshAccount();
           return created.id;
         } catch (err) {
           notify(failureMessage(err, 'Could not submit the application'));
           return '';
         }
-      },
-      uploadApplicationDocument: (id, name) => {
-        const trimmed = name.trim();
-        if (!trimmed) {
-          notify('Name the document first');
-          return;
-        }
-        patch({
-          applications: state.applications.map((item) => {
-            if (item.id !== id) return item;
-            const missingDocuments = item.missingDocuments.filter((doc) => doc !== trimmed);
-            return {
-              ...item,
-              documents: item.documents.includes(trimmed) ? item.documents : [...item.documents, trimmed],
-              missingDocuments,
-              status: missingDocuments.length === 0 && item.status === 'missing_information' ? 'submitted' : item.status,
-            };
-          }),
-        });
-        notify('Document uploaded — pending review');
       },
       uploadOnboardingProof: (stepId, file) => {
         if (stepId !== 'deposit' && stepId !== 'bond') return 'This step does not take a receipt upload.';
@@ -763,8 +761,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         return null;
       },
       requestMoving: () => {
-        patch({ movingRequested: true });
-        notify('Moving request recorded. Crossub will contact you.');
+        const caseId = state.vacating?.id;
+        if (!caseId) {
+          notify('A vacating case is required before a moving referral.');
+          return;
+        }
+        void tenantApi
+          .requestMovingReferral(caseId)
+          .then(async () => {
+            notify('Moving referral requested. This does not book a mover.');
+            await refreshAccount();
+          })
+          .catch((err) => notify(failureMessage(err, 'Could not request a moving referral')));
       },
       notify,
     };

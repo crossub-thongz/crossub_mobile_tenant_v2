@@ -10,6 +10,8 @@ export type EvidenceFile = {
   mimeType: string;
   contentBase64: string;
   sizeBytes?: number;
+  /** Local file URI used only to draw a thumbnail. The upload still sends contentBase64. */
+  previewUri?: string;
 };
 
 type Page<T> = { items: T[]; hasMore: boolean };
@@ -31,6 +33,7 @@ export type TenancyDto = {
   paymentReference: string | null;
   nextRoutineInspectionAt?: string | null;
   nextRentReviewAt?: string | null;
+  accounting?: 'crossub_trust' | 'agent_trust' | 'self_managed' | null;
 };
 
 export type LedgerDto = {
@@ -77,15 +80,11 @@ export type MaintenanceDto = {
   scheduleApprovalPending?: boolean;
   scheduleProposedTimes?: string | null;
   completionApprovalPending?: boolean;
-};
-
-export type MessageDto = {
-  id: string;
-  subject: string;
-  department: string;
-  lastMessage: string | null;
-  unread: number;
-  messages: { body: string; fromSelf: boolean }[];
+  responsibility?: 'tenant' | 'landlord' | 'strata' | null;
+  responsibilityAckRequired?: boolean;
+  responsibilityAckStatus?: 'pending' | 'agreed' | 'disagreed' | null;
+  questions?: { issueId: string; questionKey: string; question: string; answer: string | null }[];
+  completionEvidenceUrls?: string[];
 };
 
 export type NotificationDto = {
@@ -200,6 +199,10 @@ export type OutgoingInspection = {
   sections?: OutgoingSection[];
 };
 
+export function messageAttachment(file: EvidenceFile): components['schemas']['TenantMessageAttachmentUploadDto'] {
+  return fileBody(file);
+}
+
 function fileBody(file: EvidenceFile) {
   return {
     fileName: file.fileName,
@@ -223,6 +226,28 @@ export const tenantApi = {
   documents: () => unwrap(crossub.GET('/tenant/documents')),
   applications: () =>
     pages(async (page, pageSize) => unwrap(await crossub.GET('/tenant/applications', { params: { query: { page, pageSize } } }))),
+
+  getApplication: (applicationId: string) =>
+    unwrap(crossub.GET('/tenant/applications/{applicationId}', { params: { path: { applicationId } } })),
+
+  addApplicationDocument: (applicationId: string, body: components['schemas']['PublicApplicationDocumentDto']) =>
+    unwrap(
+      crossub.POST('/tenant/applications/{applicationId}/documents', {
+        params: { path: { applicationId } },
+        body,
+      }),
+    ),
+
+  household: () => unwrap(crossub.GET('/tenant/household')),
+
+  profile: () => unwrap(crossub.GET('/me')),
+
+  updatePhone: (phone: string) => unwrap(crossub.PATCH('/me', { body: { phone } })),
+
+  sessions: () => unwrap(crossub.GET('/me/sessions')),
+
+  revokeSession: (sessionId: string) =>
+    unwrap(crossub.DELETE('/me/sessions/{sessionId}', { params: { path: { sessionId } } })),
   maintenance: () =>
     pages(async (page, pageSize) =>
       unwrap(await crossub.GET('/tenant/maintenance-requests', { params: { query: { page, pageSize } } })),
@@ -262,6 +287,45 @@ export const tenantApi = {
   approveOutgoing: (id: string) =>
     unwrap(crossub.PATCH('/tenant/outgoing-inspections/{inspectionId}/approve', { params: { path: { inspectionId: id } } })),
 
+  ingoingInspections: () => unwrap(crossub.GET('/tenant/ingoing-inspections')),
+
+  getIngoingInspection: (inspectionId: string) =>
+    unwrap(crossub.GET('/tenant/ingoing-inspections/{inspectionId}', { params: { path: { inspectionId } } })),
+
+  submitIngoingFeedback: (
+    inspectionId: string,
+    sectionId: string,
+    body: { status: 'confirmed' | 'disputed'; comment?: string },
+  ) =>
+    unwrap(
+      crossub.POST('/tenant/ingoing-inspections/{inspectionId}/sections/{sectionId}/feedback', {
+        params: { path: { inspectionId, sectionId } },
+        body,
+      }),
+    ),
+
+  approveIngoing: (inspectionId: string) =>
+    unwrap(crossub.PATCH('/tenant/ingoing-inspections/{inspectionId}/approve', { params: { path: { inspectionId } } })),
+
+  rejectIngoing: (inspectionId: string, reason: string) =>
+    unwrap(
+      crossub.POST('/tenant/ingoing-inspections/{inspectionId}/reject', {
+        params: { path: { inspectionId } },
+        body: { reason },
+      }),
+    ),
+
+  acceptSettlement: (caseId: string) =>
+    unwrap(crossub.PATCH('/tenant/vacating-cases/{caseId}/settlement/accept', { params: { path: { caseId } } })),
+
+  declineSettlement: (caseId: string, reason: string) =>
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/settlement/decline', {
+        params: { path: { caseId } },
+        body: { reason },
+      }),
+    ),
+
   setOutgoingAttendance: (caseId: string, attendance: 'yes' | 'no') =>
     unwrap(
       crossub.PATCH('/tenant/vacating-cases/{caseId}/outgoing-attendance', {
@@ -288,11 +352,11 @@ export const tenantApi = {
       }),
     ),
 
-  createMessage: (body: { subject: string; body: string; department: Department; propertyId?: string }) =>
+  createMessage: (body: components['schemas']['CreateTenantMessageThreadDto']) =>
     unwrap(crossub.POST('/tenant/messages', { body })),
 
-  replyMessage: (threadId: string, body: string) =>
-    unwrap(crossub.POST('/tenant/messages/{threadId}/reply', { params: { path: { threadId } }, body: { body } })),
+  replyMessage: (threadId: string, body: components['schemas']['SendTenantMessageDto']) =>
+    unwrap(crossub.POST('/tenant/messages/{threadId}/reply', { params: { path: { threadId } }, body })),
 
   markMessageRead: (threadId: string) =>
     unwrap(crossub.PATCH('/tenant/messages/{threadId}/read', { params: { path: { threadId } } })),
@@ -330,6 +394,55 @@ export const tenantApi = {
         body: { photoUrls },
       }),
     ),
+
+  requestMovingReferral: (caseId: string) =>
+    unwrap(crossub.POST('/tenant/vacating-cases/{caseId}/moving-referral', { params: { path: { caseId } } })),
+
+  newLeasing: () => unwrap(crossub.GET('/tenant/new-leasing')),
+
+  updateVacateDate: (caseId: string, date: string) =>
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/vacate-date', {
+        params: { path: { caseId } },
+        body: { date },
+      }),
+    ),
+
+  cancelVacating: (caseId: string, reason?: string) =>
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/cancel', {
+        params: { path: { caseId } },
+        body: reason ? { reason } : {},
+      }),
+    ),
+
+  approveRepairCompletion: (requestId: string) =>
+    unwrap(
+      crossub.PATCH('/tenant/maintenance-requests/{requestId}/completion-approval', {
+        params: { path: { requestId } },
+        body: { approved: true },
+      }),
+    ),
+
+  ackRepairResponsibility: (requestId: string, body: components['schemas']['TenantMaintenanceResponsibilityAckDto']) =>
+    unwrap(
+      crossub.PATCH('/tenant/maintenance-requests/{requestId}/responsibility-ack', {
+        params: { path: { requestId } },
+        body,
+      }),
+    ),
+
+  answerRepairQuestions: (requestId: string, body: components['schemas']['RecordMaintenanceIssueAnswersDto']) =>
+    unwrap(
+      crossub.PATCH('/tenant/maintenance-requests/{requestId}/answers', {
+        params: { path: { requestId } },
+        body,
+      }),
+    ),
+
+  markAllNotificationsRead: () => unwrap(crossub.POST('/tenant/notifications/read-all')),
+
+  createVoiceSession: () => unwrap(crossub.POST('/tenant/voice/session')),
 
   setCleaning: (caseId: string, choice: 'own_arrangement' | 'booked') =>
     unwrap(

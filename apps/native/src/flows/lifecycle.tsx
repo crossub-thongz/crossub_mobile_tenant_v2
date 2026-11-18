@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { pickEvidence } from '@/src/api/pick-evidence';
-import { type CleaningChoice } from '@/src/demo/model';
+import { tenantApi } from '@/src/api/tenant';
+import { money, type CleaningChoice } from '@/src/demo/model';
 import { KeyCollectionForm } from '@/src/flows/key-collection';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
-import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen, TaskHeader, Timeline } from '@/src/ui/ui';
+import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen } from '@/src/ui/ui';
 
 export { FinalScreen } from '@/src/flows/outgoing-report';
 
@@ -17,31 +18,27 @@ export const CLEANING: { id: CleaningChoice; body: string }[] = [
   { id: 'Tenant Arranged', body: 'Your cleaner, or you. Upload completion photos and the date.' },
 ];
 
-const SETTLEMENTS = ['Separate payment', 'Bond deduction', 'Split settlement'];
-
 export function RenewalScreen() {
   const router = useRouter();
-  const demo = useDemo();
-  const status = demo.renewalResponded ? 'Under Review' : 'Action Required';
+  const { applications } = useDemo();
+  const renewals = applications.filter((item) => item.isRenewal);
   return (
     <Screen>
       <BackButton />
-      <TaskHeader title="Lease renewal" status={status} />
-      <Card>
-        <Text style={styles.title}>Renewal offer</Text>
-        <Text style={styles.body}>Term: 12 months</Text>
-        <Text style={styles.body}>15 Dec 2026 – 14 Dec 2027</Text>
-        <Text style={styles.body}>Proposed rent: $1,200 weekly</Text>
-      </Card>
-      {demo.renewalResponded ? (
-        <Notice>Your response is with the property manager. Accepting here does not sign the lease.</Notice>
-      ) : (
-        <View style={styles.stack}>
-          <Button label="Accept offer" onPress={demo.respondRenewal} />
-          <Button label="Negotiate or decline" tone="secondary" onPress={() => router.push('/flow/new-message')} />
-        </View>
-      )}
-      <Timeline status={status} />
+      <Text style={styles.h2}>Lease renewal</Text>
+      {renewals.length === 0 ? (
+        <Notice>No lease renewal offer is on this tenancy. A renewal appears here when an application is marked as a renewal.</Notice>
+      ) : null}
+      {renewals.map((item) => (
+        <Card key={item.id} onPress={() => router.push(`/applications/${item.id}`)}>
+          <Text style={styles.title}>{item.reference}</Text>
+          <Text style={styles.body}>{item.propertyAddress}</Text>
+          <Text style={styles.muted}>
+            {item.status} · submitted {item.submittedAt || 'date not recorded'}
+          </Text>
+        </Card>
+      ))}
+      <Button label="Message your property manager" tone="outline" onPress={() => router.push('/flow/new-message')} />
     </Screen>
   );
 }
@@ -96,12 +93,14 @@ export function KeysScreen() {
 
 export function VacatingScreen() {
   const router = useRouter();
-  const { cleaning } = useDemo();
+  const { cleaning, vacating } = useDemo();
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Moving out</Text>
-      <Text style={styles.muted}>Vacating date 14 Dec 2026. Only the steps you can act on are listed.</Text>
+      <Text style={styles.muted}>
+        {vacating?.vacateDate ? `Vacating date ${vacating.vacateDate}.` : 'No vacating date is on this account yet.'} Only the steps you can act on are listed.
+      </Text>
       <Card>
         <RowItem icon="checkmark-circle-outline" title="Vacating details" subtitle="Confirmed" onPress={() => router.push('/flow/tenancy')} />
         <RowItem icon="sparkles-outline" title="Cleaning" subtitle={cleaning ?? 'Choose an arrangement'} onPress={() => router.push('/flow/cleaning')} />
@@ -126,16 +125,6 @@ export function CleaningScreen() {
       {CLEANING.map((option) => (
         <Choice key={option.id} title={option.id} body={option.body} selected={demo.cleaning === option.id} onPress={() => demo.setCleaning(option.id)} />
       ))}
-      {demo.cleaning === 'Tenant Arranged' ? (
-        <Card>
-          <Field label="Completion photos">
-            <Input value="Add when the clean is finished" editable={false} />
-          </Field>
-          <Field label="Completion date">
-            <Input value="14 Dec 2026" editable={false} />
-          </Field>
-        </Card>
-      ) : null}
       <Button
         label="Save choice"
         onPress={() => {
@@ -151,29 +140,91 @@ export function CleaningScreen() {
   );
 }
 
+const SETTLEMENT_STATUS = { PENDING: 'pending', ACCEPTED: 'accepted', DECLINED: 'declined' } as const;
+
 export function SettlementScreen() {
   const demo = useDemo();
-  const [method, setMethod] = useState(demo.settlementMethod ?? SETTLEMENTS[0]);
+  const vacating = demo.vacating;
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const ready = Boolean(vacating && (vacating.refund != null || vacating.debt != null));
+  const waiting = vacating?.settlementStatus === SETTLEMENT_STATUS.PENDING && ready;
+
+  async function accept() {
+    if (!vacating || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await tenantApi.acceptSettlement(vacating.id);
+      demo.notify('Settlement accepted');
+      await demo.refreshAccount();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not accept the settlement');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decline() {
+    if (!vacating || busy) return;
+    const note = reason.trim();
+    if (!note) {
+      setError('Say why you are declining the settlement');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await tenantApi.declineSettlement(vacating.id, note);
+      demo.notify('Settlement declined');
+      await demo.refreshAccount();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not decline the settlement');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Final settlement</Text>
-      <Card>
-        <View style={styles.between}>
-          <Text style={styles.title}>Agreed charges</Text>
-          <Text style={styles.title}>$200.00</Text>
-        </View>
-        <Text style={styles.muted}>Agreeing to a finding does not collect money or claim the bond.</Text>
-      </Card>
-      <Card>
-        <Text style={styles.title}>Preferred arrangement</Text>
-        {SETTLEMENTS.map((option) => (
-          <Choice key={option} title={option} body="Manager confirmation is required" selected={method === option} onPress={() => setMethod(option)} />
-        ))}
-        <Button label="Request arrangement" onPress={() => demo.requestSettlement(method)} />
-      </Card>
-      <Notice>Only the responsible manager can verify a settlement payment and close it. Invoice status in Payments is a different record.</Notice>
+      {!vacating ? <Notice>No vacating case is open on this tenancy, so there is no settlement to review.</Notice> : null}
+      {vacating && !ready ? <Notice>No settlement figures have been sent for this vacating case yet.</Notice> : null}
+      {vacating && ready ? (
+        <Card>
+          {vacating.hasSummary ? <Amount label="Unpaid rent" value={vacating.arrears} /> : null}
+          {vacating.hasSummary ? <Amount label="Unpaid bills" value={vacating.bills} /> : null}
+          {vacating.hasSummary ? <Amount label="Maintenance" value={vacating.deductions} /> : null}
+          {vacating.hasSummary ? <Amount label="Bond held" value={vacating.bond} /> : null}
+          {vacating.refund != null ? <Amount label="Proposed refund" value={vacating.refund} /> : null}
+          {vacating.debt != null ? <Amount label="Amount still owing" value={vacating.debt} /> : null}
+          <Text style={styles.muted}>Status: {vacating.settlementStatus}</Text>
+        </Card>
+      ) : null}
+      {waiting ? (
+        <Card>
+          <Field label="Reason if you decline">
+            <Input multiline value={reason} onChangeText={setReason} placeholder="What should be reviewed?" />
+          </Field>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button label={busy ? 'Sending…' : 'Accept settlement'} onPress={() => void accept()} />
+          <Button label="Decline settlement" tone="outline" onPress={() => void decline()} />
+        </Card>
+      ) : null}
+      {error && !waiting ? <Text style={styles.error}>{error}</Text> : null}
+      <Notice>Accepting or declining is saved on the vacating case. It does not move money by itself.</Notice>
     </Screen>
+  );
+}
+
+function Amount({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={styles.between}>
+      <Text style={styles.muted}>{label}</Text>
+      <Text style={styles.title}>{money(value)}</Text>
+    </View>
   );
 }
 

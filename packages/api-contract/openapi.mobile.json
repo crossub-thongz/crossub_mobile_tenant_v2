@@ -29,7 +29,7 @@
         },
         "summary": "Mobile login — returns access + refresh tokens in the body.",
         "tags": [
-          "auth"
+          "Mobile Auth"
         ]
       }
     },
@@ -61,7 +61,7 @@
         },
         "summary": "Mobile one-time login — consumes an invite token and returns body tokens.",
         "tags": [
-          "auth"
+          "Mobile Auth"
         ]
       }
     },
@@ -93,7 +93,7 @@
         },
         "summary": "Mobile token refresh — rotates and returns new tokens.",
         "tags": [
-          "auth"
+          "Mobile Auth"
         ]
       }
     },
@@ -118,7 +118,7 @@
         },
         "summary": "Mobile logout — revokes the presented refresh token.",
         "tags": [
-          "auth"
+          "Mobile Auth"
         ]
       }
     },
@@ -171,7 +171,7 @@
         ],
         "summary": "Submit a maintenance request for the signed-in tenant's property.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       },
       "get": {
@@ -227,7 +227,7 @@
         ],
         "summary": "List maintenance requests for the signed-in tenant’s leased property.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -274,7 +274,7 @@
         ],
         "summary": "Stage a repair-evidence photo (base64-through-API → R2) before creating.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -319,7 +319,7 @@
         ],
         "summary": "Begin a repair-evidence photo upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -367,7 +367,7 @@
         ],
         "summary": "Finalize a direct-to-R2 repair-evidence photo upload.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -416,7 +416,7 @@
         ],
         "summary": "Get one maintenance request visible to the signed-in tenant.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -476,7 +476,7 @@
         ],
         "summary": "Acknowledge or disagree with a tenant-responsibility repair decision.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -536,7 +536,7 @@
         ],
         "summary": "Approve contractor completion evidence for a landlord/strata repair.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -596,7 +596,7 @@
         ],
         "summary": "Answer the questions CROSSUB asked about a repair (Phase 1 §B).",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -644,7 +644,7 @@
         ],
         "summary": "Approve or decline contractor-proposed repair visit times.",
         "tags": [
-          "tenant"
+          "Tenant App - Maintenance"
         ]
       }
     },
@@ -681,7 +681,7 @@
         ],
         "summary": "Open an in-app voice call with the CROSSUB assistant.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -738,7 +738,7 @@
         ],
         "summary": "List the signed-in tenant’s tenancies (current and historical leases).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -787,7 +787,7 @@
         ],
         "summary": "Get one of the signed-in tenant’s tenancies by id.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -844,7 +844,7 @@
         ],
         "summary": "List the properties the signed-in tenant currently leases.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -893,7 +893,7 @@
         ],
         "summary": "Get one of the signed-in tenant’s leased properties by id.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -951,7 +951,7 @@
         ],
         "summary": "List the signed-in tenant’s ledger lines (payments and charges).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1009,7 +1009,7 @@
         ],
         "summary": "List inspections on the property the signed-in tenant leases.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1046,7 +1046,7 @@
         ],
         "summary": "List documents for the signed-in tenant.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1104,7 +1104,7 @@
         ],
         "summary": "List the signed-in tenant’s own rental applications.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1145,7 +1145,91 @@
         ],
         "summary": "Get a rental application submitted by the signed-in tenant.",
         "tags": [
-          "tenant"
+          "Tenant App"
+        ]
+      }
+    },
+    "/tenant/applications/{applicationId}/documents": {
+      "post": {
+        "operationId": "TenantAccountController_addApplicationDocument",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicApplicationDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantApplicationDetailResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found."
+          },
+          "409": {
+            "description": "The application is closed."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a checklist file to an application the tenant submitted.",
+        "tags": [
+          "Tenant App"
+        ]
+      }
+    },
+    "/tenant/household": {
+      "get": {
+        "description": "Names and roles only. Other members’ email addresses and phone numbers are not returned.",
+        "operationId": "TenantAccountController_listHousehold",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TenantHouseholdMemberDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List people on the tenancies the signed-in tenant belongs to.",
+        "tags": [
+          "Tenant App"
         ]
       }
     },
@@ -1182,7 +1266,7 @@
         ],
         "summary": "List agent-opened new-leasing cases for the tenant.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1219,7 +1303,7 @@
         ],
         "summary": "List agent-scheduled entry inspections for the tenant.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1259,7 +1343,7 @@
         ],
         "summary": "Get an agent-scheduled entry inspection with report sections.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1306,7 +1390,7 @@
         ],
         "summary": "Raise a dispute on an entry inspection section.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1362,7 +1446,7 @@
         ],
         "summary": "Confirm or dispute one section of the entry report (with feedback).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1409,7 +1493,7 @@
         ],
         "summary": "Submit Yes/No answers on the NSW special-conditions page.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1456,7 +1540,7 @@
         ],
         "summary": "Upload the tenant-completed entry report (filled sections + signature) and submit it back.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1493,7 +1577,7 @@
         ],
         "summary": "Approve the entry condition report after review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1540,7 +1624,7 @@
         ],
         "summary": "Reject the whole entry condition report with a reason.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1577,7 +1661,7 @@
         ],
         "summary": "List agent-scheduled final inspections for the tenant.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1617,7 +1701,7 @@
         ],
         "summary": "Get an agent-scheduled final inspection with report sections.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1664,7 +1748,7 @@
         ],
         "summary": "Raise a dispute on a final inspection section.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1701,7 +1785,7 @@
         ],
         "summary": "Approve the final condition report after review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1738,7 +1822,7 @@
         ],
         "summary": "List agent-created routine inspections for the tenant.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1778,7 +1862,7 @@
         ],
         "summary": "Get an agent-created routine inspection schedule or instance.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1815,7 +1899,7 @@
         ],
         "summary": "Start a tenant self-inspection (spawns checklist areas when needed).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1862,7 +1946,7 @@
         ],
         "summary": "Save in-progress tenant self-inspection photos so they restore after logout or reconnect.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1909,7 +1993,7 @@
         ],
         "summary": "Submit a completed tenant self-inspection for agent review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -1946,7 +2030,7 @@
         ],
         "summary": "List rent reviews on the tenant’s leased property.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2009,7 +2093,7 @@
         ],
         "summary": "Respond to a dispatched rent-review notice.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2069,7 +2153,7 @@
         ],
         "summary": "Ask a question about the current rent offer.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2108,7 +2192,7 @@
         ],
         "summary": "Download the NSW Notice of Rent Increase PDF for a dispatched rent review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2161,7 +2245,7 @@
         ],
         "summary": "Virtually sign the residential tenancy agreement for a fixed-term rent review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2204,7 +2288,7 @@
         ],
         "summary": "Download the residential tenancy agreement PDF for a fixed-term rent review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2263,7 +2347,7 @@
         ],
         "summary": "Open a vacating / end-of-lease case.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       },
       "get": {
@@ -2298,7 +2382,7 @@
         ],
         "summary": "List end-leasing cases on the tenant’s leased property.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2360,7 +2444,7 @@
         ],
         "summary": "Withdraw a vacating / end-of-lease case.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2422,7 +2506,7 @@
         ],
         "summary": "Update the vacate date on an end-of-lease case.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2484,7 +2568,7 @@
         ],
         "summary": "Record whether the tenant will attend the final inspection.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2533,7 +2617,7 @@
         ],
         "summary": "Accept the proposed bond settlement on an agent-opened end-leasing case.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2595,7 +2679,7 @@
         ],
         "summary": "Decline the proposed bond settlement on an agent-opened end-leasing case.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2644,7 +2728,7 @@
         ],
         "summary": "Agree to bond-deduction items from the end-leasing quote step.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2706,7 +2790,7 @@
         ],
         "summary": "Disagree with bond-deduction items from the end-leasing quote step.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2743,7 +2827,7 @@
         ],
         "summary": "Acknowledge tenant responsibility items from the end-leasing compare step.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2790,7 +2874,7 @@
         ],
         "summary": "Decline tenant responsibility items from the end-leasing compare step.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2837,7 +2921,7 @@
         ],
         "summary": "Upload a key-return proof photo for an end-of-lease case.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2891,7 +2975,7 @@
         ],
         "summary": "Begin a key-return photo upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2948,7 +3032,7 @@
         ],
         "summary": "Finalize a direct-to-R2 key-return photo upload.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -2995,7 +3079,50 @@
         ],
         "summary": "Choose how the end-of-lease clean is arranged (tenant arranges it, or CROSSUB books it).",
         "tags": [
-          "tenant"
+          "Tenant App"
+        ]
+      }
+    },
+    "/tenant/vacating-cases/{caseId}/moving-referral": {
+      "post": {
+        "operationId": "TenantAccountController_requestMovingReferral",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantVacatingCaseResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "End-leasing case not found."
+          },
+          "409": {
+            "description": "The vacating case can no longer be updated."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ask for a moving referral on an open vacating case. This does not book a mover.",
+        "tags": [
+          "Tenant App"
         ]
       }
     },
@@ -3042,7 +3169,7 @@
         ],
         "summary": "Submit key-return proof photos after returning keys to the agent location.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3079,7 +3206,7 @@
         ],
         "summary": "List message threads about the tenant’s leased property.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       },
       "post": {
@@ -3137,7 +3264,7 @@
         ],
         "summary": "Open a new message thread (general, or about the leased property).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3206,7 +3333,7 @@
         ],
         "summary": "Reply to one of the tenant’s existing message threads.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3255,7 +3382,7 @@
         ],
         "summary": "Mark one of the tenant’s message threads as read.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3291,7 +3418,7 @@
         ],
         "summary": "List the signed-in tenant’s notifications.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3340,7 +3467,7 @@
         ],
         "summary": "Mark one of the tenant’s notifications read.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3373,7 +3500,7 @@
         ],
         "summary": "Mark all of the tenant’s unread notifications read.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3409,7 +3536,7 @@
         ],
         "summary": "Live leasing onboarding (step 4) for the tenant’s approved application — deposit, bond, lease, keys, ingoing.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3438,7 +3565,7 @@
         ],
         "summary": "Download the pre-filled NSW residential tenancy agreement PDF for the tenant’s in-progress leasing onboarding.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3484,7 +3611,7 @@
         ],
         "summary": "Tenant confirms key collection time, location, and photo proof (leasing step 4 / Handover report).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3530,7 +3657,7 @@
         ],
         "summary": "Upload a key-collection proof photo before submitting the key-collection report.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3574,7 +3701,7 @@
         ],
         "summary": "Begin a key-collection photo upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3621,7 +3748,7 @@
         ],
         "summary": "Finalize a direct-to-R2 key-collection photo upload.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3667,7 +3794,7 @@
         ],
         "summary": "Upload deposit payment proof before submitting it for staff review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3712,7 +3839,7 @@
         ],
         "summary": "Begin a deposit proof upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3760,7 +3887,7 @@
         ],
         "summary": "Finalize a direct-to-R2 deposit proof upload.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3809,7 +3936,7 @@
         ],
         "summary": "Submit deposit payment proof for staff review (leasing step 4).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3855,7 +3982,7 @@
         ],
         "summary": "Upload bond payment proof before submitting it for staff review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3900,7 +4027,7 @@
         ],
         "summary": "Begin a bond proof upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3948,7 +4075,7 @@
         ],
         "summary": "Finalize a direct-to-R2 bond proof upload.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -3997,7 +4124,7 @@
         ],
         "summary": "Submit bond payment proof for staff review (leasing step 4).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4046,7 +4173,7 @@
         ],
         "summary": "Submit a signed lease agreement document for agent confirmation.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4085,7 +4212,7 @@
         ],
         "summary": "Record lease agreement signing — generates a PDF with the tenant name and submits for agent confirmation.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4122,7 +4249,7 @@
         ],
         "summary": "Upload a signed lease agreement file before submitting it for review.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4166,7 +4293,7 @@
         ],
         "summary": "Begin a signed agreement upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4213,7 +4340,7 @@
         ],
         "summary": "Finalize a direct-to-R2 signed agreement upload.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4247,7 +4374,7 @@
         ],
         "summary": "Tenant welcome guide — acknowledgement state.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4280,7 +4407,7 @@
         ],
         "summary": "Acknowledge the tenant welcome guide for this user.",
         "tags": [
-          "tenant"
+          "Tenant App"
         ]
       }
     },
@@ -4302,7 +4429,7 @@
         },
         "summary": "List properties currently open for applications",
         "tags": [
-          "public-listings"
+          "Public Listings"
         ]
       }
     },
@@ -4344,7 +4471,7 @@
         },
         "summary": "Get a single listable property",
         "tags": [
-          "public-listings"
+          "Public Listings"
         ]
       }
     },
@@ -4399,7 +4526,7 @@
         },
         "summary": "Begin a guest application document upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "public-listings"
+          "Public Listings"
         ]
       }
     },
@@ -4440,7 +4567,7 @@
         },
         "summary": "Finalize a direct-to-R2 guest application document upload.",
         "tags": [
-          "public-listings"
+          "Public Listings"
         ]
       }
     },
@@ -4490,7 +4617,7 @@
         },
         "summary": "Submit a guest rental application (no login)",
         "tags": [
-          "public-listings"
+          "Public Listings"
         ]
       }
     },
@@ -4548,7 +4675,7 @@
         ],
         "summary": "List the properties owned by the signed-in landlord.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4597,7 +4724,7 @@
         ],
         "summary": "Get one of the signed-in landlord’s properties by id.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4654,7 +4781,7 @@
         ],
         "summary": "List maintenance across the signed-in landlord’s properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4703,7 +4830,7 @@
         ],
         "summary": "Get one maintenance request on a landlord’s property.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4760,7 +4887,7 @@
         ],
         "summary": "List inspections across the signed-in landlord’s properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4809,7 +4936,7 @@
         ],
         "summary": "Get one inspection on a landlord’s property.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4867,7 +4994,7 @@
         ],
         "summary": "List the signed-in landlord’s owner statements (payouts).",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4904,7 +5031,7 @@
         ],
         "summary": "List the signed-in landlord’s monthly owner statements (P&L).",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4941,7 +5068,7 @@
         ],
         "summary": "List rent payments received across the landlord’s properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -4978,7 +5105,7 @@
         ],
         "summary": "List outstanding amounts owed across the landlord’s properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5015,7 +5142,7 @@
         ],
         "summary": "List documents across the landlord’s properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       },
       "post": {
@@ -5072,7 +5199,7 @@
         ],
         "summary": "Upload a document for one of the landlord’s owned properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5109,7 +5236,7 @@
         ],
         "summary": "List message threads across the landlord’s properties.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       },
       "post": {
@@ -5167,7 +5294,7 @@
         ],
         "summary": "Open a new message thread (general, or about an owned property).",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5236,7 +5363,7 @@
         ],
         "summary": "Reply to one of the landlord’s existing message threads.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5272,7 +5399,7 @@
         ],
         "summary": "List the approvals the signed-in landlord is asked to decide.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5331,7 +5458,7 @@
         ],
         "summary": "Record the landlord’s decision on an approval.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5367,7 +5494,7 @@
         ],
         "summary": "List the signed-in landlord’s notifications.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5416,7 +5543,7 @@
         ],
         "summary": "Mark one of the landlord’s notifications read.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5459,7 +5586,7 @@
         ],
         "summary": "Mark all of the landlord’s unread notifications read.",
         "tags": [
-          "landlord"
+          "Landlord App"
         ]
       }
     },
@@ -5517,7 +5644,7 @@
         ],
         "summary": "List the maintenance jobs assigned to the signed-in contractor.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5566,7 +5693,7 @@
         ],
         "summary": "Get one of the signed-in contractor’s assigned jobs by id.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5618,7 +5745,7 @@
         ],
         "summary": "Accept an assigned job (APPROVED → SCHEDULED).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5655,7 +5782,7 @@
         ],
         "summary": "Accept an RFQ invite — proceed to submit a quotation.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5702,7 +5829,7 @@
         ],
         "summary": "Decline an RFQ invite before quoting.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5749,7 +5876,7 @@
         ],
         "summary": "Request additional job photos before submitting a quotation.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5796,7 +5923,7 @@
         ],
         "summary": "Submit proposed visit times for tenant approval (schedule step).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5858,7 +5985,7 @@
         ],
         "summary": "Mark an assigned job complete (SCHEDULED → COMPLETED).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5921,7 +6048,7 @@
         ],
         "summary": "Invoice a finished job (COMPLETED → INVOICED).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -5962,7 +6089,7 @@
         ],
         "summary": "Upload contractor invoice file (PDF/image).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6025,7 +6152,7 @@
         ],
         "summary": "Submit a quote for an assigned job.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       },
       "get": {
@@ -6075,7 +6202,7 @@
         ],
         "summary": "List the quotes the contractor submitted for a job.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6135,7 +6262,7 @@
         ],
         "summary": "Attach result photos to an assigned job.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       },
       "get": {
@@ -6182,7 +6309,7 @@
         ],
         "summary": "Get the request + result photos on an assigned job.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6242,7 +6369,7 @@
         ],
         "summary": "Upload a completion/evidence photo to an assigned job (base64 → R2).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6279,7 +6406,7 @@
         ],
         "summary": "List the signed-in contractor’s message threads.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       },
       "post": {
@@ -6337,7 +6464,7 @@
         ],
         "summary": "Open a new message thread (general, or about an assigned job).",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6406,7 +6533,7 @@
         ],
         "summary": "Reply to one of the contractor’s existing message threads.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6442,7 +6569,7 @@
         ],
         "summary": "List the signed-in contractor’s notifications.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6491,7 +6618,7 @@
         ],
         "summary": "Mark one of the contractor’s notifications read.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6534,7 +6661,7 @@
         ],
         "summary": "Mark all of the contractor’s unread notifications read.",
         "tags": [
-          "contractor"
+          "Contractor App"
         ]
       }
     },
@@ -6592,7 +6719,7 @@
         ],
         "summary": "List the billable inspection jobs for the signed-in inspector.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6641,7 +6768,7 @@
         ],
         "summary": "Get one of the signed-in inspector’s jobs by id.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6699,7 +6826,7 @@
         ],
         "summary": "List the inspections assigned to the signed-in inspector.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6784,7 +6911,7 @@
         ],
         "summary": "List active unassigned inspections in the job pool.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6818,7 +6945,7 @@
         ],
         "summary": "The OPEN TASK POOL for the Saturday currently being planned.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6852,7 +6979,7 @@
         ],
         "summary": "The routed Saturday this inspector is being asked to confirm.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6905,7 +7032,7 @@
         ],
         "summary": "Select the properties to open on Saturday, and get the routed day back.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -6958,7 +7085,7 @@
         ],
         "summary": "Confirm the suggested open times — or edit them and confirm.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7008,7 +7135,7 @@
         ],
         "summary": "Hand selected opens back to the pool before confirming.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7057,7 +7184,7 @@
         ],
         "summary": "Get one of the signed-in inspector’s assigned inspections by id.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7107,7 +7234,7 @@
         ],
         "summary": "Get the leasing key-collection arrangement for an inspection.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7154,7 +7281,7 @@
         ],
         "summary": "Open viewing session for an assigned OPEN inspection.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7204,7 +7331,7 @@
         ],
         "summary": "Start an assigned OPEN viewing (early or on schedule).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7256,7 +7383,7 @@
         ],
         "summary": "Accept an assigned inspection (DRAFT → IN_PROGRESS).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7309,7 +7436,7 @@
         ],
         "summary": "Claim an unassigned pool inspection.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7362,7 +7489,7 @@
         ],
         "summary": "Decline a pool job (or an assignment not yet accepted).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7425,7 +7552,7 @@
         ],
         "summary": "Release a claimed/accepted job back to the pool.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7488,7 +7615,7 @@
         ],
         "summary": "Save the findings tree gathered on site (areas + items).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7551,7 +7678,7 @@
         ],
         "summary": "Save this device’s in-progress inspection draft.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7614,7 +7741,7 @@
         ],
         "summary": "Complete an assigned inspection (IN_PROGRESS → COMPLETED).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7663,7 +7790,7 @@
         ],
         "summary": "Get the findings tree (areas, items, photos) of an assigned inspection.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7703,7 +7830,7 @@
         ],
         "summary": "Download the filed inspection report PDF.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7766,7 +7893,7 @@
         ],
         "summary": "File (attach) the report + sign-off on an assigned inspection.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7826,7 +7953,7 @@
         ],
         "summary": "Upload an inspection-level evidence photo (base64-through-API → R2).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7875,7 +8002,7 @@
         ],
         "summary": "Clear area-level proof photos before the inspector resyncs a room.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7934,7 +8061,7 @@
         ],
         "summary": "Attach existing photo URLs to an area (copy reference INGOING photos onto OUTGOING).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -7994,7 +8121,7 @@
         ],
         "summary": "Upload a key-custody proof photo (base64 → R2) for a collect/return phase.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8054,7 +8181,7 @@
         ],
         "summary": "Record that the inspector collected the keys (keys-before-finish).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8117,7 +8244,7 @@
         ],
         "summary": "Record that the inspector returned the keys (return-after-finish).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8154,7 +8281,7 @@
         ],
         "summary": "List the signed-in inspector’s message threads.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       },
       "post": {
@@ -8212,7 +8339,7 @@
         ],
         "summary": "Open a new message thread (general, or about an assigned inspection).",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8281,7 +8408,7 @@
         ],
         "summary": "Reply to one of the inspector’s existing message threads.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8330,7 +8457,7 @@
         ],
         "summary": "Mark one of the inspector’s message threads as read.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8366,7 +8493,7 @@
         ],
         "summary": "List the signed-in inspector’s notifications.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8415,7 +8542,7 @@
         ],
         "summary": "Mark one of the inspector’s notifications read.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8458,7 +8585,7 @@
         ],
         "summary": "Mark all of the inspector’s unread notifications read.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8495,7 +8622,7 @@
         ],
         "summary": "List the tribunal cases the signed-in inspector is assigned to attend.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8544,7 +8671,7 @@
         ],
         "summary": "Get one of the signed-in inspector’s assigned tribunal cases by id.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8578,7 +8705,7 @@
         ],
         "summary": "Get the signed-in inspector’s own profile.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8635,7 +8762,7 @@
         ],
         "summary": "Submit (or resubmit) the inspector’s own registration application.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8682,7 +8809,7 @@
         ],
         "summary": "Set whether the inspector receives pool jobs.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8728,7 +8855,7 @@
         ],
         "summary": "Get the signed-in inspector calendar availability.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       },
       "patch": {
@@ -8763,7 +8890,7 @@
         ],
         "summary": "Set available calendar dates for a date range.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8810,7 +8937,7 @@
         ],
         "summary": "Update the inspector live GPS location.",
         "tags": [
-          "inspector"
+          "Inspector App"
         ]
       }
     },
@@ -8847,7 +8974,7 @@
         ],
         "summary": "Open an in-app voice call with Gii.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -8904,7 +9031,7 @@
         ],
         "summary": "List the agencies (clients) the signed-in agent manages.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -8952,7 +9079,7 @@
         ],
         "summary": "Onboard a client agency under the signed-in agent.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -8996,7 +9123,7 @@
         ],
         "summary": "Dates when at least one inspector published pool availability",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9030,7 +9157,7 @@
         ],
         "summary": "Agent portal welcome tour — eligibility and dismissal state.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9063,7 +9190,7 @@
         ],
         "summary": "Dismiss the agent portal welcome tour for this user.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9097,7 +9224,7 @@
         ],
         "summary": "Agent portal section guides — completion state for this user.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9140,7 +9267,7 @@
         ],
         "summary": "Mark a section guide as completed or skipped for this user.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9173,7 +9300,7 @@
         ],
         "summary": "Clear all section guide completion state for this user.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9222,7 +9349,7 @@
         ],
         "summary": "Get one of the agent’s assigned agencies by id.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9259,7 +9386,7 @@
         ],
         "summary": "List agency team members and caller tier.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9306,7 +9433,7 @@
         ],
         "summary": "Invite a field agent to the agency (principal only).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9352,7 +9479,7 @@
         ],
         "summary": "Remove a team member from the agency (principal only).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9409,7 +9536,7 @@
         ],
         "summary": "Choose which modules a team member may open (principal only).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9469,7 +9596,7 @@
         ],
         "summary": "Update agency billing details used on tax invoices.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9526,7 +9653,7 @@
         ],
         "summary": "Switch a Self-Manage agency to Inspection Only or Full Service (principal only).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9586,7 +9713,7 @@
         ],
         "summary": "Set the agency primary contact (principal only).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9643,7 +9770,7 @@
         ],
         "summary": "List tax invoices for the signed-in agent’s agencies.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -9693,7 +9820,7 @@
         ],
         "summary": "Create a Crossub management tax invoice.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9742,7 +9869,7 @@
         ],
         "summary": "Get one tax invoice by id.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "patch": {
@@ -9802,7 +9929,7 @@
         ],
         "summary": "Update a tax invoice.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "delete": {
@@ -9839,7 +9966,7 @@
         ],
         "summary": "Delete a tax invoice.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -9889,7 +10016,7 @@
         ],
         "summary": "List the preferred handymen for an assigned agency.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -9947,7 +10074,7 @@
         ],
         "summary": "Save a handyman to the signed-in agent’s personal preferred list.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10014,7 +10141,7 @@
         ],
         "summary": "List properties across the signed-in agent’s assigned agencies.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -10062,7 +10189,7 @@
         ],
         "summary": "Register a property under the agent’s primary assigned agency.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10124,7 +10251,7 @@
         ],
         "summary": "Check whether this agency already has a live property at the address",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10173,7 +10300,7 @@
         ],
         "summary": "Get one property within the agent’s assigned agencies.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "patch": {
@@ -10231,7 +10358,7 @@
         ],
         "summary": "Update a property registry record (including intake wizard drafts).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "delete": {
@@ -10272,7 +10399,7 @@
         ],
         "summary": "Remove a property permanently.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10318,7 +10445,7 @@
         ],
         "summary": "List live tenant and landlord contacts on a property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -10376,7 +10503,7 @@
         ],
         "summary": "Add a tenant or landlord contact on a property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10432,7 +10559,7 @@
         ],
         "summary": "Remove a tenant or landlord contact from a property (soft archive).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "patch": {
@@ -10499,7 +10626,7 @@
         ],
         "summary": "Correct a live tenant or landlord contact on a property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10561,7 +10688,7 @@
         ],
         "summary": "Email a tenant contact their Tenant app login.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10611,7 +10738,7 @@
         ],
         "summary": "Archive the current tenant and leave the property ready for the next tenancy.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10671,7 +10798,7 @@
         ],
         "summary": "Put an archived tenancy back on the property (the undo for archive).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10731,7 +10858,7 @@
         ],
         "summary": "Pin which tenancy the property treats as current, or clear the pin.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10778,7 +10905,7 @@
         ],
         "summary": "Assign or clear the portal agent responsible for a property (principal only).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10831,7 +10958,7 @@
         ],
         "summary": "End agency management on a property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10874,7 +11001,7 @@
         ],
         "summary": "Archive a property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10914,7 +11041,7 @@
         ],
         "summary": "Restore an archived property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -10961,7 +11088,7 @@
         ],
         "summary": "Open a new leasing cycle for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11021,7 +11148,7 @@
         ],
         "summary": "Approve or decline an applicant from the tenant-selection queue.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11077,7 +11204,7 @@
         ],
         "summary": "Confirm the re-let for a leasing cycle (proceed / do_not_relet / decide_later).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11133,7 +11260,7 @@
         ],
         "summary": "Cancel a letting (force skips open-inspection scheduling guards for agent delete).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11189,7 +11316,7 @@
         ],
         "summary": "Schedule CROSSUB open inspection (Saturday only) — creates pool job and viewing session.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11245,7 +11372,7 @@
         ],
         "summary": "Start a scheduled CROSSUB open inspection now — keeps the existing end time (testing).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11301,7 +11428,7 @@
         ],
         "summary": "Schedule agent self-conducted open (Mon–Fri / Sunday) — no inspector pool job.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11348,7 +11475,7 @@
         ],
         "summary": "Confirm the scheduled time of an open inspection.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11404,7 +11531,7 @@
         ],
         "summary": "Cancel an OPEN pool inspection (no viewing session yet).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11454,7 +11581,7 @@
         ],
         "summary": "Open a rent review for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11500,7 +11627,7 @@
         ],
         "summary": "Get one rent review with its offer versions, negotiation events and follow-ups.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11559,7 +11686,7 @@
         ],
         "summary": "Record the landlord's new offer after a tenant counter or decline.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11618,7 +11745,7 @@
         ],
         "summary": "Accept one exact offer version — usually the tenant's counter.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11677,7 +11804,7 @@
         ],
         "summary": "The landlord keeps their previous offer; it goes back to the tenant.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11736,7 +11863,7 @@
         ],
         "summary": "The landlord withdraws the increase — the rent stays unchanged.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11795,7 +11922,7 @@
         ],
         "summary": "No landlord position yet — follow up by a date.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11863,7 +11990,7 @@
         ],
         "summary": "Mark a negotiation follow-up complete.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11919,7 +12046,7 @@
         ],
         "summary": "Cancel a rent review for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -11965,7 +12092,7 @@
         ],
         "summary": "Submit a rent review to accounting for rent sync.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12011,7 +12138,7 @@
         ],
         "summary": "Send the new fixed-term lease agreement to the tenant.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12057,7 +12184,7 @@
         ],
         "summary": "Record that the tenant signed the new fixed-term lease agreement.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12103,7 +12230,7 @@
         ],
         "summary": "Complete a rent review and sync the new rent to the system.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12160,7 +12287,7 @@
         ],
         "summary": "Adjust the recommended rent, or clear the adjustment.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12216,7 +12343,7 @@
         ],
         "summary": "Record agent decision (proposed rent, lease term, effective date).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12272,7 +12399,7 @@
         ],
         "summary": "Set the NSW notice payable-from date (manual override).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12328,7 +12455,7 @@
         ],
         "summary": "Set optional NSW RTA page-15 clauses before sending the lease agreement.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12374,7 +12501,7 @@
         ],
         "summary": "Align proposed rent with the AI recommendation.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12413,7 +12540,7 @@
         ],
         "summary": "List rent-review email/message history.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12469,7 +12596,7 @@
         ],
         "summary": "Send a rent-review email (landlord research pack, reply, or forward).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12515,7 +12642,7 @@
         ],
         "summary": "Notify admin to conduct market research for this rent review.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12552,7 +12679,7 @@
         ],
         "summary": "Preview the CROSSUB rent review research report (HTML).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12589,7 +12716,7 @@
         ],
         "summary": "Preview or download the NSW notice of rent increase PDF.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12626,7 +12753,7 @@
         ],
         "summary": "Preview or download the NSW residential tenancy agreement PDF.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12683,7 +12810,7 @@
         ],
         "summary": "Download or preview a rent-review email attachment.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12730,7 +12857,7 @@
         ],
         "summary": "Open an end-leasing (vacating/termination) case.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12777,7 +12904,7 @@
         ],
         "summary": "Record a manual rent reconciliation on the property ledger.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12824,7 +12951,7 @@
         ],
         "summary": "Record rent, bill, or bond arrears for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12875,7 +13002,7 @@
         ],
         "summary": "Email the tenant a reminder about open arrears.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12922,7 +13049,7 @@
         ],
         "summary": "Mark recorded arrears as paid on a chosen date.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -12969,7 +13096,7 @@
         ],
         "summary": "Open a Rent Chasing tribunal case (rent / bill / bond arrears) and sync profile fields.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13006,7 +13133,7 @@
         ],
         "summary": "Accounting arrears available for a Rent Chasing tribunal case on this property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13043,7 +13170,7 @@
         ],
         "summary": "Rent Chasing tribunal case detail (arrears, tenancy summary, notes).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "delete": {
@@ -13084,7 +13211,7 @@
         ],
         "summary": "Delete a tribunal case from the agent portfolio.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13131,7 +13258,7 @@
         ],
         "summary": "Update Rent Chasing agent notes and/or eviction-required flag.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13200,7 +13327,7 @@
         ],
         "summary": "Force complete an agent task and close its remaining workflow chain.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13269,7 +13396,7 @@
         ],
         "summary": "Force delete an agent task and close its remaining workflow chain.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13325,7 +13452,7 @@
         ],
         "summary": "Audit log for force-complete and force-delete of an agent task.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13381,7 +13508,7 @@
         ],
         "summary": "Cancel an end-leasing case with a recorded reason.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13428,7 +13555,7 @@
         ],
         "summary": "Log a maintenance job for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13484,7 +13611,7 @@
         ],
         "summary": "Cancel (delete) a maintenance job for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13544,7 +13671,7 @@
         ],
         "summary": "Upload maintenance evidence photo or video (base64-through-API → object storage).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13592,7 +13719,7 @@
         ],
         "summary": "Request routine inspections for a property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13640,7 +13767,7 @@
         ],
         "summary": "Request an ingoing (move-in) inspection.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13688,7 +13815,7 @@
         ],
         "summary": "Request an outgoing (move-out) inspection without an end-leasing case (Level 1 / standalone).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13744,7 +13871,7 @@
         ],
         "summary": "Cancel an outgoing (move-out) inspection with a recorded reason.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13800,7 +13927,7 @@
         ],
         "summary": "Cancel an ingoing (move-in) inspection with a recorded reason.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13850,7 +13977,7 @@
         ],
         "summary": "Get the key-collection state for a managed property’s active leasing cycle.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "patch": {
@@ -13910,7 +14037,7 @@
         ],
         "summary": "Set the key-collection time and place for a managed property.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -13972,7 +14099,7 @@
         ],
         "summary": "Submit the full key-collection report (handover checklist + proof photos).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14032,7 +14159,7 @@
         ],
         "summary": "Upload a key-collection proof photo (base64-through-API → object storage).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14092,7 +14219,7 @@
         ],
         "summary": "Upload a property cover image (base64-through-API → object storage).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14125,7 +14252,7 @@
         ],
         "summary": "The agent’s whole operational portfolio in one snapshot — inspections, maintenance, rent reviews, vacating, tenant selections, leasing, accounting and tribunal, scoped to the assigned agencies and keyed by real property ids.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14162,7 +14289,7 @@
         ],
         "summary": "List message threads across the agent’s managed properties.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -14220,7 +14347,7 @@
         ],
         "summary": "Open a new message thread (general, or about a managed property).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14263,7 +14390,7 @@
         ],
         "summary": "Message Center — linked mailboxes and full correspondence history.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14293,7 +14420,7 @@
         ],
         "summary": "List Gmail/Yahoo mailboxes linked to the signed-in agent.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14320,7 +14447,7 @@
         ],
         "summary": "Mailbox OAuth readiness — which providers are configured on this API server.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14357,7 +14484,7 @@
         ],
         "summary": "Start Gmail OAuth — returns the provider consent URL.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14394,7 +14521,7 @@
         ],
         "summary": "Start Yahoo OAuth — returns the provider consent URL.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14431,7 +14558,7 @@
         ],
         "summary": "Gmail OAuth callback (public redirect target).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14468,7 +14595,7 @@
         ],
         "summary": "Yahoo OAuth callback (public redirect target).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14498,7 +14625,7 @@
         ],
         "summary": "Disconnect a linked Gmail/Yahoo mailbox.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14528,7 +14655,7 @@
         ],
         "summary": "Manually sync a linked mailbox inbox.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14585,7 +14712,7 @@
         ],
         "summary": "Reply in Message Center (CROSSUB thread or linked Gmail/Yahoo thread).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14634,7 +14761,7 @@
         ],
         "summary": "Mark one of the agent’s message threads as read.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14703,7 +14830,7 @@
         ],
         "summary": "Reply to one of the agent’s existing message threads.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14739,7 +14866,7 @@
         ],
         "summary": "List the signed-in agent’s notifications.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14788,7 +14915,7 @@
         ],
         "summary": "Mark one of the agent’s notifications read.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14831,7 +14958,7 @@
         ],
         "summary": "Mark all of the agent’s unread notifications read.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14864,7 +14991,7 @@
         ],
         "summary": "Whether the agent portal is blocked pending sales agreement approval.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14901,7 +15028,7 @@
         ],
         "summary": "List service agreements sent from Sales for the agent’s agencies.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -14965,7 +15092,7 @@
         ],
         "summary": "Return a signed service agreement to the salesperson.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15002,7 +15129,7 @@
         ],
         "summary": "List documents across the agent’s managed properties.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -15050,7 +15177,7 @@
         ],
         "summary": "Upload a document (base64-through-API → object storage).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15090,7 +15217,7 @@
         ],
         "summary": "Stream a managed property document for in-app preview.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15135,7 +15262,7 @@
         ],
         "summary": "Begin a document upload (presigned direct-to-R2 when configured).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15173,7 +15300,7 @@
         ],
         "summary": "Finalize a direct-to-R2 document upload.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15216,7 +15343,7 @@
         ],
         "summary": "Delete an agent-uploaded portal document.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15266,7 +15393,7 @@
         ],
         "summary": "Read one maintenance job in full — the portfolio card plus the V2 spine.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15341,7 +15468,7 @@
         ],
         "summary": "Approve a specific submitted contractor quote through the maintenance workflow.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15412,7 +15539,7 @@
         ],
         "summary": "Reject a specific submitted contractor quote, with a required reason.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15484,7 +15611,7 @@
         ],
         "summary": "Send a price-review counter-offer to the contractor on a submitted quote.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15547,7 +15674,7 @@
         ],
         "summary": "Close a maintenance job with a reason (manual close — bypasses the completion gates).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15610,7 +15737,7 @@
         ],
         "summary": "Approve the single current submitted quote on a maintenance job (through the workflow).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15683,7 +15810,7 @@
         ],
         "summary": "Decline every submitted quote on a maintenance job (through the workflow).",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15741,7 +15868,7 @@
         ],
         "summary": "List the tenant logins within the agent’s book.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       },
       "post": {
@@ -15788,7 +15915,7 @@
         ],
         "summary": "Provision a tenant login — creates a real TENANT User (Argon2 password) the tenant signs in with on the tenant app, replacing any per-app account store.",
         "tags": [
-          "agent"
+          "Agent App"
         ]
       }
     },
@@ -15826,7 +15953,7 @@
         ],
         "summary": "Send a message to Gii",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -15854,7 +15981,7 @@
         ],
         "summary": "Today's morning briefing for the signed-in agent (Jarvis 2.2)",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -15885,7 +16012,7 @@
         ],
         "summary": "Mark a briefing opened",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -15913,7 +16040,7 @@
         ],
         "summary": "The signed-in agent's Cros preferences (Jarvis 3.2)",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       },
       "put": {
@@ -15952,7 +16079,7 @@
         ],
         "summary": "Change the signed-in agent's Cros preferences",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -15980,7 +16107,7 @@
         ],
         "summary": "The officer's open chat with the CROSSUB team (Jarvis 2.3)",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16020,7 +16147,7 @@
         ],
         "summary": "One chat handed to the CROSSUB team",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16073,7 +16200,7 @@
         ],
         "summary": "Write to the CROSSUB team while they hold the chat",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16113,7 +16240,7 @@
         ],
         "summary": "End the chat with the CROSSUB team",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16157,7 +16284,7 @@
         ],
         "summary": "Confirm a change Cros proposed",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16198,7 +16325,7 @@
         ],
         "summary": "Fold a long chat's older turns into its running summary",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16229,7 +16356,7 @@
         ],
         "summary": "This officer's saved Cros chats, newest first",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16268,7 +16395,7 @@
         ],
         "summary": "Open a saved Cros chat",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       },
       "put": {
@@ -16319,7 +16446,7 @@
         ],
         "summary": "Save a Cros chat",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       },
       "delete": {
@@ -16349,7 +16476,7 @@
         ],
         "summary": "Delete a saved Cros chat",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16392,7 +16519,7 @@
         ],
         "summary": "What Cros changed on a property",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16420,7 +16547,7 @@
         ],
         "summary": "Can this server transcribe hold-to-talk audio?",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16461,7 +16588,7 @@
         ],
         "summary": "Transcribe hold-to-talk audio for Gii",
         "tags": [
-          "agent"
+          "Agent App - Cros Assistant"
         ]
       }
     },
@@ -16515,7 +16642,7 @@
         ],
         "summary": "Record a decision on a property and email the owner a copy (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       },
       "get": {
@@ -16579,7 +16706,7 @@
         ],
         "summary": "List decisions recorded on a property, newest first.",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -16639,7 +16766,7 @@
         ],
         "summary": "Decide an urgent job: confirm, convert to normal, make safe, escalate or close (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -16692,7 +16819,7 @@
         ],
         "summary": "Split a separate fault off into its own job (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -16735,7 +16862,7 @@
         ],
         "summary": "Live jobs at the same property this one could be combined into (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -16792,7 +16919,7 @@
         ],
         "summary": "Combine this job into another one at the same property (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -16860,7 +16987,7 @@
         ],
         "summary": "Resolve an escalation on this job (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -16920,7 +17047,7 @@
         ],
         "summary": "Email the tenant, a contractor, strata or the owner about this job (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -16980,7 +17107,7 @@
         ],
         "summary": "Take the job into manual control (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17036,7 +17163,7 @@
         ],
         "summary": "Resume automation from where the job now stands (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17092,7 +17219,7 @@
         ],
         "summary": "Correct the job’s issue type, description, urgency or tenant contact (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17149,7 +17276,7 @@
         ],
         "summary": "Set or change who pays for the repair (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17202,7 +17329,7 @@
         ],
         "summary": "Add a fault the AI missed to this job (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17267,7 +17394,7 @@
         ],
         "summary": "Correct one extracted fault (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17311,7 +17438,7 @@
         ],
         "summary": "Read the report again with the AI (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17364,7 +17491,7 @@
         ],
         "summary": "Email the tenant questions about the reported faults (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17417,7 +17544,7 @@
         ],
         "summary": "Record the tenant’s answers, e.g. from a phone call (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17479,7 +17606,7 @@
         ],
         "summary": "Dismiss an extracted issue that is not a real fault (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17532,7 +17659,7 @@
         ],
         "summary": "Ask the agency’s preferred tradies to quote (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17576,7 +17703,7 @@
         ],
         "summary": "Ask CROSSUB to arrange this job: its partner is invited to quote (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17638,7 +17765,7 @@
         ],
         "summary": "The prepaid charge for approving a CROSSUB quote (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17694,7 +17821,7 @@
         ],
         "summary": "Take an invited tradie off the quote request (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17751,7 +17878,7 @@
         ],
         "summary": "A fresh quote-form link for one invited tradie (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17807,7 +17934,7 @@
         ],
         "summary": "Enter a quote on an invited tradie’s behalf (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17879,7 +18006,7 @@
         ],
         "summary": "Email one quote to the owner for approval, from the agency’s address (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -17945,7 +18072,7 @@
         ],
         "summary": "Record the owner’s answer to a quote (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18001,7 +18128,7 @@
         ],
         "summary": "Enter the contractor’s visit times; the tenant confirms one (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18057,7 +18184,7 @@
         ],
         "summary": "Record a visit the contractor and tenant arranged directly (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18122,7 +18249,7 @@
         ],
         "summary": "Accept an invoice variance or dispute the invoice (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18178,7 +18305,7 @@
         ],
         "summary": "Withdraw a dispute on the invoice (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18241,7 +18368,7 @@
         ],
         "summary": "Record that the agency paid the tradie itself (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18298,7 +18425,7 @@
         ],
         "summary": "Upload a completion photo or the tradie’s invoice on their behalf (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18341,7 +18468,7 @@
         ],
         "summary": "Record that the tenant confirmed the repair works (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18388,7 +18515,7 @@
         ],
         "summary": "Sign the completed work off and email the owner a copy (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Maintenance"
         ]
       }
     },
@@ -18448,7 +18575,7 @@
         ],
         "summary": "Book an ingoing, outgoing or routine inspection with one of the agency’s own inspectors (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18488,7 +18615,7 @@
         ],
         "summary": "One inspection, with what the agent can do next.",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18540,7 +18667,7 @@
         ],
         "summary": "The inspection report PDF.",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18587,7 +18714,7 @@
         ],
         "summary": "Sign off the agency inspector’s report (principal, Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18634,7 +18761,7 @@
         ],
         "summary": "Email the owner a copy of the agency inspector’s report (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18694,7 +18821,7 @@
         ],
         "summary": "Send the agency inspector’s report back to redo (principal, Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18753,7 +18880,7 @@
         ],
         "summary": "Move an agency job to another of the agency’s inspectors (Self-Manage, before completion).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18803,7 +18930,7 @@
         ],
         "summary": "Quote a CROSSUB inspector for this unbooked agency job (Self-Manage, Inspection Only rate).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18866,7 +18993,7 @@
         ],
         "summary": "Give this unbooked agency job to a CROSSUB inspector, once paid (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -18940,7 +19067,7 @@
         ],
         "summary": "Propose new terms to an applicant, or record their counter (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19023,7 +19150,7 @@
         ],
         "summary": "Accept, decline or counter an open negotiation round (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19094,7 +19221,7 @@
         ],
         "summary": "Email the applicant for missing documents or details (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19159,7 +19286,7 @@
         ],
         "summary": "Edit the tenancy agreement draft: template, term, joint tenants (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19221,7 +19348,7 @@
         ],
         "summary": "Add a special condition to the tenancy agreement (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19273,7 +19400,7 @@
         ],
         "summary": "Confirm the tenancy agreement draft is ready to send (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19325,7 +19452,7 @@
         ],
         "summary": "Rebuild the tenancy agreement PDF from the current draft (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19377,7 +19504,7 @@
         ],
         "summary": "Send the tenancy agreement to the approved tenant to sign (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19439,7 +19566,7 @@
         ],
         "summary": "Upload the agency’s own tenancy agreement instead of the generated one (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19501,7 +19628,7 @@
         ],
         "summary": "Upload the signed tenancy agreement, signed outside the app (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19563,7 +19690,7 @@
         ],
         "summary": "Send the tenant the bond lodgement link (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19624,7 +19751,7 @@
         ],
         "summary": "The reference check on an applicant: their referees and what you recorded (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       },
       "post": {
@@ -19697,7 +19824,7 @@
         ],
         "summary": "Record reference-check notes and a recommendation for an applicant (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19759,7 +19886,7 @@
         ],
         "summary": "Cros summarises the recorded reference-check notes (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19814,7 +19941,7 @@
         ],
         "summary": "Tenant already found: skip applicant screening and go to onboarding (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19883,7 +20010,7 @@
         ],
         "summary": "Create tenancy: record the tenants and lease you agreed, and close the letting (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -19952,7 +20079,7 @@
         ],
         "summary": "Archive the incoming tenancy before it starts (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20008,7 +20135,7 @@
         ],
         "summary": "Mark the holding deposit as received (Self-Manage principal or accountant).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20063,7 +20190,7 @@
         ],
         "summary": "Approve the deposit proof the tenant uploaded (Self-Manage principal or accountant).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20128,7 +20255,7 @@
         ],
         "summary": "Reject the deposit proof so the tenant can upload it again (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20187,7 +20314,7 @@
         ],
         "summary": "Mark the bond as received (Self-Manage principal or accountant).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20242,7 +20369,7 @@
         ],
         "summary": "Approve the bond proof the tenant uploaded (Self-Manage principal or accountant).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20307,7 +20434,7 @@
         ],
         "summary": "Reject the bond proof so the tenant can upload it again (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20359,7 +20486,7 @@
         ],
         "summary": "Generate the open inspection report from the viewing (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20411,7 +20538,7 @@
         ],
         "summary": "The open inspections on a letting, earliest first, each with its own report (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       },
       "post": {
@@ -20478,7 +20605,7 @@
         ],
         "summary": "Schedule another open inspection the agency runs itself (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20542,7 +20669,7 @@
         ],
         "summary": "Start one open inspection: the viewing goes live (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20607,7 +20734,7 @@
         ],
         "summary": "Finish one open inspection (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20681,7 +20808,7 @@
         ],
         "summary": "Cancel one open inspection; the letting’s other opens stay (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20749,7 +20876,7 @@
         ],
         "summary": "Generate the report for one open inspection (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20818,7 +20945,7 @@
         ],
         "summary": "One open inspection’s report PDF (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20870,7 +20997,7 @@
         ],
         "summary": "Order the ingoing inspection for the new tenancy (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -20936,7 +21063,7 @@
         ],
         "summary": "Record the tenant’s answer to a rent offer: accept, counter, decline or vacate (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21002,7 +21129,7 @@
         ],
         "summary": "Choose Rent Review or Lease Renewal for this tenancy review (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21071,7 +21198,7 @@
         ],
         "summary": "Complete a lease renewal with the new lease dates and rent (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21136,7 +21263,7 @@
         ],
         "summary": "Confirm the pathway on a review CROSSUB opened: rent review, or keep the current rent (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21191,7 +21318,7 @@
         ],
         "summary": "Postpone the tenancy review (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21247,7 +21374,7 @@
         ],
         "summary": "Run the market research yourself; Cros recommends a rent (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21312,7 +21439,7 @@
         ],
         "summary": "Upload your own notice of rent increase PDF (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21380,7 +21507,7 @@
         ],
         "summary": "Upload your own lease extension agreement PDF (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21448,7 +21575,7 @@
         ],
         "summary": "Record a lease extension agreement signed outside the app (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21513,7 +21640,7 @@
         ],
         "summary": "Withdraw a sent lease extension agreement to correct and resend it (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21581,7 +21708,7 @@
         ],
         "summary": "Send the notice of rent increase to the tenant (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21649,7 +21776,7 @@
         ],
         "summary": "Serve the notice again; the 60-day count restarts from today (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21714,7 +21841,7 @@
         ],
         "summary": "Resolve the negotiation: accept the counter, propose again, or mark non-negotiable (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21779,7 +21906,7 @@
         ],
         "summary": "Reopen an agreed negotiation, with the reason recorded (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21848,7 +21975,7 @@
         ],
         "summary": "Close the review from any open stage with the outcome you record (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Leasing"
         ]
       }
     },
@@ -21902,7 +22029,7 @@
         ],
         "summary": "Edit the report comparison, including tenant and landlord responsibility items (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -21959,7 +22086,7 @@
         ],
         "summary": "Send the tenant the repair quotation and bond deductions to acknowledge (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -22006,7 +22133,7 @@
         ],
         "summary": "Email the owner the landlord-responsibility quotation (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -22062,7 +22189,7 @@
         ],
         "summary": "Deduct from the bond, or have the tenant pay separately (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -22119,7 +22246,7 @@
         ],
         "summary": "Set the bond held and the deductions by group: rent, water, break lease, repair, cleaning, other (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -22166,7 +22293,7 @@
         ],
         "summary": "Complete the vacate after the ingoing / outgoing comparison (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -22210,7 +22337,7 @@
         ],
         "summary": "Confirm the bond settlement: finalise and approve the statement (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - End of Lease"
         ]
       }
     },
@@ -22250,7 +22377,7 @@
         ],
         "summary": "The agency’s trust workspace, its trust bank accounts and its chart of accounts (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -22299,7 +22426,7 @@
         ],
         "summary": "Trust account overview: balances and what needs doing (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -22428,7 +22555,7 @@
         ],
         "summary": "Owner, tenant and agency ledgers (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "post": {
@@ -22485,7 +22612,7 @@
         ],
         "summary": "Open an owner or tenant ledger on one of the agency’s properties, or the agency’s own ledger (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -22544,7 +22671,7 @@
         ],
         "summary": "Add a supplier (tradie, utility) to pay bills to: opens a supplier ledger (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -22593,7 +22720,7 @@
         ],
         "summary": "One ledger (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "patch": {
@@ -22650,7 +22777,7 @@
         ],
         "summary": "Rename a ledger or set its management period (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -22719,7 +22846,7 @@
         ],
         "summary": "A ledger’s entries, newest first (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -22807,7 +22934,7 @@
         ],
         "summary": "Tenant ledgers with rent due and paid-to dates (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -22866,7 +22993,7 @@
         ],
         "summary": "Receipt rent or other money from a tenant (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -22925,7 +23052,7 @@
         ],
         "summary": "Set a tenant ledger’s rent amount, period and paid-to date (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23031,7 +23158,7 @@
         ],
         "summary": "Bills to pay from owner ledgers (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "post": {
@@ -23088,7 +23215,7 @@
         ],
         "summary": "Enter a bill against an owner ledger (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23147,7 +23274,7 @@
         ],
         "summary": "Pay a bill now (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23240,7 +23367,7 @@
         ],
         "summary": "Owner ledgers ready to disburse (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23300,7 +23427,7 @@
         ],
         "summary": "Disburse to owners and queue each owner statement (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "get": {
@@ -23367,7 +23494,7 @@
         ],
         "summary": "Past disbursement runs with their items and payments, newest first (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -23450,7 +23577,7 @@
         ],
         "summary": "Rent receipts and owner statements waiting to be emailed, or already sent (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23509,7 +23636,7 @@
         ],
         "summary": "Download a queued receipt or statement (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23568,7 +23695,7 @@
         ],
         "summary": "Email one queued receipt or statement from the agency address (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23637,7 +23764,7 @@
         ],
         "summary": "An owner ledger’s issued statements (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23687,7 +23814,7 @@
         ],
         "summary": "Download an owner statement PDF (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23736,7 +23863,7 @@
         ],
         "summary": "Email an owner statement to the owner again (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23785,7 +23912,7 @@
         ],
         "summary": "The monthly reconciliation chain: locked and open months (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23884,7 +24011,7 @@
         ],
         "summary": "A month’s reconciliation figures (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -23952,7 +24079,7 @@
         ],
         "summary": "Record the bank statement balance for a day (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "delete": {
@@ -24008,7 +24135,7 @@
         ],
         "summary": "Remove the bank balance recorded on a day (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -24076,7 +24203,7 @@
         ],
         "summary": "Reconcile and lock a month (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24223,7 +24350,7 @@
         ],
         "summary": "Transactions on the trust account, newest first (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24272,7 +24399,7 @@
         ],
         "summary": "One transaction with its entries (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24332,7 +24459,7 @@
         ],
         "summary": "Reverse a posted transaction, with a reason (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24415,7 +24542,7 @@
         ],
         "summary": "Fee charges on an owner ledger, newest first, with pending totals (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "post": {
@@ -24472,7 +24599,7 @@
         ],
         "summary": "Charge a one-off fee on an owner ledger; posted at once when the owner can fund it (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24521,7 +24648,7 @@
         ],
         "summary": "Post the pending fees the owner ledger can now fund, oldest first (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24580,7 +24707,7 @@
         ],
         "summary": "Waive a pending fee charge, with a reason (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24629,7 +24756,7 @@
         ],
         "summary": "The EFT and BPAY payment pool and whether an ABA file can be built (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24698,7 +24825,7 @@
         ],
         "summary": "Generated bank files (ABA and BPAY batches), newest first (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "post": {
@@ -24755,7 +24882,7 @@
         ],
         "summary": "Freeze the EFT (ABA) or BPAY (CSV) pool into a numbered bank file (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24804,7 +24931,7 @@
         ],
         "summary": "One bank file batch with its payments (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24860,7 +24987,7 @@
         ],
         "summary": "Download the bank file exactly as generated: ABA text or BPAY CSV (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24910,7 +25037,7 @@
         ],
         "summary": "Download the CSV payment report frozen with the batch (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -24970,7 +25097,7 @@
         ],
         "summary": "Read a QIF bank statement and suggest a match for each line (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25029,7 +25156,7 @@
         ],
         "summary": "Match a bank line to a posted receipt or withdrawal (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25089,7 +25216,7 @@
         ],
         "summary": "Process the matched bank lines: receipt credits as rent, link debits (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25138,7 +25265,7 @@
         ],
         "summary": "Unmatch a reconciled bank line; the transaction is unreconciled again (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25220,7 +25347,7 @@
         ],
         "summary": "Receipts report: every money-in cash movement in a period (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25302,7 +25429,7 @@
         ],
         "summary": "Withdrawals report: every money-out cash movement in a period (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25384,7 +25511,7 @@
         ],
         "summary": "Ledger (folio) balances as at a date (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25466,7 +25593,7 @@
         ],
         "summary": "Unpresented payments as at a date (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25563,7 +25690,7 @@
         ],
         "summary": "Download a report as CSV, the same rows as the screen (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25631,7 +25758,7 @@
         ],
         "summary": "Download a ledger with its running balance as CSV or PDF (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -25680,7 +25807,7 @@
         ],
         "summary": "Opening balances: the bank opening balance, the open ledgers and whether it can be posted (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       },
       "post": {
@@ -25738,7 +25865,7 @@
         ],
         "summary": "Post the opening balances as one OPENING transaction (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -25787,7 +25914,7 @@
         ],
         "summary": "The agency’s current owners and tenants that have no ledger yet (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       },
       "post": {
@@ -25834,7 +25961,7 @@
         ],
         "summary": "Open a ledger for every current owner and tenant that has none, in one go (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -25883,7 +26010,7 @@
         ],
         "summary": "Close a ledger; its balance must be zero (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -25932,7 +26059,7 @@
         ],
         "summary": "How an owner, supplier or the agency is paid, and the payout schedule (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       },
       "put": {
@@ -25990,7 +26117,7 @@
         ],
         "summary": "Replace the payout methods: bank details, BPAY or cheque (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26049,7 +26176,7 @@
         ],
         "summary": "Set how often an owner is paid out (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26101,7 +26228,7 @@
         ],
         "summary": "Recurring fees on an owner ledger, such as the management fee (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       },
       "put": {
@@ -26161,7 +26288,7 @@
         ],
         "summary": "Replace the recurring fees on an owner ledger; ones left out are switched off (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26220,7 +26347,7 @@
         ],
         "summary": "Set the bond record on a tenant ledger: a record only, never in a balance (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26279,7 +26406,7 @@
         ],
         "summary": "Reset a tenant’s paid-to date or rent by hand, with a note (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26328,7 +26455,7 @@
         ],
         "summary": "Amounts held back on an owner ledger, active and released (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       },
       "post": {
@@ -26385,7 +26512,7 @@
         ],
         "summary": "Hold back an amount on an owner ledger, with a reason (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26444,7 +26571,7 @@
         ],
         "summary": "Release a held-back amount (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26493,7 +26620,7 @@
         ],
         "summary": "One bill with its funding check (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       },
       "patch": {
@@ -26550,7 +26677,7 @@
         ],
         "summary": "Edit a pending bill (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26609,7 +26736,7 @@
         ],
         "summary": "Cancel a pending bill, with a reason (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26671,7 +26798,7 @@
         ],
         "summary": "The bill’s attached invoice, streamed inline (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26720,7 +26847,7 @@
         ],
         "summary": "One disbursement run (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26780,7 +26907,7 @@
         ],
         "summary": "The owner statement as it would be issued on a date; nothing is saved (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26839,7 +26966,7 @@
         ],
         "summary": "Revoke the latest locked month, with a reason (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -26910,7 +27037,7 @@
         ],
         "summary": "Recorded bank balances by day, newest first, and the latest at all (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -27017,7 +27144,7 @@
         ],
         "summary": "Tenant invoices with status chips and counts (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       },
       "post": {
@@ -27075,7 +27202,7 @@
         ],
         "summary": "Create a tenant invoice from an owner or a supplier (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27124,7 +27251,7 @@
         ],
         "summary": "One tenant invoice with its payments (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27183,7 +27310,7 @@
         ],
         "summary": "Cancel a tenant invoice with nothing paid against it, with a reason (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27233,7 +27360,7 @@
         ],
         "summary": "The tenant invoice PDF, filled from the invoice on file (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27295,7 +27422,7 @@
         ],
         "summary": "The invoice attachment, streamed inline (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27347,7 +27474,7 @@
         ],
         "summary": "Open invoices on a tenant ledger, oldest due first: the receipt picker (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27396,7 +27523,7 @@
         ],
         "summary": "Bills due, without enough funds, invoices outstanding and overdue (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27493,7 +27620,7 @@
         ],
         "summary": "What a tenant receipt would do: the rent paid-to and the fees it would charge; nothing is saved (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27562,7 +27689,7 @@
         ],
         "summary": "Receipts, deposits and rent events on a tenant ledger, newest first, with tenancy totals (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27611,7 +27738,7 @@
         ],
         "summary": "This month in, out and net, and what is reserved, withheld and available on a folio (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27680,7 +27807,7 @@
         ],
         "summary": "What a rent payment would do to the paid-to date; nothing is saved (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27740,7 +27867,7 @@
         ],
         "summary": "Move a held deposit to rent (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -27794,7 +27921,7 @@
         ],
         "summary": "Set up the agency’s own trust account: its workspace and first trust bank account (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -27848,7 +27975,7 @@
         ],
         "summary": "Add another trust bank account to the agency’s own trust workspace (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -27908,7 +28035,7 @@
         ],
         "summary": "Edit the trust bank account, its ABA details included (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -27958,7 +28085,7 @@
         ],
         "summary": "Add an income or expense account code (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -28021,7 +28148,7 @@
         ],
         "summary": "Rename an account code, change its GST, or switch it off or on (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -28081,7 +28208,7 @@
         ],
         "summary": "Receipt money into a folio by hand, optionally reconciling a bank file credit line (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -28141,7 +28268,7 @@
         ],
         "summary": "Withdraw from a folio as one bank payment: EFT, BPAY or cheque (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -28201,7 +28328,7 @@
         ],
         "summary": "Move money from one folio to another; the bank balance does not change (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -28312,7 +28439,7 @@
         ],
         "summary": "Bank payments by method and status, newest first, with the counts per method (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Accounting"
         ]
       }
     },
@@ -28515,7 +28642,7 @@
         ],
         "summary": "The audit trail of the agency’s own trust workspace, newest first, with the audit log filters (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -28555,7 +28682,7 @@
         ],
         "summary": "Everyone who has recorded an audit event in the agency’s trust workspace, for the actor filter (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -28604,7 +28731,7 @@
         ],
         "summary": "Compare a ledger’s cached balance with the balance computed from its entries (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Trust Setup"
         ]
       }
     },
@@ -28664,7 +28791,7 @@
         ],
         "summary": "Make a team member an agency inspector (principal, Self-Manage agency).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       },
       "delete": {
@@ -28713,7 +28840,7 @@
         ],
         "summary": "Remove an agency inspector (principal).",
         "tags": [
-          "agent"
+          "Agent App - Inspections"
         ]
       }
     },
@@ -28802,7 +28929,7 @@
         ],
         "summary": "The agency's people with their CP reference (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -28854,7 +28981,241 @@
         ],
         "summary": "One person's profile, limited to the agency's properties (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
+        ]
+      }
+    },
+    "/agent/agencies/{agencyId}/owners": {
+      "get": {
+        "description": "Search by name, email, phone or CP reference; paged. Owners only.",
+        "operationId": "AgentPropertyIntakeController_searchAgencyOwners",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleListResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The agency is not in the caller’s book."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Owners this agency already has, to link to a property.",
+        "tags": [
+          "Agent App - Properties & People"
+        ]
+      }
+    },
+    "/agent/properties/{propertyId}/owners": {
+      "get": {
+        "operationId": "AgentPropertyIntakeController_listOwners",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPropertyOwnersResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The property is not in the caller’s book."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The owners on a property, primary contact first, with their shares.",
+        "tags": [
+          "Agent App - Properties & People"
+        ]
+      },
+      "put": {
+        "description": "Owners left out are removed, kept owners are updated and new ones are added, all or nothing. Needs at least one owner, exactly one primary contact, and shares on every owner totalling 100 or on none.",
+        "operationId": "AgentPropertyIntakeController_saveOwners",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAgentPropertyOwnersDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPropertyOwnersResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The property, a kept owner or a linked person is not this agency’s."
+          },
+          "409": {
+            "description": "The property is already active."
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPropertyIntakeFailureDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the whole owner set of a draft property in one step.",
+        "tags": [
+          "Agent App - Properties & People"
+        ]
+      }
+    },
+    "/agent/properties/{propertyId}/activate": {
+      "post": {
+        "description": "Checks the address, the owners and that the agency has no other property at this address, and returns every failure together. Needs no tenancy, fees, strata or documents. Activating an active property returns it unchanged.",
+        "operationId": "AgentPropertyIntakeController_activate",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateAgentPropertyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPropertyResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The property is not in the caller’s book."
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPropertyIntakeFailureDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate a draft property.",
+        "tags": [
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -28950,7 +29311,7 @@
         ],
         "summary": "The Self-Manage agency inbox: mail to the agency’s address and its Self-Manage property threads.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       },
       "post": {
@@ -28994,7 +29355,7 @@
         ],
         "summary": "Email a tenant, owner or contractor of a Self-Manage property, from the agency’s address.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29021,7 +29382,7 @@
         ],
         "summary": "How many open inbox threads are unread: the number the app’s message icons show.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29052,7 +29413,7 @@
         ],
         "summary": "Message templates, read-only.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29093,7 +29454,7 @@
         ],
         "summary": "One conversation with its messages. Opening it clears Unread for its owner.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29150,7 +29511,7 @@
         ],
         "summary": "Reply by email from the agency’s address, or in the tenant app on a property thread.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29203,7 +29564,7 @@
         ],
         "summary": "Assign the conversation to a member of its agency’s team, or unassign it.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29253,7 +29614,7 @@
         ],
         "summary": "Resolve or reopen the conversation.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29309,7 +29670,7 @@
         ],
         "summary": "File the conversation under one of its agency’s Self-Manage properties.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29353,7 +29714,7 @@
         ],
         "summary": "Open jobs on the conversation’s property it can be linked to.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29409,7 +29770,7 @@
         ],
         "summary": "Link the conversation to a job on its property.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       },
       "delete": {
@@ -29447,7 +29808,7 @@
         ],
         "summary": "Unlink the conversation from its job.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29501,7 +29862,7 @@
         ],
         "summary": "Draft a reply with Cros from the conversation and an instruction.",
         "tags": [
-          "agent"
+          "Agent App - Conversations"
         ]
       }
     },
@@ -29542,7 +29903,7 @@
         ],
         "summary": "The Overview cards and Tenancies tab for one property.",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -29600,9 +29961,9 @@
             "bearer": []
           }
         ],
-        "summary": "Add a tenancy by hand, without starting leasing (Self-Manage).",
+        "summary": "Add a tenancy by hand, without starting leasing (Self-Manage, Full Service, Legacy).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -29657,9 +30018,9 @@
             "bearer": []
           }
         ],
-        "summary": "Remove a tenancy added by hand by mistake (Self-Manage).",
+        "summary": "Remove a tenancy added by hand by mistake (Self-Manage, Full Service, Legacy).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -29725,7 +30086,7 @@
         ],
         "summary": "Edit a tenant's name, email and phone (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -29778,7 +30139,7 @@
         ],
         "summary": "Make a contact the primary tenant or owner (Self-Manage).",
         "tags": [
-          "agent"
+          "Agent App - Properties & People"
         ]
       }
     },
@@ -29811,7 +30172,7 @@
         ],
         "summary": "Preview the agent outstanding-reminder sweep (dry run — plans the cards, writes nothing).",
         "tags": [
-          "Agent outstanding reminders"
+          "Reminder Sweeps"
         ]
       }
     },
@@ -29844,7 +30205,7 @@
         ],
         "summary": "Buttons Cros, Home, and Inspection may show right now.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -29887,7 +30248,7 @@
         ],
         "summary": "Remember which offer is on screen so the others stay hidden.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       },
       "delete": {
@@ -29918,7 +30279,7 @@
         ],
         "summary": "Clear the offer currently on screen.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -29960,7 +30321,7 @@
         ],
         "summary": "Hide this inspection offer for a week.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30002,7 +30363,7 @@
         ],
         "summary": "Stop offering help with this inspection.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30044,7 +30405,7 @@
         ],
         "summary": "Hide this routine-cycle offer for a week.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30086,7 +30447,7 @@
         ],
         "summary": "Stop offering help with this routine cycle.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30119,7 +30480,7 @@
         ],
         "summary": "Full Service terms and this agent’s applications.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       },
       "post": {
@@ -30160,7 +30521,7 @@
         ],
         "summary": "Submit a Full Service application. Does not change any service level.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30202,7 +30563,7 @@
         ],
         "summary": "Whether the Crossub Assistance quote modal may open on this job.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30244,7 +30605,7 @@
         ],
         "summary": "Hide the quote offer on this job for a week.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30286,7 +30647,7 @@
         ],
         "summary": "Stop showing the quote offer on this job.",
         "tags": [
-          "agent-service-offers"
+          "Agent App - Service Offers"
         ]
       }
     },
@@ -30316,7 +30677,107 @@
         ],
         "summary": "Get the signed-in user’s profile.",
         "tags": [
-          "me"
+          "Me"
+        ]
+      },
+      "patch": {
+        "operationId": "MeController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeProfileResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid/expired token, or the user is not active."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the phone number on the signed-in account.",
+        "tags": [
+          "Me"
+        ]
+      }
+    },
+    "/me/sessions": {
+      "get": {
+        "operationId": "MeController_listSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeSessionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List live sign-ins for this account. Tokens are not returned.",
+        "tags": [
+          "Me"
+        ]
+      }
+    },
+    "/me/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "MeController_revokeSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "Session not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke one sign-in for this account.",
+        "tags": [
+          "Me"
         ]
       }
     },
@@ -30347,7 +30808,7 @@
         ],
         "summary": "The key a browser subscribes to push alerts with.",
         "tags": [
-          "me"
+          "Me"
         ]
       }
     },
@@ -30391,7 +30852,7 @@
         ],
         "summary": "Register (or re-bind) a push-notification token for this device.",
         "tags": [
-          "me"
+          "Me"
         ]
       },
       "delete": {
@@ -30426,7 +30887,7 @@
         ],
         "summary": "Unregister a push-notification token (e.g. on logout).",
         "tags": [
-          "me"
+          "Me"
         ]
       }
     }
@@ -30437,7 +30898,88 @@
     "version": "1.0",
     "contact": {}
   },
-  "tags": [],
+  "tags": [
+    {
+      "name": "Reminder Sweeps",
+      "description": "Preview and manual run of the scheduled reminder sweeps. Staff web, cookie session."
+    },
+    {
+      "name": "Mobile Auth",
+      "description": "Sign in, refresh and sign out, with tokens returned in the body. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Me",
+      "description": "The signed in profile and push notification device tokens, for any app. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Tenant App",
+      "description": "The signed in tenant's tenancy, rent, documents, applications and messages. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Tenant App - Maintenance",
+      "description": "Maintenance requests the tenant raised. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Public Listings",
+      "description": "Public rental listings under /api/v1. No sign in."
+    },
+    {
+      "name": "Landlord App",
+      "description": "The signed in owner's properties, maintenance, inspections and statements. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Contractor App",
+      "description": "The signed in contractor's jobs, quotes, invoices and messages. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Inspector App",
+      "description": "The signed in inspector's assigned inspections, jobs and messages. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App",
+      "description": "The agent app's home, properties, tasks and workflows across the agent's book. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Properties & People",
+      "description": "A property's tenancies, owner decisions and the agency's people. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Leasing",
+      "description": "Self-Manage leasing, rent review and lease renewal steps. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - End of Lease",
+      "description": "Self-Manage end of lease and termination requests. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Maintenance",
+      "description": "Self-Manage maintenance steps on a job. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Inspections",
+      "description": "Self-Manage inspections and the agency's own inspectors. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Trust Accounting",
+      "description": "Self-Manage trust accounting: ledgers, transactions, tenant invoices and disbursement. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Trust Setup",
+      "description": "Self-Manage trust setup: workspace, bank account, opening balances and the audit log. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Conversations",
+      "description": "The Self-Manage agency inbox. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Cros Assistant",
+      "description": "Cros, the AI assistant, in the agent app. Mobile facade under /api/v1, bearer token."
+    },
+    {
+      "name": "Agent App - Service Offers",
+      "description": "Service offers and recommendations shown to the agent. Mobile facade under /api/v1, bearer token."
+    }
+  ],
   "servers": [
     {
       "url": "/api/v1"
@@ -31273,6 +31815,16 @@
             "nullable": true,
             "description": "Rent payment reference the tenant quotes on bank transfers (agency initials + property ref).",
             "example": "DS633468"
+          },
+          "accounting": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "crossub_trust",
+              "agent_trust",
+              "self_managed"
+            ],
+            "description": "Who accounts for rent on this tenancy, taken from the agency that holds the property. The tenant does not choose it. Null when the tenancy has no property."
           }
         },
         "required": [
@@ -31293,7 +31845,8 @@
           "nextRoutineInspectionAt",
           "paymentCycle",
           "rentPaidTo",
-          "paymentReference"
+          "paymentReference",
+          "accounting"
         ]
       },
       "PaginatedTenantTenanciesDto": {
@@ -31928,6 +32481,110 @@
           "submittedAt",
           "formData",
           "documents"
+        ]
+      },
+      "PublicApplicationDocumentDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "identity",
+              "income",
+              "supporting"
+            ]
+          },
+          "documentType": {
+            "type": "string",
+            "maxLength": 80,
+            "example": "drivers_licence",
+            "description": "Document type slug from the NSW application checklist."
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "Driver's licence"
+          },
+          "points": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 30
+          },
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "drivers-licence.pdf"
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "application/pdf"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 26214400,
+            "example": 184321,
+            "description": "Decoded byte size (≤ 25 MB)."
+          },
+          "storageKey": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Object key from POST /public/listings/:id/documents/upload-session. Prefer this over contentBase64."
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "File contents, base64-encoded (no data: URI prefix). Required only when storageKey is omitted."
+          }
+        },
+        "required": [
+          "category",
+          "documentType",
+          "label",
+          "fileName",
+          "mimeType",
+          "sizeBytes"
+        ]
+      },
+      "TenantHouseholdMemberDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Alex Chen"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PRIMARY_TENANT",
+              "CO_TENANT",
+              "OCCUPANT",
+              "GUARANTOR"
+            ],
+            "example": "CO_TENANT"
+          },
+          "isSelf": {
+            "type": "boolean",
+            "description": "True when this row is the signed-in tenant."
+          },
+          "propertyAddress": {
+            "type": "string",
+            "nullable": true,
+            "example": "7 Demo Street, Sydney"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "isSelf",
+          "propertyAddress"
         ]
       },
       "TenantNewLeasingResponseDto": {
@@ -33589,6 +34246,12 @@
                 "$ref": "#/components/schemas/TenantVacatingSettlementSummaryDto"
               }
             ]
+          },
+          "movingReferralRequestedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "When the tenant requested a moving referral on this case."
           }
         },
         "required": [
@@ -33626,7 +34289,8 @@
           "tenantRepairQuoteStatus",
           "tenantBondAckSentAt",
           "tenantResponsibilityItems",
-          "repairQuoteSettlementSummary"
+          "repairQuoteSettlementSummary",
+          "movingReferralRequestedAt"
         ]
       },
       "CancelTenantVacatingCaseDto": {
@@ -33740,6 +34404,29 @@
           "photoUrls"
         ]
       },
+      "TenantMessageAttachmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileName",
+          "mimeType",
+          "sizeBytes",
+          "url"
+        ]
+      },
       "TenantThreadMessageResponseDto": {
         "type": "object",
         "properties": {
@@ -33778,6 +34465,12 @@
             ],
             "example": "APP",
             "description": "The channel the message was sent on (APP / EMAIL / …)."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantMessageAttachmentResponseDto"
+            }
           }
         },
         "required": [
@@ -33870,6 +34563,39 @@
           "messages"
         ]
       },
+      "TenantMessageAttachmentUploadDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "leak.jpg"
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "image/jpeg"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20971520,
+            "example": 184321,
+            "description": "Decoded byte size."
+          },
+          "contentBase64": {
+            "type": "string",
+            "format": "base64",
+            "description": "The file contents, base64-encoded (no data: URI prefix)."
+          }
+        },
+        "required": [
+          "fileName",
+          "mimeType",
+          "sizeBytes",
+          "contentBase64"
+        ]
+      },
       "CreateTenantMessageThreadDto": {
         "type": "object",
         "properties": {
@@ -33881,7 +34607,8 @@
           "body": {
             "type": "string",
             "maxLength": 4000,
-            "example": "The kitchen tap is leaking — could someone take a look?"
+            "example": "The kitchen tap is leaking — could someone take a look?",
+            "description": "Message body. May be empty when attachments are provided."
           },
           "department": {
             "type": "string",
@@ -33903,6 +34630,12 @@
             "type": "string",
             "format": "uuid",
             "description": "The leased property the thread is about. Omit for a general enquiry."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantMessageAttachmentUploadDto"
+            }
           }
         },
         "required": [
@@ -33916,7 +34649,14 @@
           "body": {
             "type": "string",
             "maxLength": 4000,
-            "example": "Tuesday 10am works — thanks."
+            "example": "Tuesday 10am works — thanks.",
+            "description": "Message body. May be empty when attachments are provided."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantMessageAttachmentUploadDto"
+            }
           }
         },
         "required": [
@@ -34754,70 +35494,6 @@
           }
         },
         "required": [
-          "fileName",
-          "mimeType",
-          "sizeBytes"
-        ]
-      },
-      "PublicApplicationDocumentDto": {
-        "type": "object",
-        "properties": {
-          "category": {
-            "type": "string",
-            "enum": [
-              "identity",
-              "income",
-              "supporting"
-            ]
-          },
-          "documentType": {
-            "type": "string",
-            "maxLength": 80,
-            "example": "drivers_licence",
-            "description": "Document type slug from the NSW application checklist."
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 200,
-            "example": "Driver's licence"
-          },
-          "points": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-            "example": 30
-          },
-          "fileName": {
-            "type": "string",
-            "maxLength": 255,
-            "example": "drivers-licence.pdf"
-          },
-          "mimeType": {
-            "type": "string",
-            "maxLength": 150,
-            "example": "application/pdf"
-          },
-          "sizeBytes": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 26214400,
-            "example": 184321,
-            "description": "Decoded byte size (≤ 25 MB)."
-          },
-          "storageKey": {
-            "type": "string",
-            "maxLength": 500,
-            "description": "Object key from POST /public/listings/:id/documents/upload-session. Prefer this over contentBase64."
-          },
-          "contentBase64": {
-            "type": "string",
-            "description": "File contents, base64-encoded (no data: URI prefix). Required only when storageKey is omitted."
-          }
-        },
-        "required": [
-          "category",
-          "documentType",
-          "label",
           "fileName",
           "mimeType",
           "sizeBytes"
@@ -41414,6 +42090,11 @@
             "type": "string",
             "format": "uuid"
           },
+          "reference": {
+            "type": "string",
+            "example": "PRP-6761",
+            "description": "Property reference, the same one CROSSUB staff see on the admin Property page."
+          },
           "agencyId": {
             "type": "string",
             "format": "uuid"
@@ -41821,6 +42502,59 @@
             "nullable": true,
             "description": "Public cover image URL for listings and the property profile."
           },
+          "furnishing": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "UNFURNISHED",
+              "PARTLY_FURNISHED",
+              "FULLY_FURNISHED"
+            ],
+            "description": "How furnished the property is. Null when not recorded."
+          },
+          "internalAreaSqm": {
+            "type": "number",
+            "nullable": true,
+            "description": "Internal area in square metres."
+          },
+          "landAreaSqm": {
+            "type": "number",
+            "nullable": true,
+            "description": "Land area in square metres."
+          },
+          "floorLevel": {
+            "type": "string",
+            "nullable": true,
+            "example": "Level 11"
+          },
+          "storageSpaces": {
+            "type": "number",
+            "nullable": true
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "AIR_CONDITIONING",
+                "BALCONY",
+                "DISHWASHER",
+                "BUILT_IN_WARDROBES",
+                "SECURE_PARKING",
+                "STORAGE_CAGE",
+                "GYM",
+                "SWIMMING_POOL"
+              ]
+            }
+          },
+          "upcomingTenancyArranged": {
+            "type": "boolean",
+            "description": "The agent said a tenancy is already arranged for this vacant property."
+          },
+          "googlePlaceId": {
+            "type": "string",
+            "nullable": true
+          },
           "tenantPortalInvite": {
             "description": "Present on PATCH when a newly saved tenant email triggered an automatic Tenant app invite.",
             "allOf": [
@@ -41832,6 +42566,7 @@
         },
         "required": [
           "id",
+          "reference",
           "agencyId",
           "name",
           "address",
@@ -41897,7 +42632,15 @@
           "rentPeriod",
           "maintenanceSpendThreshold",
           "pinnedTenancyId",
-          "imageUrl"
+          "imageUrl",
+          "furnishing",
+          "internalAreaSqm",
+          "landAreaSqm",
+          "floorLevel",
+          "storageSpaces",
+          "features",
+          "upcomingTenancyArranged",
+          "googlePlaceId"
         ]
       },
       "PaginatedAgentPropertiesDto": {
@@ -42237,6 +42980,90 @@
           "role"
         ]
       },
+      "AgentPropertyDetailsDto": {
+        "type": "object",
+        "properties": {
+          "bedrooms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "bathrooms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "parking": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "furnishing": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "UNFURNISHED",
+              "PARTLY_FURNISHED",
+              "FULLY_FURNISHED"
+            ]
+          },
+          "internalAreaSqm": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 9999999,
+            "description": "Square metres."
+          },
+          "landAreaSqm": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 9999999,
+            "description": "Square metres."
+          },
+          "floorLevel": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40,
+            "example": "Level 11"
+          },
+          "storageSpaces": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "AIR_CONDITIONING",
+                "BALCONY",
+                "DISHWASHER",
+                "BUILT_IN_WARDROBES",
+                "SECURE_PARKING",
+                "STORAGE_CAGE",
+                "GYM",
+                "SWIMMING_POOL"
+              ]
+            }
+          },
+          "upcomingTenancyArranged": {
+            "type": "boolean",
+            "description": "A tenancy is already arranged for this vacant property. A prompt only."
+          },
+          "googlePlaceId": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300,
+            "description": "The Google place the address was picked from; null when typed by hand."
+          }
+        }
+      },
       "CreateAgentPropertyDto": {
         "type": "object",
         "properties": {
@@ -42457,6 +43284,9 @@
             "type": "object",
             "nullable": true,
             "additionalProperties": true
+          },
+          "details": {
+            "$ref": "#/components/schemas/AgentPropertyDetailsDto"
           },
           "routineInspectionFrequency": {
             "type": "number",
@@ -42718,6 +43548,9 @@
             "type": "object",
             "nullable": true,
             "additionalProperties": true
+          },
+          "details": {
+            "$ref": "#/components/schemas/AgentPropertyDetailsDto"
           },
           "routineInspectionFrequency": {
             "type": "number",
@@ -45183,6 +46016,11 @@
             "type": "string",
             "format": "date-time"
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this record last changed, so the agent sees the latest progress first."
+          },
           "inspectorConfirmDeadlineAt": {
             "type": "string",
             "nullable": true,
@@ -45234,6 +46072,7 @@
           "reportUrl",
           "urgent",
           "createdAt",
+          "updatedAt",
           "conductedByAgency",
           "conductedByUserId",
           "approvedByAgencyAt",
@@ -45523,6 +46362,23 @@
               "CANCELLED"
             ]
           },
+          "workflowStatus": {
+            "type": "string",
+            "enum": [
+              "under_review",
+              "pending_evidence",
+              "pending_quotation",
+              "pending_approval",
+              "pending_schedule",
+              "in_progress",
+              "tenant_rejected",
+              "completed",
+              "closed",
+              "deleted"
+            ],
+            "example": "pending_schedule",
+            "description": "The stage the admin console shows for this job, read from the workflow record. `status` is the stored column, which can lag and cannot tell every stage apart."
+          },
           "urgent": {
             "type": "boolean",
             "example": false
@@ -45629,6 +46485,7 @@
           "tenants",
           "type",
           "status",
+          "workflowStatus",
           "urgent",
           "description",
           "categoryName",
@@ -45734,6 +46591,11 @@
             "type": "string",
             "format": "date-time"
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this record last changed, so the agent sees the latest progress first."
+          },
           "leaseType": {
             "type": "string",
             "enum": [
@@ -45770,6 +46632,7 @@
           "agreedRent",
           "dateStarted",
           "createdAt",
+          "updatedAt",
           "leaseType",
           "fixedTermWeeks",
           "tenantName"
@@ -45839,6 +46702,11 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this record last changed, so the agent sees the latest progress first."
           }
         },
         "required": [
@@ -45852,7 +46720,8 @@
           "total",
           "moneyToTenant",
           "bondOnHold",
-          "createdAt"
+          "createdAt",
+          "updatedAt"
         ]
       },
       "AgentTenantSelectionDto": {
@@ -46035,6 +46904,11 @@
             "type": "string",
             "format": "date-time"
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this record last changed, so the agent sees the latest progress first."
+          },
           "mainStatus": {
             "type": "string",
             "enum": [
@@ -46069,6 +46943,7 @@
           "rentPerWeek",
           "availableFrom",
           "createdAt",
+          "updatedAt",
           "mainStatus",
           "reletDecision"
         ]
@@ -46231,6 +47106,11 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this record last changed, so the agent sees the latest progress first."
           }
         },
         "required": [
@@ -46244,7 +47124,8 @@
           "tenantName",
           "amountClaimed",
           "outstandingRent",
-          "createdAt"
+          "createdAt",
+          "updatedAt"
         ]
       },
       "AgentArchivedLeasingCycleDto": {
@@ -48040,6 +48921,23 @@
               "CANCELLED"
             ]
           },
+          "workflowStatus": {
+            "type": "string",
+            "enum": [
+              "under_review",
+              "pending_evidence",
+              "pending_quotation",
+              "pending_approval",
+              "pending_schedule",
+              "in_progress",
+              "tenant_rejected",
+              "completed",
+              "closed",
+              "deleted"
+            ],
+            "example": "pending_schedule",
+            "description": "The stage the admin console shows for this job, read from the workflow record. `status` is the stored column, which can lag and cannot tell every stage apart."
+          },
           "urgent": {
             "type": "boolean",
             "example": false
@@ -48281,6 +49179,7 @@
           "tenants",
           "type",
           "status",
+          "workflowStatus",
           "urgent",
           "description",
           "categoryName",
@@ -50399,6 +51298,33 @@
           "role"
         ]
       },
+      "MaintenanceCaseEmailAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "kitchen.jpg"
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "image/jpeg",
+            "description": "Photo, video, or paperwork (PDF, Word, Excel, CSV, plain text). The service refuses anything else, including HTML and SVG."
+          },
+          "contentBase64": {
+            "type": "string",
+            "maxLength": 23068672,
+            "format": "base64",
+            "description": "File contents, base64-encoded, without a data: URI prefix."
+          }
+        },
+        "required": [
+          "fileName",
+          "mimeType",
+          "contentBase64"
+        ]
+      },
       "SendMaintenanceCaseEmailDto": {
         "type": "object",
         "properties": {
@@ -50443,6 +51369,13 @@
             "type": "string",
             "maxLength": 160,
             "description": "Provenance only: the web row id of the email being answered (e.g. `audit-email-<auditId>`). Never used for delivery."
+          },
+          "attachments": {
+            "description": "Files the officer picked in the composer. Only these are attached — the job's existing photos are not added automatically. Photos and documents up to 8 MB, video up to 15 MB, eight files and 15 MB in total.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceCaseEmailAttachmentDto"
+            }
           }
         },
         "required": [
@@ -51405,6 +52338,11 @@
             "type": "string",
             "format": "date-time"
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this record last changed, so the agent sees the latest progress first."
+          },
           "inspectorConfirmDeadlineAt": {
             "type": "string",
             "nullable": true,
@@ -51515,6 +52453,7 @@
           "reportUrl",
           "urgent",
           "createdAt",
+          "updatedAt",
           "conductedByAgency",
           "conductedByUserId",
           "approvedByAgencyAt",
@@ -60839,6 +61778,228 @@
           "createdAt"
         ]
       },
+      "AgentPropertyOwnerDto": {
+        "type": "object",
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Alex Chen"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "ownershipPercent": {
+            "type": "number",
+            "nullable": true,
+            "example": 50
+          }
+        },
+        "required": [
+          "contactId",
+          "personId",
+          "name",
+          "email",
+          "phone",
+          "isPrimary",
+          "ownershipPercent"
+        ]
+      },
+      "AgentPropertyOwnersResponseDto": {
+        "type": "object",
+        "properties": {
+          "owners": {
+            "description": "Primary contact first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentPropertyOwnerDto"
+            }
+          }
+        },
+        "required": [
+          "owners"
+        ]
+      },
+      "AgentPropertyOwnerInputDto": {
+        "type": "object",
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The owner already on this property that this row keeps. Leave out for a new owner."
+          },
+          "personId": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "An existing person of this agency to link as the owner."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "Alex Chen",
+            "description": "Full legal name, or the company’s legal name."
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "example": "alex@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 40,
+            "example": "0412 345 678"
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "description": "Exactly one owner is the primary contact."
+          },
+          "ownershipPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 50,
+            "description": "This owner’s share. Leave out on every owner, or give one on every owner totalling 100."
+          }
+        },
+        "required": [
+          "name",
+          "isPrimary"
+        ]
+      },
+      "SaveAgentPropertyOwnersDto": {
+        "type": "object",
+        "properties": {
+          "owners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentPropertyOwnerInputDto"
+            }
+          }
+        },
+        "required": [
+          "owners"
+        ]
+      },
+      "AgentPropertyIntakeErrorDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "address",
+              "suburb",
+              "state",
+              "postcode",
+              "owners"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "REQUIRED",
+              "DUPLICATE_PROPERTY",
+              "OWNER_REQUIRED",
+              "OWNER_NAME_REQUIRED",
+              "OWNER_CONTACT_REQUIRED",
+              "OWNER_PHONE_INVALID",
+              "OWNER_DUPLICATE",
+              "PRIMARY_REQUIRED",
+              "PRIMARY_NOT_UNIQUE",
+              "OWNERSHIP_INCOMPLETE",
+              "OWNERSHIP_TOTAL"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Postcode is required"
+          }
+        },
+        "required": [
+          "field",
+          "code",
+          "message"
+        ]
+      },
+      "AgentPropertyIntakeFailureDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "PROPERTY_OWNERS_INVALID",
+              "PROPERTY_ACTIVATION_FAILED"
+            ]
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "message": {
+            "type": "string",
+            "example": "The property could not be activated"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentPropertyIntakeErrorDto"
+            }
+          },
+          "duplicatePropertyId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "The property already registered at this address, when that is why activation failed."
+          }
+        },
+        "required": [
+          "code",
+          "propertyId",
+          "message",
+          "errors",
+          "duplicatePropertyId"
+        ]
+      },
+      "ActivateAgentPropertyDto": {
+        "type": "object",
+        "properties": {
+          "propertyType": {
+            "type": "string",
+            "enum": [
+              "APARTMENT",
+              "HOUSE",
+              "TOWNHOUSE",
+              "UNIT",
+              "STUDIO",
+              "DUPLEX",
+              "COMMERCIAL",
+              "GRANNY_FLAT",
+              "BOARDING_HOUSE",
+              "OTHER"
+            ],
+            "example": "APARTMENT"
+          }
+        },
+        "required": [
+          "propertyType"
+        ]
+      },
       "AgentConversationParticipantDto": {
         "type": "object",
         "properties": {
@@ -63216,6 +64377,10 @@
             "nullable": true,
             "format": "uuid",
             "description": "External-party domain anchor (Person id); null for internal staff."
+          },
+          "mfaEnabled": {
+            "type": "boolean",
+            "description": "True when authenticator setup is finished on this account."
           }
         },
         "required": [
@@ -63227,7 +64392,43 @@
           "phone",
           "status",
           "profileCompleted",
-          "personId"
+          "personId",
+          "mfaEnabled"
+        ]
+      },
+      "UpdateMeProfileDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 40,
+            "example": "0412 000 111"
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "MeSessionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "userAgent"
         ]
       },
       "WebPushKeyResponseDto": {
@@ -63309,5 +64510,52 @@
         ]
       }
     }
-  }
+  },
+  "x-tagGroups": [
+    {
+      "name": "Operations",
+      "tags": [
+        "Reminder Sweeps"
+      ]
+    },
+    {
+      "name": "Mobile - Shared",
+      "tags": [
+        "Mobile Auth",
+        "Me"
+      ]
+    },
+    {
+      "name": "Mobile - Tenant",
+      "tags": [
+        "Tenant App",
+        "Tenant App - Maintenance",
+        "Public Listings"
+      ]
+    },
+    {
+      "name": "Mobile - Landlord, Contractor, Inspector",
+      "tags": [
+        "Landlord App",
+        "Contractor App",
+        "Inspector App"
+      ]
+    },
+    {
+      "name": "Mobile - Agent",
+      "tags": [
+        "Agent App",
+        "Agent App - Properties & People",
+        "Agent App - Leasing",
+        "Agent App - End of Lease",
+        "Agent App - Maintenance",
+        "Agent App - Inspections",
+        "Agent App - Trust Accounting",
+        "Agent App - Trust Setup",
+        "Agent App - Conversations",
+        "Agent App - Cros Assistant",
+        "Agent App - Service Offers"
+      ]
+    }
+  ]
 }

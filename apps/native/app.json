@@ -19,7 +19,9 @@
       "infoPlist": {
         "CFBundleDisplayName": "CROS Tenant",
         "CFBundleName": "CROS Tenant",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "CROS Tenant uses the microphone for Ask Cros voice calls.",
+        "NSFaceIDUsageDescription": "CROS Tenant uses Face ID to unlock the app on this phone."
       }
     },
     "android": {
@@ -40,9 +42,18 @@
     },
     "plugins": [
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "CROS Tenant uses Face ID to unlock the app on this phone."
+        }
+      ],
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc",
+      [
         "expo-image-picker",
         {
-          "photosPermission": "CROS Tenant uses your photos when you attach repair or key-return pictures."
+          "photosPermission": "CROS Tenant uses your photos when you attach repair or key-return pictures.",
+          "cameraPermission": "CROS Tenant uses the camera when you photograph a repair."
         }
       ],
       "expo-router",

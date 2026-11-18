@@ -1,8 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { downloadAuthedPdf } from '@/src/api/files';
+import { useAuth } from '@/src/auth/auth-context';
 import { pickEvidence } from '@/src/api/pick-evidence';
 import { ONBOARDING_LABEL, ONBOARDING_STEPS } from '@/src/demo/applications';
 import { KeyCollectionForm } from '@/src/flows/key-collection';
@@ -12,6 +13,8 @@ import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Notice, Screen, Tag } from '@/src/ui/ui';
 
 export default function OnboardingStepScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
   const { step } = useLocalSearchParams<{ step: string }>();
   const stepId = Array.isArray(step) ? step[0] : step;
   const item = ONBOARDING_STEPS.find((entry) => entry.id === stepId);
@@ -19,7 +22,7 @@ export default function OnboardingStepScreen() {
   const proofName = item ? onboardingProofs[item.id] ?? '' : '';
   const [error, setError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const amount = item ? onboardingAmounts[item.id] ?? item.amount : undefined;
+  const amount = item ? onboardingAmounts[item.id] : undefined;
 
   if (!item) {
     return (
@@ -68,6 +71,18 @@ export default function OnboardingStepScreen() {
         </Card>
       ) : null}
       {item.id === 'key_pickup' ? <KeyCollectionForm /> : null}
+      {item.id === 'account_setup' ? (
+        <Card>
+          <Text style={styles.body}>Email on this account: {user?.email || 'Not on this account'}</Text>
+          <Notice>Your property manager confirms this step. It cannot be marked done from the app.</Notice>
+        </Card>
+      ) : null}
+      {item.id === 'ingoing_report' ? (
+        <Card>
+          <Text style={styles.body}>Review the entry condition report section by section when your property manager publishes it.</Text>
+          <Button label="Open entry condition report" onPress={() => router.push('/flow/entry')} />
+        </Card>
+      ) : null}
       {item.kind === 'upload' ? (
         <Card>
           {proofName ? <Text style={styles.body}>Uploaded {proofName}</Text> : null}

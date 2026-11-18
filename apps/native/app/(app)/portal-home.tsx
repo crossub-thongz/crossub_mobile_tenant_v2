@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { inspectionPath } from '@/src/api/load-account';
 import { cycleAmount, normalizeCycle } from '@/src/api/rent';
 import { useAuth } from '@/src/auth/auth-context';
 import { money } from '@/src/demo/model';
@@ -90,7 +91,7 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
       icon: 'construct-outline',
       title: 'Repair finished',
       subtitle: 'Confirm the work is complete',
-      href: '/flow/maintenance',
+      href: `/flow/maintenance?job=${needsCompletion.id}`,
     });
   }
 
@@ -100,14 +101,14 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
       icon: 'construct-outline' as const,
       title: item.title,
       subtitle: item.urgent ? `Urgent · ${item.status}` : item.status,
-      href: '/flow/maintenance' as Href,
+      href: `/flow/maintenance?job=${item.id}` as Href,
     })),
     ...demo.inspections.slice(0, 1).map((item) => ({
       id: item.id,
       icon: 'clipboard-outline' as const,
       title: item.title,
       subtitle: item.when || item.status,
-      href: '/flow/inspections' as Href,
+      href: inspectionPath(item.type, item.id, demo.routineAction?.flow === 'self' ? demo.routineAction.id : null) as Href,
     })),
     ...(demo.keyCollection?.time
       ? [{
