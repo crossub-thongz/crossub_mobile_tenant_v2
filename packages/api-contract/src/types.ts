@@ -745,6 +745,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenant/routine-inspections/{id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Confirm whether the tenant can attend an in-person routine inspection.
+         * @description Saves the answer on the routine schedule. The appointment time does not change.
+         */
+        patch: operations["TenantAccountController_confirmRoutineAttendance"];
+        trace?: never;
+    };
     "/tenant/routine-inspections/{id}/start-self": {
         parameters: {
             query?: never;
@@ -1305,7 +1325,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Live leasing onboarding (step 4) for the tenant’s approved application — deposit, bond, lease, keys, ingoing. */
+        /**
+         * Live leasing onboarding (step 4) for the tenant’s approved application — deposit, bond, lease, keys, ingoing.
+         * @description Returns the checklist while it is open and after it is finished. A finished checklist has onboardingComplete true, including when the tenancy is already leased. 404 only when onboarding has not started.
+         */
         get: operations["TenantAccountController_getLeasingOnboarding"];
         put?: never;
         post?: never;
@@ -8006,6 +8029,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agent/agencies/{agencyId}/trust/transactions/{transactionId}/correction-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview moving part of a receipt’s Rent or Deposit elsewhere, bank-neutral; posts nothing (Self-Manage). */
+        post: operations["AgentTrustController_previewCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/transactions/{transactionId}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The corrections of one receipt, oldest first (Self-Manage). */
+        get: operations["AgentTrustController_listCorrections"];
+        put?: never;
+        /** Correct a receipt’s allocation, all or nothing; refused whole if a folio lacks funds (Self-Manage). */
+        post: operations["AgentTrustController_confirmCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/fee-charges": {
         parameters: {
             query?: never;
@@ -8024,6 +8082,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/owner-bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Owner folio Pending Bills or Paid Bills: supplier bills and agency fees together. */
+        get: operations["AgentTrustController_listOwnerBills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/owner-bills/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay the selected bills and fees of one owner in full, all together or none (409 with the reason). */
+        post: operations["AgentTrustController_payOwnerBills"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-accounts/{bankAccountId}/owner-bills/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay bills and fees for several owners: each owner all or nothing, a result per owner. */
+        post: operations["AgentTrustController_payManyOwnersBills"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/fee-charges/post-pending": {
         parameters: {
             query?: never;
@@ -8033,12 +8142,29 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Post the pending fees the owner ledger can now fund, oldest first (Self-Manage). */
+        /** Collect every pending fee of the owner ledger, all together or none. */
         post: operations["AgentTrustController_postPendingFees"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/fee-charges/{chargeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a pending fee charge's amount, with a reason (Self-Manage). */
+        patch: operations["AgentTrustController_editFeeCharge"];
         trace?: never;
     };
     "/agent/agencies/{agencyId}/trust/fee-charges/{chargeId}/waive": {
@@ -8195,6 +8321,143 @@ export interface paths {
          * @description Each line stands alone; a failure is reported against its key and the rest carry on.
          */
         post: operations["AgentTrustController_processMatchedBankLines"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-accounts/{bankAccountId}/bank-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import a QIF bank file into the workspace: new lines saved unmatched, nothing posted (Self-Manage). */
+        post: operations["AgentTrustController_importBankFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-accounts/{bankAccountId}/bank-lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The bank workspace: unmatched lines across imports, matched, or deleted (Self-Manage). */
+        get: operations["AgentTrustController_listBankLines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-accounts/{bankAccountId}/bank-lines/match-suggested": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the suggested match of several lines; never posts a receipt (Self-Manage). */
+        post: operations["AgentTrustController_matchSuggestedBankLines"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-lines/{lineId}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Match a line to one posted transaction, or a debit to one payment batch total (Self-Manage). */
+        post: operations["AgentTrustController_matchBankLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-lines/{lineId}/unmatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a match; the line goes back to unmatched (Self-Manage). */
+        post: operations["AgentTrustController_unmatchBankLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-lines/{lineId}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete an unmatched imported line, kept and audited; the cash book is untouched (Self-Manage). */
+        post: operations["AgentTrustController_deleteBankLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-accounts/{bankAccountId}/reconciliation-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reconciliation adjustments of the account, removed ones included (Self-Manage). */
+        get: operations["AgentTrustController_listReconAdjustments"];
+        put?: never;
+        /** Add a signed bank-side reconciliation adjustment; it carries forward until removed (Self-Manage). */
+        post: operations["AgentTrustController_addReconAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/bank-accounts/{bankAccountId}/reconciliation-adjustments/{adjustmentId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove an adjustment from a date on; earlier cutoffs and locked months keep it (Self-Manage). */
+        post: operations["AgentTrustController_removeReconAdjustment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8414,18 +8677,52 @@ export interface paths {
         patch: operations["AgentTrustManageController_setPayoutSchedule"];
         trace?: never;
     };
-    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/fee-settings": {
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/fee-assignments": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Recurring fees on an owner ledger, such as the management fee (Self-Manage). */
-        get: operations["AgentTrustManageController_getFeeSettings"];
-        /** Replace the recurring fees on an owner ledger; ones left out are switched off (Self-Manage). */
-        put: operations["AgentTrustManageController_putFeeSettings"];
-        post?: never;
+        /** The fees on an owner folio (its own and its property's), with history and missed periods (Self-Manage). */
+        get: operations["AgentTrustManageController_listFeeAssignments"];
+        put?: never;
+        /** Set a fee template on the folio, or on its property for a property template (Self-Manage). */
+        post: operations["AgentTrustManageController_createFeeAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/fee-assignments/{assignmentId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change a fee's amount or rate, or switch it on or off, from a date (Self-Manage). */
+        post: operations["AgentTrustManageController_addFeeAssignmentVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/fee-assignments/{assignmentId}/missed-periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Raise or skip a missed recurring period; never raised on its own (Self-Manage). */
+        post: operations["AgentTrustManageController_resolveMissedFeePeriod"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8460,6 +8757,91 @@ export interface paths {
         put?: never;
         /** Reset a tenant’s paid-to date or rent by hand, with a note (Self-Manage). */
         post: operations["AgentTrustManageController_resetRent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/rent-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a dated rent rate, or change the amount on that date (Self-Manage). */
+        post: operations["AgentTrustManageController_setRentRate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/rent-rates/{rateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a dated rent rate added by mistake (Self-Manage). */
+        delete: operations["AgentTrustManageController_removeRentRate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/move-out/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What setting the move-out date would do; posts nothing (Self-Manage). */
+        post: operations["AgentTrustManageController_previewMoveOut"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/move-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set or clear the move-out date; rent paid past it moves to the tenant deposit, all or nothing (Self-Manage). */
+        post: operations["AgentTrustManageController_setMoveOut"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/ledgers/{ledgerId}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Allocation and move-out corrections touching a tenant folio, newest first (Self-Manage). */
+        get: operations["AgentTrustManageController_listLedgerCorrections"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8903,6 +9285,76 @@ export interface paths {
         put?: never;
         /** Add an income or expense account code (Self-Manage). */
         post: operations["AgentTrustSettingsController_createAccountCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/fee-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agency's fee templates: rules with no amount (Self-Manage). */
+        get: operations["AgentTrustSettingsController_listFeeTemplates"];
+        put?: never;
+        /** Add a fee template (Self-Manage). */
+        post: operations["AgentTrustSettingsController_createFeeTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/fee-templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an unused fee template; a used one is archived instead (Self-Manage). */
+        delete: operations["AgentTrustSettingsController_deleteFeeTemplate"];
+        options?: never;
+        head?: never;
+        /** Edit a fee template: name and chart any time, the rule only while unused (Self-Manage). */
+        patch: operations["AgentTrustSettingsController_updateFeeTemplate"];
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/fee-templates/{templateId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a fee template: it raises nothing new (Self-Manage). */
+        post: operations["AgentTrustSettingsController_archiveFeeTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/agencies/{agencyId}/trust/fee-templates/{templateId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived fee template (Self-Manage). */
+        post: operations["AgentTrustSettingsController_restoreFeeTemplate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9835,7 +10287,7 @@ export interface components {
              * @description Target property. Optional: inferred when the tenant has exactly one active tenancy; required (400) when they have several. Always validated against the tenant's scope.
              */
             propertyId?: string;
-            /** @description At least one already-uploaded photo or video URL (the app uploads first). */
+            /** @description At least one already-uploaded photo or video URL (the app uploads first). The tenant app sends up to 10 from one camera pass. */
             photos: string[];
             /** @description Opt-in idempotency key. Re-sending the same key returns 409 Conflict (pointing at the original ticket). Omit it and every submission creates a new ticket. */
             clientRequestId?: string;
@@ -10760,6 +11212,16 @@ export interface components {
             status: "scheduled" | "awaiting_tenant" | "in_progress" | "under_review" | "completed";
             /** @description Whether the tenant must take action (e.g. self-inspection submission). */
             tenantActionRequired: boolean;
+            /**
+             * @description Whether the tenant confirmed they can attend an in-person visit. Null until they answer.
+             * @enum {string|null}
+             */
+            tenantAttendance: "yes" | "no" | null;
+            /**
+             * Format: date-time
+             * @description When the tenant confirmed attendance.
+             */
+            tenantAttendanceAt: string | null;
             /** @description When staff declined the submission, the reason the tenant must address. */
             declineReason?: string | null;
             /** @description The first tenant submission kept after staff decline — shown read-only while awaiting resubmit. */
@@ -10772,6 +11234,13 @@ export interface components {
             bedrooms?: number | null;
             /** @description In-progress self-inspection draft (hosted photo URLs per area) so progress survives logout and reconnect. */
             selfDraft?: components["schemas"]["TenantRoutineSelfDraftDto"];
+        };
+        TenantSetRoutineAttendanceDto: {
+            /**
+             * @description Whether the tenant can attend the in-person routine inspection.
+             * @enum {string}
+             */
+            attendance: "yes" | "no";
         };
         SaveTenantRoutineSelfDraftAreaDto: {
             /** @example Kitchen */
@@ -11448,7 +11917,7 @@ export interface components {
              */
             keyCustody: string;
             /**
-             * @description True when deposit, bond, agreement, and key collection are all done — the tenant app should hide move-in checklist prompts.
+             * @description True when the move-in checklist is finished, or a current lease already exists for this property. The steps are still returned so the tenant can review them.
              * @example false
              */
             onboardingComplete: boolean;
@@ -18587,6 +19056,8 @@ export interface components {
             abaUserId?: string | null;
             /** @description Who the payee statement says paid (26 characters). */
             abaRemitterName?: string | null;
+            /** @description PRD phase 4 (D158): rent reminders are emailed as soon as they are queued. */
+            rentRemindersAutoSend: boolean;
             /** @description D120: an ABA file can be built — the bank code is set and the account has its BSB and number (the user ID defaults to 000000). */
             abaReady: boolean;
             reconciliation: components["schemas"]["TrustBankAccountReconciliationDto"];
@@ -18744,7 +19215,7 @@ export interface components {
              * @description D116: POSTED, or REVERSED once reversed. Reconciliation is a day's balance (D117), not a per-transaction status.
              * @enum {string}
              */
-            displayStatus: "POSTED" | "REVERSED";
+            displayStatus: "POSTED" | "REVERSED" | "RECONCILED" | "UNRECONCILED";
             bankLine?: components["schemas"]["TrustTransactionBankLineDto"] | null;
             rentReceipt?: components["schemas"]["TrustRentReceiptStampDto"] | null;
             /** @description Phase 3: fee charges this transaction posted (D53). */
@@ -18815,6 +19286,13 @@ export interface components {
             /** @description Phase 6 (D87): ended owners (management end set, still open) holding money to pay out. */
             endedOwnersAwaitingPayoutCount: number;
         };
+        TrustRentRateDto: {
+            id: string;
+            /** @description Calendar date YYYY-MM-DD the rate applies from. */
+            effectiveFrom: string;
+            /** @description Rent per period (the profile rent period), cents. */
+            amountCents: number;
+        };
         TrustRentProfileDto: {
             ledgerId: string;
             rentAmountCents: number;
@@ -18855,6 +19333,12 @@ export interface components {
             lastReceiptDate?: string | null;
             /** @description The tenant ledger balance: deposits held, unallocated (D29, D36). */
             depositHeldCents: number;
+            /** @description PRD phase 4 (D155): the canonical move-out, last day rent is owed. */
+            moveOutDate?: string | null;
+            /** @description D155: rent still owed up to the move-out, less the part payment held. Null without a move-out. */
+            finalLiabilityRemainingCents?: number | null;
+            /** @description D153: the dated rent rates, oldest first. */
+            rates: components["schemas"]["TrustRentRateDto"][];
             updatedAt: string;
         };
         TrustLedgerDto: {
@@ -19024,7 +19508,10 @@ export interface components {
             reference?: string;
             /** @description Defaults to "Rent – <ledger name>" or "Receipt – <ledger name>". */
             description?: string;
-            /** @description True when the operator picked the tenant by hand for a bank line: the payer is remembered (D31). */
+            /**
+             * @deprecated
+             * @description Ignored. Payers are no longer remembered: PRD PA-01/02 allows only a reference to identify a tenancy automatically. Accepted so older clients are not refused.
+             */
             rememberPayer?: boolean;
         };
         SetRentProfileDto: {
@@ -19074,9 +19561,12 @@ export interface components {
         };
         TrustBillFundingDto: {
             ownerBalanceCents: number;
-            /** @description Funded pending bills on the owner ledger. For a PENDING funded bill this excludes the bill itself, so availableAfterCents reads as the ledger Available. */
+            /**
+             * @deprecated
+             * @description Always 0 since D146: pending bills reserve nothing.
+             */
             reservedCents: number;
-            /** @description ownerBalanceCents − reservedCents. */
+            /** @description The owner Available: max(0, balance − withheld) (D146). */
             availableCents: number;
             /** @description availableCents − this bill when it is PENDING and funded, else availableCents. */
             availableAfterCents: number;
@@ -19180,6 +19670,8 @@ export interface components {
             details: string;
             /** @description The supplier's invoice number. */
             invoiceReference?: string;
+            /** @description PRD Step 3: a bill with the same supplier and invoice number is refused with 409 (`duplicateBillNumbers`) unless this is true. Saving a confirmed duplicate is recorded in the audit log. */
+            allowDuplicateReference?: boolean;
             /** @description Free text, e.g. "01/07/2026 to 30/09/2026" (D123). */
             period?: string;
             /** @description GST-inclusive total, integer cents, positive. */
@@ -19217,14 +19709,17 @@ export interface components {
             ledger: components["schemas"]["TrustLedgerRefDto"];
             property?: components["schemas"]["TrustPropertyRefDto"] | null;
             balanceCents: number;
-            /** @description Pending bills the balance funds (D47). */
+            /**
+             * @deprecated
+             * @description Always 0 since D146: pending bills reserve nothing.
+             */
             reservedCents: number;
             pendingFeeCents: number;
             withheldCents: number;
-            /** @description Pending bills due on or before today. */
+            /** @description Pending bills due on or before today. A warning: Disburse does not pay them (D147). */
             billsDueCents: number;
             billsDueCount: number;
-            /** @description Owner: balance − reserved − pending fees − withheld (D65). Supplier: the balance. */
+            /** @description Owner: max(0, balance − withheld) (D146). Supplier: the balance. */
             availableToPayCents: number;
             /**
              * @description Owner ledgers only.
@@ -19351,7 +19846,7 @@ export interface components {
         TrustPendingMailDto: {
             id: string;
             /** @enum {string} */
-            kind: "TENANT_RECEIPT" | "OWNER_STATEMENT";
+            kind: "TENANT_RECEIPT" | "OWNER_STATEMENT" | "CORRECTION_ADVICE" | "RENT_REMINDER" | "RENT_ARREARS_ALERT";
             /** @enum {string} */
             status: "PENDING" | "SENT" | "FAILED";
             sourceId: string;
@@ -19514,8 +20009,26 @@ export interface components {
             amountCents: number;
             /** @enum {string} */
             kind: "RECEIPT" | "WITHDRAWAL" | "JOURNAL" | "OPENING";
-            /** @description D117: ticked as not yet shown by the bank at the statement date. The list holds every candidate; only ticked ones count in the total. */
+            /** @description PRD phase 5 (D162): always true — every listed item has no confirmed bank match by the statement date (frozen pre-phase-5 snapshots keep their ticks). */
             isUnpresented: boolean;
+            /**
+             * @description D164: Cash not banked (a cash or cheque receipt) or Withdrawal not processed (a payment still waiting in the pool). Informational: already in the unreconciled total.
+             * @enum {string|null}
+             */
+            transitKind?: "CASH_NOT_BANKED" | "WITHDRAWAL_NOT_PROCESSED" | null;
+        };
+        TrustReconAdjustmentDto: {
+            id: string;
+            effectiveDate: string;
+            /** @description Signed cents added to the bank statement balance. */
+            amountCents: number;
+            reason: string;
+            /** @description The first cutoff it no longer counts at. */
+            removedOn?: string | null;
+            removedReason?: string | null;
+            createdByName?: string | null;
+            removedByName?: string | null;
+            createdAt: string;
         };
         TrustReconciliationBankLineDto: {
             id: string;
@@ -19538,30 +20051,23 @@ export interface components {
             statementBalanceCents?: number | null;
             /** @description The statement balance that would reconcile the month as at the statement date. */
             suggestedStatementBalanceCents: number;
-            /** @description D117: the ticked receipts (not yet shown by the bank) — added to the statement balance. */
+            /** @description D162: receipts not yet matched to the bank — added to the statement balance. */
             unreconciledDepositsCents: number;
-            /** @description D117: every receipt dated in the month up to the statement date, plus older ticked ones; `isUnpresented` marks the ticked. */
+            /** @description D162: every receipt in the cash book by the statement date with no confirmed bank match dated by then (any month). */
             unreconciledDeposits: components["schemas"]["TrustReconciliationItemDto"][];
-            /** @description D117: the ticked withdrawals (not yet shown by the bank), positive — taken off the statement balance. */
+            /** @description D162: withdrawals not yet matched to the bank, positive — taken off the statement balance. */
             unreconciledWithdrawalsCents: number;
-            /** @description D117: every withdrawal dated in the month up to the statement date, plus older ticked ones; `isUnpresented` marks the ticked. */
+            /** @description D162: every withdrawal in the cash book by the statement date with no confirmed bank match (its own or its batch) dated by then. */
             unreconciledWithdrawals: components["schemas"]["TrustReconciliationItemDto"][];
-            /**
-             * @description Not built: always 0.
-             * @example 0
-             */
+            /** @description D163: signed adjustments in effect at the statement date, added to the statement balance. */
             adjustmentsCents: number;
-            /**
-             * @description Not built: always 0.
-             * @example 0
-             */
+            /** @description D163: the adjustments in effect at the statement date (frozen with a lock). */
+            adjustments: components["schemas"]["TrustReconAdjustmentDto"][];
+            /** @description D164: of the unreconciled deposits, cash and cheque receipts. Informational, not added again. */
             cashNotBankedCents: number;
-            /**
-             * @description Not built: always 0.
-             * @example 0
-             */
+            /** @description D164: of the unreconciled withdrawals, payments not yet exported. Informational, not added again. */
             withdrawalsNotProcessedCents: number;
-            /** @description Statement + ticked deposits − ticked withdrawals; null while untyped. */
+            /** @description Adjusted bank: statement + unreconciled deposits − unreconciled withdrawals + adjustments; null while untyped. */
             reconciledBalanceCents?: number | null;
             /** @description Bank lines dated in the month up to the statement date, not dismissed. */
             lines: components["schemas"]["TrustReconciliationBankLineDto"][];
@@ -19675,12 +20181,19 @@ export interface components {
             isReconciled: boolean;
             /** @description D118: bank − cash book on that day; 0 when reconciled. */
             outByCents: number;
+            /** @description PRD phase 5 (D165): the cash book at this date as it stood when the balance was recorded (frozen). Null on rows recorded before. */
+            checkedCashBookCents?: number | null;
+            /** @description D165: bank − cash book when recorded (frozen; signed). Informational: never changes a transaction or locks a period. */
+            checkedDifferenceCents?: number | null;
         };
         LockReconciliationDto: {
             /** @description The closing balance on the bank statement at the month end, typed by the accountant (R21). */
             bankStatementBalanceCents: number;
             note?: string;
-            /** @description D117: the receipts and withdrawals the bank had not shown by the month end, ticked by the accountant; frozen in the lock snapshot. None when absent. */
+            /**
+             * @deprecated
+             * @description Deprecated (PRD phase 5, D162): ignored. Unreconciled items now come from bank matches.
+             */
             unpresentedTransactionIds?: string[];
         };
         TrustTransactionListDto: {
@@ -19694,17 +20207,123 @@ export interface components {
             idempotencyKey: string;
             reason: string;
         };
+        CorrectAllocationDto: {
+            /** @enum {string} */
+            fromKind: "RENT" | "DEPOSIT";
+            /** @description The tenant folio the receipt allocated it to. */
+            fromLedgerId: string;
+            /** @enum {string} */
+            toKind: "RENT" | "DEPOSIT";
+            /** @description The tenant folio it should have gone to (the same one for Rent ↔ Deposit). */
+            toLedgerId: string;
+            /** @description Integer cents, positive. */
+            amountCents: number;
+            reason: string;
+        };
+        TrustCorrectionLegDto: {
+            fromLedgerId: string;
+            fromLedgerCode: string;
+            fromLedgerName: string;
+            toLedgerId: string;
+            toLedgerCode: string;
+            toLedgerName: string;
+            amountCents: number;
+            /** @description The source folio's Available (balance less Withheld) right now. */
+            fromAvailableCents: number;
+            fundsOk: boolean;
+        };
+        TrustCorrectionPaidToDto: {
+            ledgerId: string;
+            ledgerCode: string;
+            ledgerName: string;
+            paidToBefore: string;
+            effectivePaidToBefore: string;
+            paidToAfter: string;
+            effectivePaidToAfter: string;
+            /** @description Signed: rent added (+) or taken (−). */
+            rentDeltaCents: number;
+        };
+        TrustCorrectionPreviewDto: {
+            originalTransactionId: string;
+            originalAuditNumber: number;
+            /** @description What of this allocation is still on the receipt (after earlier corrections). */
+            remainingCents: number;
+            legs: components["schemas"]["TrustCorrectionLegDto"][];
+            paidTo: components["schemas"]["TrustCorrectionPaidToDto"][];
+            /** @description Informational (PRD MF-03): the management fee taken on the rent moved. Never refunded or recovered automatically. */
+            managementFeeDifferenceCents: number;
+            canConfirm: boolean;
+            /** @enum {string|null} */
+            blockedReason?: "INSUFFICIENT_FUNDS" | "EXCEEDS_REMAINING" | "EXCEEDS_FINAL_LIABILITY" | null;
+        };
+        ConfirmAllocationCorrectionDto: {
+            /** @enum {string} */
+            fromKind: "RENT" | "DEPOSIT";
+            /** @description The tenant folio the receipt allocated it to. */
+            fromLedgerId: string;
+            /** @enum {string} */
+            toKind: "RENT" | "DEPOSIT";
+            /** @description The tenant folio it should have gone to (the same one for Rent ↔ Deposit). */
+            toLedgerId: string;
+            /** @description Integer cents, positive. */
+            amountCents: number;
+            reason: string;
+            idempotencyKey: string;
+        };
+        /** @enum {string} */
+        TrustCorrectionKind: "ALLOCATION" | "MOVE_OUT";
+        /** @enum {string} */
+        TrustReceiptAllocationKind: "RENT" | "DEPOSIT" | "OTHER" | "INVOICE";
+        TrustAllocationCorrectionDto: {
+            id: string;
+            kind: components["schemas"]["TrustCorrectionKind"];
+            originalTransactionId?: string | null;
+            originalAuditNumber?: number | null;
+            fromKind: components["schemas"]["TrustReceiptAllocationKind"];
+            fromLedgerId: string;
+            fromLedgerName: string;
+            toKind: components["schemas"]["TrustReceiptAllocationKind"];
+            toLedgerId: string;
+            toLedgerName: string;
+            amountCents: number;
+            reason: string;
+            managementFeeDifferenceCents: number;
+            /** @description Audit numbers of the journals it posted. */
+            journalAuditNumbers: number[];
+            /** @description True once every journal of it is still posted (none reversed). */
+            inEffect: boolean;
+            /** @description Correction Advice outbox row for the tenant. */
+            adviceMailId?: string | null;
+            createdAt: string;
+        };
+        TrustAllocationCorrectionListDto: {
+            items: components["schemas"]["TrustAllocationCorrectionDto"][];
+        };
         TrustFeeChargeDto: {
             id: string;
             ownerLedgerId: string;
             agencyLedger?: components["schemas"]["TrustLedgerRefDto"] | null;
+            /** @description Deprecated: charges raised before fee templates. */
             feeSettingId?: string | null;
+            feeTemplateId?: string | null;
+            feeAssignmentId?: string | null;
+            /**
+             * @description Null on charges raised before fee templates.
+             * @enum {string|null}
+             */
+            taxCode?: "GST" | "GST_FREE" | null;
+            /** @description PERCENT fees: the rate charged, basis points. */
+            rateBasisPoints?: number | null;
+            /** @description Statement or recurring period. */
+            periodKey?: string | null;
             /** @enum {string} */
-            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL";
+            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL" | "STATEMENT";
             name: string;
             baseAmountCents?: number | null;
             amountCents: number;
             gstCents: number;
+            /** @description amountCents less gstCents. */
+            netCents: number;
             accountCode: components["schemas"]["TrustAccountCodeRefDto"];
             /** @description YYYY-MM-DD */
             chargeDate: string;
@@ -19736,17 +20355,109 @@ export interface components {
         CreateManualFeeDto: {
             /** @description UUID the client generates when the dialog opens. */
             idempotencyKey: string;
-            name: string;
-            /** @description Integer cents, positive. */
-            amountCents: number;
-            /** @description True: the amount already includes GST. */
-            gstInclusive: boolean;
-            accountCodeId: string;
+            /** @description A MANUAL fee assignment on this folio (or its property). */
+            assignmentId?: string;
+            /** @description Template fee: charge it although it was charged this month already. */
+            allowDuplicate?: boolean;
+            /** @description One-off only. */
+            name?: string;
+            /** @description One-off only: integer cents, positive. */
+            amountCents?: number;
+            /** @description One-off only. True: the amount already includes GST. */
+            gstInclusive?: boolean;
+            /** @description One-off only. */
+            accountCodeId?: string;
             /**
              * @description Not after today (Sydney).
              * @example 2026-09-30
              */
             chargeDate: string;
+        };
+        TrustOwnerBillItemDto: {
+            /** @enum {string} */
+            source: "SUPPLIER_BILL" | "AGENCY_FEE";
+            id: string;
+            /** @description Bill number; null for a fee. */
+            number?: number | null;
+            /** @description Supplier, or the agency folio for a fee. */
+            payeeName?: string | null;
+            description: string;
+            invoiceReference?: string | null;
+            amountCents: number;
+            gstCents: number;
+            /** @description Bill due date, or the fee charge date. */
+            date?: string | null;
+            /** @description Fees only: why it is waiting. */
+            pendingReason?: string | null;
+            /** @description Pending only: the amount fits the owner Available on its own. Nothing is reserved (D146). */
+            fitsAvailable?: boolean | null;
+            shortfallCents?: number | null;
+            /** @description Paid only. */
+            paidAt?: string | null;
+            transactionId?: string | null;
+            auditNumber?: number | null;
+            /** @description Pending fee to review before collecting, e.g. its rent receipt was reversed (D152). */
+            reviewWarning?: string | null;
+        };
+        TrustOwnerBillListDto: {
+            /** @enum {string} */
+            list: "PENDING" | "PAID";
+            items: components["schemas"]["TrustOwnerBillItemDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+            balanceCents: number;
+            withheldCents: number;
+            /** @description max(0, balance − withheld) (D146). */
+            availableCents: number;
+            /** @description Pending bills and fees on the folio, whichever list is shown. */
+            pendingCount: number;
+            pendingCents: number;
+        };
+        CollectOwnerFolioBillsDto: {
+            /** @description PENDING supplier bills on this owner folio. */
+            billIds?: string[];
+            /** @description PENDING agency fee charges on this owner folio. */
+            feeChargeIds?: string[];
+            /** @description UUID the client generates when the dialog opens; a retry replays the same payment. */
+            idempotencyKey: string;
+            /**
+             * @description Default today (Sydney). Not after today, not in a locked month.
+             * @example 2026-11-19
+             */
+            effectiveDate?: string;
+        };
+        TrustOwnerCollectResultDto: {
+            ownerLedgerId: string;
+            /** @enum {string} */
+            status: "PAID" | "FAILED";
+            billIds: string[];
+            feeChargeIds: string[];
+            totalCents: number;
+            transactionIds: string[];
+            /** @description Why nothing was paid, when FAILED. */
+            message?: string | null;
+            shortfallCents?: number | null;
+        };
+        CollectOwnerBillsGroupDto: {
+            /** @description PENDING supplier bills on this owner folio. */
+            billIds?: string[];
+            /** @description PENDING agency fee charges on this owner folio. */
+            feeChargeIds?: string[];
+            ownerLedgerId: string;
+        };
+        CollectOwnerBillsDto: {
+            /** @description UUID the client generates when the dialog opens; a retry replays the same payment. */
+            idempotencyKey: string;
+            /**
+             * @description Default today (Sydney). Not after today, not in a locked month.
+             * @example 2026-11-19
+             */
+            effectiveDate?: string;
+            groups: components["schemas"]["CollectOwnerBillsGroupDto"][];
+        };
+        TrustOwnerCollectResultsDto: {
+            results: components["schemas"]["TrustOwnerCollectResultDto"][];
         };
         TrustPostPendingFeesResultDto: {
             posted: number;
@@ -19754,6 +20465,11 @@ export interface components {
             stillPending: number;
             /** @description The last journal posted, when any. */
             transactionId?: string | null;
+        };
+        EditFeeChargeDto: {
+            /** @description The new tax-inclusive amount, integer cents. */
+            amountCents: number;
+            reason: string;
         };
         WaiveFeeChargeDto: {
             reason: string;
@@ -19933,6 +20649,123 @@ export interface components {
             processedCount: number;
             transactionIds: string[];
             failed: components["schemas"]["TrustProcessMatchedFailureDto"][];
+        };
+        TrustBankImportResultDto: {
+            importId: string;
+            fileName: string;
+            /** @description Lines in the file. */
+            lineCount: number;
+            /** @description Lines saved to the workspace now. */
+            newLineCount: number;
+            /** @description Lines already in the workspace (imported before, matched or deleted), not saved again. */
+            duplicateLineCount: number;
+            /** @description Lines dated before the trust account opened, left out. */
+            skippedBeforeOpeningCount: number;
+            dateFrom?: string | null;
+            dateTo?: string | null;
+            /** @description The same file was imported before; nothing new was saved. */
+            alreadyImported: boolean;
+        };
+        /** @enum {string} */
+        TrustPaymentMethod: "EFT" | "CASH" | "CHEQUE" | "CARD" | "BPAY";
+        TrustBankLineBatchDto: {
+            id: string;
+            batchNumber: number;
+            method: components["schemas"]["TrustPaymentMethod"];
+            /** @description Positive: the debit the bank made for the file. */
+            totalCents: number;
+            paymentCount: number;
+            processingDate: string;
+        };
+        TrustBankWorkspaceLineDto: {
+            id: string;
+            lineDate: string;
+            memo: string;
+            /** @description Signed: money in positive. */
+            amountCents: number;
+            reference?: string | null;
+            /** @enum {string} */
+            view: "UNMATCHED" | "MATCHED" | "DELETED";
+            /** @description The file it came from (null for a line saved by a receipt or an older link). */
+            importFileName?: string | null;
+            /** @description Unmatched lines: a tenant to receipt to, or a posted transaction to match. */
+            suggestion?: components["schemas"]["TrustBankLineSuggestionDto"] | null;
+            /** @description Unmatched debits: a payment batch whose total equals the line. */
+            suggestedBatch?: components["schemas"]["TrustBankLineBatchDto"] | null;
+            /** @description Matched: the transaction it explains. */
+            transaction?: components["schemas"]["TrustBankLineTransactionDto"] | null;
+            /** @description Matched: the payment batch whose total it explains (D161). */
+            batch?: components["schemas"]["TrustBankLineBatchDto"] | null;
+            matchedAt?: string | null;
+            matchedByName?: string | null;
+            /** @description Deleted: why. */
+            deletedReason?: string | null;
+            deletedAt?: string | null;
+            deletedByName?: string | null;
+        };
+        TrustBankWorkspaceCountsDto: {
+            /** @description Unmatched lines across every import (a workspace figure, not a month-end gate). */
+            unmatched: number;
+            matched: number;
+            deleted: number;
+        };
+        TrustBankWorkspaceDto: {
+            items: components["schemas"]["TrustBankWorkspaceLineDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+            counts: components["schemas"]["TrustBankWorkspaceCountsDto"];
+        };
+        MatchSuggestedDto: {
+            lineIds: string[];
+        };
+        TrustMatchSuggestedFailureDto: {
+            lineId: string;
+            reason: string;
+        };
+        TrustMatchSuggestedResultDto: {
+            matchedCount: number;
+            failed: components["schemas"]["TrustMatchSuggestedFailureDto"][];
+        };
+        MatchBankLineDto: {
+            /**
+             * Format: uuid
+             * @description A posted receipt or withdrawal with the same signed amount.
+             */
+            transactionId?: string;
+            /**
+             * Format: uuid
+             * @description D161: a payment batch whose total the bank paid as one debit.
+             */
+            paymentBatchId?: string;
+        };
+        DeleteBankLineDto: {
+            reason: string;
+        };
+        TrustReconAdjustmentListDto: {
+            /** @description Every adjustment of the account, removed ones included, newest first. */
+            items: components["schemas"]["TrustReconAdjustmentDto"][];
+        };
+        AddReconAdjustmentDto: {
+            /**
+             * @description The first cutoff it counts at (not in a locked month, not after today).
+             * @example 2026-10-15
+             */
+            effectiveDate: string;
+            /**
+             * @description Signed integer cents, not zero: added to the bank statement balance.
+             * @example -21293
+             */
+            amountCents: number;
+            reason: string;
+        };
+        RemoveReconAdjustmentDto: {
+            /**
+             * @description The first cutoff it no longer counts at (after its effective date, not in a locked month, not after today).
+             * @example 2026-12-01
+             */
+            removedOn: string;
+            reason: string;
         };
         TrustBankLineUnlinkedDto: {
             /** @description The transaction that is Unreconciled again. */
@@ -20204,43 +21037,115 @@ export interface components {
              */
             nextPayoutDue?: string | null;
         };
-        TrustFeeSettingDto: {
+        TrustFeeTemplateDto: {
             id: string;
-            ownerLedgerId: string;
-            /** @enum {string} */
-            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL";
+            workspaceId: string;
+            agencyId: string;
             name: string;
             /** @enum {string} */
+            scope: "PROPERTY" | "OWNERSHIP";
+            /** @enum {string} */
+            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL" | "STATEMENT";
+            /** @enum {string} */
             calc: "FIXED" | "PERCENT";
-            /** @description FIXED: the fee in cents. */
-            amountCents?: number | null;
-            /** @description PERCENT: hundredths of a percent (550 = 5.5%). */
-            rateBasisPoints?: number | null;
-            gstInclusive: boolean;
+            /** @description PERCENT only: what the rate is a percentage of. */
+            percentBase?: string | null;
+            /** @enum {string} */
+            taxCode: "GST" | "GST_FREE";
+            /** @enum {string|null} */
+            recurringFrequency?: "MONTHLY" | "QUARTERLY" | "YEARLY" | null;
             accountCode: components["schemas"]["TrustAccountCodeRefDto"];
-            isActive: boolean;
+            /** @enum {string} */
+            status: "ACTIVE" | "ARCHIVED";
+            /** @description True once assigned: only the name and chart may change. */
+            locked: boolean;
+            /** @description Assignments on properties and owner folios. */
+            assignmentCount: number;
+            archivedAt?: string | null;
             createdAt: string;
             updatedAt: string;
         };
-        TrustFeeSettingInputDto: {
-            /** @description An existing setting on this owner ledger; omit to create one. */
-            id?: string;
-            /** @enum {string} */
-            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL";
-            name: string;
-            /** @enum {string} */
-            calc: "FIXED" | "PERCENT";
-            /** @description FIXED only: the fee in cents. */
+        TrustFeeAssignmentVersionDto: {
+            id: string;
+            /** @description YYYY-MM-DD */
+            effectiveFrom: string;
+            /** @description FIXED: tax-inclusive cents. */
             amountCents?: number | null;
-            /** @description PERCENT only: hundredths of a percent (550 = 5.5%). */
+            /** @description PERCENT: basis points. */
             rateBasisPoints?: number | null;
-            /** @description True: the amount already includes GST (D25). */
-            gstInclusive: boolean;
-            accountCodeId: string;
-            isActive: boolean;
+            enabled: boolean;
+            createdAt: string;
         };
-        PutFeeSettingsDto: {
-            settings: components["schemas"]["TrustFeeSettingInputDto"][];
+        TrustFeeMissedPeriodDto: {
+            /** @example 2026-10 */
+            periodKey: string;
+            /** @description YYYY-MM-DD, first day. */
+            startDate: string;
+            /** @description YYYY-MM-DD, last day. */
+            endDate: string;
+            /** @description What raising it would charge (tax inclusive). */
+            amountCents: number;
+        };
+        TrustFeeAssignmentDto: {
+            id: string;
+            template: components["schemas"]["TrustFeeTemplateDto"];
+            /**
+             * @description PROPERTY: set on the property, shared by its owners.
+             * @enum {string}
+             */
+            target: "PROPERTY" | "OWNERSHIP";
+            propertyId?: string | null;
+            ownerLedgerId?: string | null;
+            /** @description In force today. */
+            current?: components["schemas"]["TrustFeeAssignmentVersionDto"] | null;
+            /** @description Newest first, future ones included. */
+            versions: components["schemas"]["TrustFeeAssignmentVersionDto"][];
+            /** @description YYYY-MM-DD of the last fee charged under it. */
+            lastChargeDate?: string | null;
+            /** @description RECURRING only. */
+            missedPeriods: components["schemas"]["TrustFeeMissedPeriodDto"][];
+            createdAt: string;
+        };
+        TrustFeeAssignmentsDto: {
+            ownerLedgerId: string;
+            propertyId?: string | null;
+            agencyId?: string | null;
+            assignments: components["schemas"]["TrustFeeAssignmentDto"][];
+            /** @description Active templates of the agency not yet set here. */
+            availableTemplates: components["schemas"]["TrustFeeTemplateDto"][];
+        };
+        CreateFeeAssignmentDto: {
+            /**
+             * @description The first day this amount applies.
+             * @example 2026-11-19
+             */
+            effectiveFrom: string;
+            /** @description FIXED: the tax-inclusive fee in cents. */
+            amountCents?: number | null;
+            /** @description PERCENT: hundredths of a percent (550 = 5.5%). */
+            rateBasisPoints?: number | null;
+            templateId: string;
+        };
+        AddFeeAssignmentVersionDto: {
+            /**
+             * @description The first day this amount applies.
+             * @example 2026-11-19
+             */
+            effectiveFrom: string;
+            /** @description FIXED: the tax-inclusive fee in cents. */
+            amountCents?: number | null;
+            /** @description PERCENT: hundredths of a percent (550 = 5.5%). */
+            rateBasisPoints?: number | null;
+            enabled: boolean;
+        };
+        ResolveMissedFeePeriodDto: {
+            /**
+             * @description A period key from `missedPeriods`.
+             * @example 2026-10
+             */
+            periodKey: string;
+            /** @enum {string} */
+            action: "RAISE" | "SKIP";
         };
         SetBondDto: {
             /** @description The bond the lease requires, in cents. */
@@ -20270,6 +21175,38 @@ export interface components {
             clearPendingChange?: boolean;
             /** @description Why. Written on the rent event row and the audit event. */
             note: string;
+        };
+        SetRentRateDto: {
+            /**
+             * @description The first day the rate applies.
+             * @example 2026-12-01
+             */
+            effectiveFrom: string;
+            /** @description Rent per period (the folio rent period), integer cents, positive. */
+            amountCents: number;
+            note?: string;
+        };
+        SetMoveOutDto: {
+            /**
+             * @description The last day rent is owed. Null clears it.
+             * @example 2026-12-14
+             */
+            moveOutDate?: string | null;
+            /** @description Required to confirm when rent paid past it moves back to the deposit. */
+            idempotencyKey?: string;
+        };
+        TrustMoveOutPreviewDto: {
+            ledgerId: string;
+            moveOutBefore?: string | null;
+            moveOutAfter?: string | null;
+            paidToBefore: string;
+            paidToAfter: string;
+            /** @description Rent paid past the new move-out, moved from the owner to the tenant deposit. */
+            excessCents: number;
+            legs: components["schemas"]["TrustCorrectionLegDto"][];
+            canConfirm: boolean;
+            /** @enum {string|null} */
+            blockedReason?: "INSUFFICIENT_FUNDS" | "EXCEEDS_REMAINING" | "EXCEEDS_FINAL_LIABILITY" | null;
         };
         TrustWithholdDto: {
             id: string;
@@ -20450,11 +21387,15 @@ export interface components {
             arrearsBeforeText: string;
             detailsText: string;
             rentChangeApplied: boolean;
+            /** @description D155: rent past the move-out; a receipt with any is refused (put it to Deposit). */
+            excessCents: number;
+            /** @description D155: the most rent this tenant can still be receipted. */
+            maxRentCents?: number | null;
         };
         TrustReceiptPreviewFeeDto: {
             name: string;
             /** @enum {string} */
-            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL";
+            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL" | "STATEMENT";
             amountCents: number;
             gstCents: number;
             /** @description False when the fee would stay pending (no agency ledger, or the owner cannot fund it). */
@@ -20480,7 +21421,7 @@ export interface components {
             /** @description Transaction id, or the rent event id for RENT_EVENT rows. */
             id: string;
             /** @enum {string} */
-            rowKind: "RENT_RECEIPT" | "DEPOSIT_RECEIPT" | "DEPOSIT_TRANSFER" | "OTHER_RECEIPT" | "RENT_EVENT" | "INVOICE_PAYMENT";
+            rowKind: "RENT_RECEIPT" | "DEPOSIT_RECEIPT" | "DEPOSIT_TRANSFER" | "OTHER_RECEIPT" | "RENT_EVENT" | "INVOICE_PAYMENT" | "CORRECTION";
             /** @description YYYY-MM-DD */
             date: string;
             transactionId?: string | null;
@@ -20497,7 +21438,7 @@ export interface components {
             /** @enum {string|null} */
             transactionStatus?: "POSTED" | "REVERSED" | null;
             /** @enum {string|null} */
-            displayStatus?: "POSTED" | "REVERSED" | null;
+            displayStatus?: "POSTED" | "REVERSED" | "RECONCILED" | "UNRECONCILED" | null;
             /** @description INVOICE_PAYMENT rows: the invoice paid. */
             invoiceId?: string | null;
             invoiceNumber?: number | null;
@@ -20536,9 +21477,12 @@ export interface components {
             monthOutCents: number;
             monthNetCents: number;
             lastEntryDate?: string | null;
-            /** @description Owner ledgers: pending bills the balance funds (D47). 0 for other kinds. */
+            /**
+             * @deprecated
+             * @description Always 0 since D146: pending bills reserve nothing.
+             */
             reservedCents: number;
-            /** @description Owner ledgers: balance − reserved. Other kinds: the balance. */
+            /** @description Owner ledgers: max(0, balance − withheld) (D146). Other kinds: the balance. */
             availableCents: number;
             pendingBillCount: number;
             /** @description Owner ledgers: fee charges not yet posted (D53). */
@@ -20653,6 +21597,8 @@ export interface components {
             abaUserId?: string | null;
             /** @description Empty or null clears it. */
             abaRemitterName?: string | null;
+            /** @description PRD phase 4 (D158): email rent reminders (−1, −3 days) and the 7-day agent alert as soon as they are queued. */
+            rentRemindersAutoSend?: boolean;
         };
         CreateAccountCodeDto: {
             code: string;
@@ -20660,6 +21606,54 @@ export interface components {
             /** @enum {string} */
             kind: "INCOME" | "EXPENSE";
             gstApplies?: boolean;
+        };
+        FeeTemplateRuleDto: {
+            name: string;
+            /**
+             * @description PROPERTY: whoever owns the property. OWNERSHIP: one owner folio.
+             * @enum {string}
+             */
+            scope: "PROPERTY" | "OWNERSHIP";
+            /** @enum {string} */
+            trigger: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL" | "STATEMENT";
+            /** @enum {string} */
+            calc: "FIXED" | "PERCENT";
+            /**
+             * @description GST inside the tax-inclusive amount.
+             * @enum {string}
+             */
+            taxCode: "GST" | "GST_FREE";
+            /**
+             * @description RECURRING only.
+             * @enum {string|null}
+             */
+            recurringFrequency?: "MONTHLY" | "QUARTERLY" | "YEARLY" | null;
+            /** @description The chart (account code) the fee posts under. */
+            accountCodeId: string;
+        };
+        UpdateFeeTemplateDto: {
+            name?: string;
+            /**
+             * @description PROPERTY: whoever owns the property. OWNERSHIP: one owner folio.
+             * @enum {string}
+             */
+            scope?: "PROPERTY" | "OWNERSHIP";
+            /** @enum {string} */
+            trigger?: "EVERY_RENT_RECEIPT" | "FIRST_RENT_RECEIPT" | "AGREEMENT_RENEWED" | "OWNER_INVOICE_RECEIPT" | "INSPECTION_COMPLETED" | "SUPPLIER_BILL_CREATED" | "RECURRING" | "MANUAL" | "STATEMENT";
+            /** @enum {string} */
+            calc?: "FIXED" | "PERCENT";
+            /**
+             * @description GST inside the tax-inclusive amount.
+             * @enum {string}
+             */
+            taxCode?: "GST" | "GST_FREE";
+            /**
+             * @description RECURRING only.
+             * @enum {string|null}
+             */
+            recurringFrequency?: "MONTHLY" | "QUARTERLY" | "YEARLY" | null;
+            /** @description The chart (account code) the fee posts under. */
+            accountCodeId?: string;
         };
         UpdateAccountCodeDto: {
             name?: string;
@@ -23116,6 +24110,66 @@ export interface operations {
             };
         };
     };
+    TenantAccountController_confirmRoutineAttendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantSetRoutineAttendanceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantRoutineInspectionResponseDto"];
+                };
+            };
+            /** @description Invalid body. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid/expired token, or the user is not active. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Caller is not a TENANT, or has no tenant profile anchor. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Routine inspection not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The visit is a self-inspection, or it is already finished. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TenantAccountController_startRoutineSelfInspection: {
         parameters: {
             query?: never;
@@ -24528,7 +25582,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description No in-progress leasing onboarding for this tenant. */
+            /** @description Onboarding has not started. A finished checklist is returned, not a 404. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -39935,7 +40989,10 @@ export interface operations {
                 lockId?: string;
                 /** @description D117: the statement date the OPEN month is checked as at — inside the month and not after today. Defaults to the month end, or today for the current month. Ignored for a locked month (its snapshot is as at the month end). */
                 asAt?: string;
-                /** @description D117: comma-separated transaction ids ticked as not yet shown by the bank at the statement date (receipts and withdrawals of this account). None ticked by default. Ignored for a locked month. */
+                /**
+                 * @deprecated
+                 * @description Deprecated (PRD phase 5, D162): ignored. Unreconciled items now come from bank matches; nothing is ticked by hand.
+                 */
                 unpresented?: string;
             };
             header?: never;
@@ -40167,6 +41224,101 @@ export interface operations {
             };
         };
     };
+    AgentTrustController_previewCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectAllocationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustCorrectionPreviewDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_listCorrections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustAllocationCorrectionListDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_confirmCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmAllocationCorrectionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustAllocationCorrectionDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AgentTrustController_listFeeCharges: {
         parameters: {
             query?: {
@@ -40233,6 +41385,106 @@ export interface operations {
             };
         };
     };
+    AgentTrustController_listOwnerBills: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                /** @description Default PENDING. */
+                list?: "PENDING" | "PAID";
+            };
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustOwnerBillListDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_payOwnerBills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectOwnerFolioBillsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustOwnerCollectResultDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_payManyOwnersBills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectOwnerBillsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustOwnerCollectResultsDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AgentTrustController_postPendingFees: {
         parameters: {
             query?: never;
@@ -40251,6 +41503,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrustPostPendingFeesResultDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_editFeeCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                chargeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditFeeChargeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeChargeDto"];
                 };
             };
             /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
@@ -40567,6 +41852,296 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrustProcessMatchedResultDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_importBankFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadBankFileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustBankImportResultDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_listBankLines: {
+        parameters: {
+            query?: {
+                view?: "UNMATCHED" | "MATCHED" | "DELETED";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustBankWorkspaceDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_matchSuggestedBankLines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchSuggestedDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustMatchSuggestedResultDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_matchBankLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchBankLineDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustBankWorkspaceLineDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_unmatchBankLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustBankWorkspaceLineDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_deleteBankLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteBankLineDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustBankWorkspaceLineDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_listReconAdjustments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustReconAdjustmentListDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_addReconAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddReconAdjustmentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustReconAdjustmentListDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustController_removeReconAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                bankAccountId: string;
+                adjustmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveReconAdjustmentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustReconAdjustmentListDto"];
                 };
             };
             /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
@@ -41065,7 +42640,7 @@ export interface operations {
             };
         };
     };
-    AgentTrustManageController_getFeeSettings: {
+    AgentTrustManageController_listFeeAssignments: {
         parameters: {
             query?: never;
             header?: never;
@@ -41082,7 +42657,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TrustFeeSettingDto"][];
+                    "application/json": components["schemas"]["TrustFeeAssignmentsDto"];
                 };
             };
             /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
@@ -41094,7 +42669,7 @@ export interface operations {
             };
         };
     };
-    AgentTrustManageController_putFeeSettings: {
+    AgentTrustManageController_createFeeAssignment: {
         parameters: {
             query?: never;
             header?: never;
@@ -41106,7 +42681,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PutFeeSettingsDto"];
+                "application/json": components["schemas"]["CreateFeeAssignmentDto"];
             };
         };
         responses: {
@@ -41115,7 +42690,75 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TrustFeeSettingDto"][];
+                    "application/json": components["schemas"]["TrustFeeAssignmentsDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_addFeeAssignmentVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddFeeAssignmentVersionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeAssignmentsDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_resolveMissedFeePeriod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveMissedFeePeriodDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeAssignmentsDto"];
                 };
             };
             /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
@@ -41182,6 +42825,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrustLedgerDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_setRentRate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetRentRateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustLedgerDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_removeRentRate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+                rateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustLedgerDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_previewMoveOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetMoveOutDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustMoveOutPreviewDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_setMoveOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetMoveOutDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustLedgerDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustManageController_listLedgerCorrections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                ledgerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustAllocationCorrectionListDto"];
                 };
             };
             /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s trust account. */
@@ -42105,6 +43906,201 @@ export interface operations {
             };
         };
     };
+    AgentTrustSettingsController_listFeeTemplates: {
+        parameters: {
+            query?: {
+                /** @description Include archived templates (default false). */
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path: {
+                agencyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeTemplateDto"][];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s own trust workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustSettingsController_createFeeTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeTemplateRuleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeTemplateDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s own trust workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustSettingsController_deleteFeeTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s own trust workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template has been used. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustSettingsController_updateFeeTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFeeTemplateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeTemplateDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s own trust workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The template is in use, so its rule is locked. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustSettingsController_archiveFeeTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeTemplateDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s own trust workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentTrustSettingsController_restoreFeeTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agencyId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrustFeeTemplateDto"];
+                };
+            };
+            /** @description Not the agency’s principal or accountant, not Self-Manage, trust not set up yet, or the row is not in this agency’s own trust workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AgentTrustSettingsController_updateAccountCode: {
         parameters: {
             query?: never;
@@ -42287,8 +44283,8 @@ export interface operations {
             query?: {
                 page?: number;
                 pageSize?: number;
-                action?: "WORKSPACE_CREATED" | "WORKSPACE_UPDATED" | "AGENCY_LINKED" | "AGENCY_UNLINKED" | "BANK_ACCOUNT_CREATED" | "BANK_ACCOUNT_UPDATED" | "ACCOUNT_CODE_CREATED" | "ACCOUNT_CODE_UPDATED" | "LEDGER_OPENED" | "LEDGER_UPDATED" | "LEDGER_CLOSED" | "LEDGER_BALANCE_REBUILT" | "TRANSACTION_POSTED" | "TRANSACTION_REVERSED" | "STATEMENT_IMPORTED" | "BANK_LINE_PROCESSED" | "BANK_LINE_UNLINKED" | "BANK_LINE_DISMISSED" | "BANK_LINE_RESTORED" | "RENT_PROFILE_SET" | "RENT_RESET" | "PAYER_RULE_CREATED" | "BILL_CREATED" | "BILL_UPDATED" | "BILL_PAID" | "BILL_CANCELLED" | "INVOICE_CREATED" | "INVOICE_CANCELLED" | "INVOICE_PAYMENT_ALLOCATED" | "FEE_SETTING_SET" | "FEE_CHARGE_CREATED" | "FEE_CHARGE_POSTED" | "FEE_CHARGE_WAIVED" | "PAYOUT_METHOD_SET" | "PAYOUT_SCHEDULE_SET" | "WITHHOLD_CREATED" | "WITHHOLD_RELEASED" | "PAYMENT_RECORDED" | "PAYMENT_BATCH_CREATED" | "DISBURSEMENT_RUN" | "STATEMENT_ISSUED" | "RECONCILIATION_LOCKED" | "RECONCILIATION_REVOKED" | "BOND_RECORD_SET" | "OWNER_CHANGED" | "WORKSPACE_MEMBER_ADDED" | "WORKSPACE_MEMBER_REMOVED" | "BANK_BALANCE_RECORDED" | "BANK_BALANCE_REMOVED";
-                entityType?: "TrustWorkspace" | "TrustWorkspaceAgency" | "TrustBankAccount" | "TrustAccountCode" | "TrustLedger" | "TrustTransaction" | "TrustTenantRentProfile" | "TrustBankStatementImport" | "TrustBankStatementLine" | "TrustPayerRule" | "TrustBill" | "TrustTenantInvoice" | "TrustFeeSetting" | "TrustFeeCharge" | "TrustPayoutMethod" | "TrustWithhold" | "TrustPayment" | "TrustPaymentBatch" | "TrustDisbursementRun" | "TrustOwnerStatement" | "TrustReconciliationLock" | "TrustWorkspaceMember" | "TrustBankBalance";
+                action?: "WORKSPACE_CREATED" | "WORKSPACE_UPDATED" | "AGENCY_LINKED" | "AGENCY_UNLINKED" | "BANK_ACCOUNT_CREATED" | "BANK_ACCOUNT_UPDATED" | "ACCOUNT_CODE_CREATED" | "ACCOUNT_CODE_UPDATED" | "LEDGER_OPENED" | "LEDGER_UPDATED" | "LEDGER_CLOSED" | "LEDGER_BALANCE_REBUILT" | "TRANSACTION_POSTED" | "TRANSACTION_REVERSED" | "STATEMENT_IMPORTED" | "BANK_LINE_PROCESSED" | "BANK_LINE_UNLINKED" | "BANK_LINE_DISMISSED" | "BANK_LINE_RESTORED" | "RENT_PROFILE_SET" | "RENT_RESET" | "PAYER_RULE_CREATED" | "BILL_CREATED" | "BILL_UPDATED" | "BILL_PAID" | "BILL_CANCELLED" | "INVOICE_CREATED" | "INVOICE_CANCELLED" | "INVOICE_PAYMENT_ALLOCATED" | "FEE_SETTING_SET" | "FEE_CHARGE_CREATED" | "FEE_CHARGE_POSTED" | "FEE_CHARGE_WAIVED" | "PAYOUT_METHOD_SET" | "PAYOUT_SCHEDULE_SET" | "WITHHOLD_CREATED" | "WITHHOLD_RELEASED" | "PAYMENT_RECORDED" | "PAYMENT_BATCH_CREATED" | "DISBURSEMENT_RUN" | "STATEMENT_ISSUED" | "RECONCILIATION_LOCKED" | "RECONCILIATION_REVOKED" | "BOND_RECORD_SET" | "OWNER_CHANGED" | "WORKSPACE_MEMBER_ADDED" | "WORKSPACE_MEMBER_REMOVED" | "BANK_BALANCE_RECORDED" | "BANK_BALANCE_REMOVED" | "FEE_TEMPLATE_SET" | "FEE_ASSIGNMENT_SET" | "FEE_CHARGE_EDITED" | "RENT_RATE_SET" | "RENT_RATE_REMOVED" | "MOVE_OUT_SET" | "ALLOCATION_CORRECTED" | "RECON_ADJUSTMENT_ADDED" | "RECON_ADJUSTMENT_REMOVED";
+                entityType?: "TrustWorkspace" | "TrustWorkspaceAgency" | "TrustBankAccount" | "TrustAccountCode" | "TrustLedger" | "TrustTransaction" | "TrustTenantRentProfile" | "TrustBankStatementImport" | "TrustBankStatementLine" | "TrustPayerRule" | "TrustBill" | "TrustTenantInvoice" | "TrustFeeSetting" | "TrustFeeTemplate" | "TrustFeeAssignment" | "TrustFeeCharge" | "TrustPayoutMethod" | "TrustWithhold" | "TrustPayment" | "TrustPaymentBatch" | "TrustDisbursementRun" | "TrustOwnerStatement" | "TrustReconciliationLock" | "TrustReconciliationAdjustment" | "TrustWorkspaceMember" | "TrustBankBalance" | "TrustRentRate" | "TrustAllocationCorrection";
                 /** @description Exact entity id. */
                 entityId?: string;
                 actorUserId?: string;

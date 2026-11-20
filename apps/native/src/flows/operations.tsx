@@ -17,6 +17,7 @@ const INSPECTION_TYPE = { ROUTINE: 'ROUTINE', OPEN: 'OPEN' } as const;
 const REPAIR_PHOTO_LIMIT = 10;
 
 const ROUTINE_CLOSED = new Set(['completed', 'cancelled', 'COMPLETED', 'CANCELLED', 'PUBLISHED']);
+const ROUTINE_ATTENDANCE = { YES: 'yes', NO: 'no' } as const;
 
 export function InspectionScreen() {
   const router = useRouter();
@@ -30,7 +31,8 @@ export function InspectionScreen() {
   const inspectionThread = demo.threads.find((item) => item.category === 'Inspection');
   const closed = scheduled ? ROUTINE_CLOSED.has(scheduled.status) : true;
   const selfVisit = scheduled?.flow === 'self' && scheduled.actionRequired && !closed;
-  const [sent, setSent] = useState(false);
+  const attending = scheduled?.tenantAttendance === ROUTINE_ATTENDANCE.YES;
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <Screen>
@@ -43,23 +45,21 @@ export function InspectionScreen() {
         <Text style={styles.body}>Conducted by {demo.scenario.team}</Text>
       </Card>
       {selfVisit ? <Button label="Complete self-inspection" onPress={() => router.push('/flow/self-inspection')} /> : null}
-      {!scheduled || closed || selfVisit ? null : sent ? (
-        <Notice>Your attendance message is with your property manager. The appointment time stays until they change it.</Notice>
+      {!scheduled || closed || selfVisit ? null : attending ? (
+        <Notice>You confirmed you can attend. The appointment time stays until your property manager changes it.</Notice>
       ) : (
         <View style={styles.stack}>
           <Button
-            label="Tell them I can attend"
+            label={busy ? 'Saving…' : 'I can attend'}
             onPress={() => {
+              if (busy) return;
+              setBusy(true);
               setError(null);
               void tenantApi
-                .createMessage({
-                  subject: 'Routine inspection',
-                  body: `I can attend the routine inspection${scheduled.when ? ` on ${scheduled.when}` : ''}.`,
-                  department: 'INSPECTION',
-                  ...(demo.propertyUuid ? { propertyId: demo.propertyUuid } : {}),
-                })
-                .then(() => setSent(true))
-                .catch((err) => setError(err instanceof Error ? err.message : 'Could not send attendance'));
+                .confirmRoutineAttendance(scheduled.id, ROUTINE_ATTENDANCE.YES)
+                .then(() => demo.refreshAccount())
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not save attendance'))
+                .finally(() => setBusy(false));
             }}
           />
           <Button label="Request reschedule" tone="secondary" onPress={() => router.push('/flow/reschedule')} />

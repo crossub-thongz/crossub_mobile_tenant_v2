@@ -17,7 +17,13 @@ export default function OnboardingScreen() {
     <Screen>
       <BackButton fallback="/profile" />
       <Text style={styles.title}>Onboarding</Text>
-      {onboardingComplete ? <Notice>Move-in checklist is already complete for this tenancy.</Notice> : null}
+      {onboardingComplete ? (
+        <Notice>
+          {steps.length > 0
+            ? 'Move-in checklist is already complete for this tenancy. You can review the steps below.'
+            : 'Move-in checklist is already complete for this tenancy.'}
+        </Notice>
+      ) : null}
       {!onboardingComplete && !onboardingActive ? <Notice>No move-in checklist is open on this account.</Notice> : null}
       {onboardingActive ? (
       <Text style={styles.body}>
@@ -26,17 +32,17 @@ export default function OnboardingScreen() {
           : 'After an application is approved, the deposit, bond, lease, and key steps appear here.'}
       </Text>
       ) : null}
-      {onboardingActive ? (
+      {steps.length > 0 ? (
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${steps.length === 0 ? 0 : (done / steps.length) * 100}%` }]} />
       </View>
       ) : null}
-      {onboardingActive ? (
+      {steps.length > 0 ? (
       <Text style={styles.body}>
         {done}/{steps.length} complete
       </Text>
       ) : null}
-      {onboardingActive ? steps.map((step, index) => (
+      {steps.length > 0 ? steps.map((step, index) => (
         <Card key={step.id} onPress={() => router.push(`/onboarding/${step.id}`)}>
           <Text style={styles.step}>Step {index + 1}</Text>
           <Text style={styles.address}>{step.title}</Text>

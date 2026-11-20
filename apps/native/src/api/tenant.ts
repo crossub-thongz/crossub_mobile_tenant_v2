@@ -170,7 +170,11 @@ export type KeyCollectionDto = {
   photos?: string[];
 };
 
-export type OnboardingDto = { steps: OnboardingStepDto[]; keyCollection?: KeyCollectionDto | null };
+export type OnboardingDto = {
+  steps: OnboardingStepDto[];
+  keyCollection?: KeyCollectionDto | null;
+  onboardingComplete?: boolean;
+};
 
 export type RoutineInspectionDto = {
   id: string;
@@ -178,6 +182,7 @@ export type RoutineInspectionDto = {
   status: string;
   scheduledAt: string | null;
   tenantActionRequired: boolean;
+  tenantAttendance?: 'yes' | 'no' | null;
   propertyId: string;
   propertyAddress: string | null;
 };
@@ -377,6 +382,14 @@ export const tenantApi = {
   rentReviews: () => unwrap(crossub.GET('/tenant/rent-reviews')),
   vacatingCases: () => unwrap(crossub.GET('/tenant/vacating-cases')),
   onboarding: () => unwrap(crossub.GET('/tenant/leasing/onboarding')),
+
+  confirmRoutineAttendance: (id: string, attendance: 'yes' | 'no') =>
+    unwrap(
+      crossub.PATCH('/tenant/routine-inspections/{id}/attendance', {
+        params: { path: { id } },
+        body: { attendance },
+      }),
+    ),
   welcome: () => unwrap(crossub.GET('/tenant/onboarding/welcome')),
 
   uploadMaintenancePhoto: (file: EvidenceFile) =>

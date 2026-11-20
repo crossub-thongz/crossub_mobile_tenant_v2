@@ -58,6 +58,7 @@ export type LiveInspection = {
   address: string;
   flow: 'self' | 'in_person' | null;
   actionRequired: boolean;
+  tenantAttendance: 'yes' | 'no' | null;
 };
 export type LiveTenancy = {
   id: string;
@@ -388,6 +389,7 @@ function mapRoutineInspection(item: RoutineInspectionDto): LiveInspection {
     address: item.propertyAddress || '',
     flow: item.flow,
     actionRequired: item.tenantActionRequired,
+    tenantAttendance: item.tenantAttendance === 'yes' || item.tenantAttendance === 'no' ? item.tenantAttendance : null,
   };
 }
 
@@ -666,6 +668,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
         address: item.propertyAddress || '',
         flow: null,
         actionRequired: false,
+        tenantAttendance: null,
       })),
     ],
     rentReviews: reviews.value.map((item) => mapReview(item, tenancy?.propertyAddress || '')),
@@ -702,8 +705,8 @@ export async function loadAccount(): Promise<LoadedAccount> {
       tenancy?.nextRoutineInspectionAt ??
       null,
     nextRentReviewAt: tenancy?.nextRentReviewAt ?? null,
-    onboardingActive: Boolean(onboarding.value?.steps?.length),
-    onboardingComplete: Boolean(onboarding.error?.toLowerCase().includes('complete')),
+    onboardingActive: Boolean(onboarding.value?.steps?.length) && onboarding.value?.onboardingComplete !== true,
+    onboardingComplete: onboarding.value?.onboardingComplete === true || Boolean(onboarding.error?.toLowerCase().includes('complete')),
     onboardingStepIds: (onboarding.value?.steps ?? []).map((step) => step.id).filter(isOnboardingStep),
   };
 }
