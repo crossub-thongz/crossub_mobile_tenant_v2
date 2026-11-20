@@ -52,7 +52,7 @@ export default function PaymentsScreen() {
 
   return (
     <Screen tab>
-      <TabHeader kicker="RENT & DOCUMENTS" title="Payments" />
+      <TabHeader kicker="" title="Payments" />
       <Notice>{scenario.accounting}</Notice>
       {arrears ? (
         <View style={styles.arrears}>

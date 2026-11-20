@@ -13,11 +13,14 @@ import {
   type OnboardingDto,
   type RentReviewDto,
   type RoutineInspectionDto,
+  type VacatingDto,
   type TenancyDto,
 } from '@/src/api/tenant';
 
 export type LiveMaintenance = {
   id: string;
+  propertyId: string | null;
+  address: string;
   title: string;
   urgent: boolean;
   tracking: string;
@@ -42,9 +45,20 @@ export type LiveMaintenance = {
   strataEmail: string;
 };
 
-export type LiveLedgerRow = { id: string; when: string; amount: number | null; detail: string; type: string; direction: string };
+export type LiveLedgerRow = { id: string; propertyId: string | null; when: string; amount: number | null; detail: string; type: string; direction: string };
 export type LiveDocument = { id: string; name: string; uploaded: string; url: string; category: string };
-export type LiveInspection = { id: string; type: string; title: string; when: string; scheduledAt: string | null; status: string; address: string };
+export type LiveInspection = {
+  id: string;
+  propertyId: string | null;
+  type: string;
+  title: string;
+  when: string;
+  scheduledAt: string | null;
+  status: string;
+  address: string;
+  flow: 'self' | 'in_person' | null;
+  actionRequired: boolean;
+};
 export type LiveTenancy = {
   id: string;
   propertyId: string | null;
@@ -55,9 +69,17 @@ export type LiveTenancy = {
   rent: number;
   frequency: string;
   current: boolean;
+  status: string;
+  accounting: 'crossub_trust' | 'agent_trust' | 'self_managed' | null;
+  rentPaidTo: string;
+  rentPaidToIso: string | null;
+  paymentCycle: string | null;
+  paymentReference: string;
+  contractType: string;
 };
 export type LiveReview = {
   id: string;
+  propertyId: string | null;
   address: string;
   currentRent: number;
   proposedRent: number;
@@ -68,9 +90,15 @@ export type LiveReview = {
   version: number;
   counter: number | null;
   moveOut: string;
+  status: RentReviewStatus;
+  requiresLeaseAgreementSign: boolean;
+  leaseAgreementSigned: boolean;
+  leaseAgreementPdfAvailable: boolean;
 };
 export type LiveVacating = {
   id: string;
+  propertyId: string | null;
+  status: string;
   address: string;
   reason: string;
   vacateDate: string;
@@ -88,6 +116,10 @@ export type LiveVacating = {
   hasSummary: boolean;
   settlementStatus: 'pending' | 'accepted' | 'declined';
   movingReferralRequestedAt: string | null;
+  responsibilityStatus: 'none' | 'pending' | 'accepted' | 'declined';
+  responsibilityItems: { area: string; description: string; quote: string | null; bondDeductible: boolean }[];
+  repairQuoteStatus: 'pending' | 'accepted' | 'declined' | 'none';
+  bondAckSent: boolean;
 };
 
 export type LiveKeyCollection = { time: string | null; location: string | null; status: string };
@@ -98,6 +130,7 @@ export type LiveRoutineAction = {
   status: string;
   scheduledAt: string | null;
   address: string;
+  actionRequired: boolean;
 };
 
 export type LoadedAccount = {
@@ -120,9 +153,11 @@ export type LoadedAccount = {
   tenancies: LiveTenancy[];
   ledger: LiveLedgerRow[];
   inspections: LiveInspection[];
+  rentReviews: LiveReview[];
   rentReview: LiveReview | null;
   rentReviewStatus: RentReviewStatus;
   rentReviewCounter: number | null;
+  vacatingCases: LiveVacating[];
   vacating: LiveVacating | null;
   terminationStarted: boolean;
   terminationMoveOut: string;
@@ -137,6 +172,8 @@ export type LoadedAccount = {
   nextRoutineAt: string | null;
   nextRentReviewAt: string | null;
   onboardingActive: boolean;
+  onboardingComplete: boolean;
+  onboardingStepIds: OnboardingStepId[];
 };
 
 function dateLabel(value: string | null | undefined): string {
@@ -235,6 +272,8 @@ function mapMaintenance(item: MaintenanceDto): LiveMaintenance {
   const strata = contact(item.strataContact, '');
   return {
     id: item.id,
+    propertyId: item.propertyId ?? null,
+    address: item.propertyAddress || '',
     title: item.description || 'Repair request',
     urgent: item.urgent,
     tracking: item.orderNumber || item.id.slice(0, 8),
@@ -283,6 +322,13 @@ function mapTenancy(tenancy: TenancyDto): LiveTenancy {
     rent: tenancy.weeklyRent ?? 0,
     frequency: tenancyFrequency(tenancy.paymentCycle),
     current: CURRENT_TENANCY.has(tenancy.status),
+    status: tenancy.status,
+    accounting: tenancy.accounting ?? null,
+    rentPaidTo: dateLabel(tenancy.rentPaidTo),
+    rentPaidToIso: tenancy.rentPaidTo,
+    paymentCycle: tenancy.paymentCycle,
+    paymentReference: tenancy.paymentReference || '',
+    contractType: tenancy.contractType || tenancy.leaseTerm || 'Tenancy',
   };
 }
 
@@ -311,6 +357,183 @@ async function settled<T>(run: () => Promise<T>, fallback: T): Promise<{ value: 
   }
 }
 
+const ONBOARDING_STEP = {
+  DEPOSIT: 'deposit',
+  BOND: 'bond',
+  LEASE: 'lease_signing',
+  KEYS: 'key_pickup',
+  ACCOUNT: 'account_setup',
+  INGOING: 'ingoing_report',
+} as const;
+
+const ONBOARDING_STEP_IDS = new Set<string>(Object.values(ONBOARDING_STEP));
+
+function isOnboardingStep(id: string): id is OnboardingStepId {
+  return ONBOARDING_STEP_IDS.has(id);
+}
+
+const ROUTINE_FLOW = { SELF: 'self', IN_PERSON: 'in_person' } as const;
+const ROUTINE_DONE = new Set(['completed', 'cancelled']);
+const TENANCY_ACTIVE = 'ACTIVE';
+
+function mapRoutineInspection(item: RoutineInspectionDto): LiveInspection {
+  return {
+    id: item.id,
+    propertyId: item.propertyId,
+    type: INSPECTION_KIND.ROUTINE,
+    title: item.flow === ROUTINE_FLOW.SELF ? 'Self inspection' : 'Routine inspection',
+    when: dateLabel(item.scheduledAt),
+    scheduledAt: item.scheduledAt,
+    status: item.status,
+    address: item.propertyAddress || '',
+    flow: item.flow,
+    actionRequired: item.tenantActionRequired,
+  };
+}
+
+function mapReview(review: RentReviewDto, fallbackAddress: string): LiveReview {
+  return {
+    id: review.id,
+    propertyId: review.propertyId,
+    address: review.propertyAddress || fallbackAddress,
+    currentRent: review.currentRentWeekly ?? 0,
+    proposedRent: review.noticeTerms?.newRentWeekly ?? review.proposedRentWeekly ?? review.currentOffer?.rentAmount ?? 0,
+    effective: dateLabel(review.noticeTerms?.rentIncreaseOn || review.effectiveDate),
+    effectiveIso: review.noticeTerms?.rentIncreaseOn || review.effectiveDate,
+    negotiable: review.rentNegotiable !== false,
+    offerId: review.currentOffer?.id,
+    version: review.negotiationVersion,
+    counter: review.tenantCounterWeekly,
+    moveOut: dateLabel(review.tenantMoveOutDate),
+    status: reviewStatus(review),
+    requiresLeaseAgreementSign: review.noticeTerms?.requiresLeaseAgreementSign === true,
+    leaseAgreementSigned: review.noticeTerms?.leaseAgreementSigned === true,
+    leaseAgreementPdfAvailable: review.noticeTerms?.leaseAgreementPdfAvailable === true,
+  };
+}
+
+function mapVacating(vacatingCase: VacatingDto, bond: number): LiveVacating {
+  const settlement = vacatingCase.repairQuoteSettlementSummary;
+  return {
+    id: vacatingCase.id,
+    propertyId: vacatingCase.propertyId,
+    status: vacatingCase.status,
+    address: vacatingCase.propertyAddress || '',
+    reason: vacatingCase.terminationReason || 'End of lease',
+    vacateDate: dateLabel(vacatingCase.vacatingDate),
+    keysReturned: vacatingCase.keysReturned,
+    keysReturnAddress: vacatingCase.keysReturnAddress,
+    photoUrls: vacatingCase.keyReturnPhotoUrls ?? [],
+    submitted: Boolean(vacatingCase.tenantKeyReturnSubmittedAt),
+    cleaning: vacatingCase.cleaningArrangement,
+    bond: settlement?.bondHeld ?? bond,
+    arrears: settlement?.unpaidRent ?? 0,
+    bills: settlement?.unpaidBills ?? 0,
+    deductions: settlement?.maintenanceCost ?? 0,
+    refund: settlement?.netRefund ?? vacatingCase.refundAmount,
+    debt: settlement?.debtAmount ?? vacatingCase.debtAmount,
+    hasSummary: Boolean(settlement),
+    movingReferralRequestedAt: vacatingCase.movingReferralRequestedAt,
+    settlementStatus: vacatingCase.tenantSettlementStatus,
+    responsibilityStatus: vacatingCase.tenantResponsibilityReviewStatus ?? 'none',
+    responsibilityItems: (vacatingCase.tenantResponsibilityItems ?? []).map((item) => ({
+      area: item.area,
+      description: item.description,
+      quote: item.quote ?? null,
+      bondDeductible: item.bondDeductible === true,
+    })),
+    repairQuoteStatus: vacatingCase.tenantRepairQuoteStatus ?? 'none',
+    bondAckSent: Boolean(vacatingCase.tenantBondAckSentAt),
+  };
+}
+
+export function propertyFromTenancy(tenancy: LiveTenancy): Property {
+  return {
+    id: 'berry',
+    title: tenancy.address,
+    place: tenancy.place,
+    status: tenancy.current ? 'Current' : 'Previous',
+    type: tenancy.contractType,
+    start: tenancy.start,
+    end: tenancy.end,
+    rent: tenancy.rent,
+    frequency: tenancy.frequency,
+    extras: '',
+  };
+}
+
+export function scopeAccount(input: {
+  tenancies: LiveTenancy[];
+  selectedTenancyId: string | null;
+  maintenance: LiveMaintenance[];
+  inspections: LiveInspection[];
+  ledger: LiveLedgerRow[];
+  rentReviews: LiveReview[];
+  vacatingCases: LiveVacating[];
+}) {
+  const selected =
+    input.tenancies.find((item) => item.id === input.selectedTenancyId) ??
+    input.tenancies.find((item) => item.status === TENANCY_ACTIVE) ??
+    input.tenancies.find((item) => item.current) ??
+    input.tenancies[0] ??
+    null;
+  const propertyId = selected?.propertyId ?? null;
+  const propertyAddress = (selected?.address ?? '').trim().toLowerCase();
+  const matches = (id: string | null | undefined) => !propertyId || !id || id === propertyId;
+  const matchesRepair = (item: LiveMaintenance) => {
+    if (!propertyId) return true;
+    if (item.propertyId) return item.propertyId === propertyId;
+    const row = item.address.trim().toLowerCase();
+    if (!row || !propertyAddress) return true;
+    return row === propertyAddress;
+  };
+  const inspections = input.inspections.filter((item) => matches(item.propertyId));
+  const openRoutine =
+    inspections.find((item) => item.type === INSPECTION_KIND.ROUTINE && item.actionRequired && !ROUTINE_DONE.has(item.status)) ??
+    inspections.find((item) => item.type === INSPECTION_KIND.ROUTINE && !ROUTINE_DONE.has(item.status)) ??
+    null;
+  const review = propertyId ? input.rentReviews.find((item) => item.propertyId === propertyId) ?? null : input.rentReviews[0] ?? null;
+  const vacating = propertyId
+    ? input.vacatingCases.find((item) => item.propertyId === propertyId && item.status === 'open') ??
+      input.vacatingCases.find((item) => item.propertyId === propertyId) ??
+      null
+    : input.vacatingCases.find((item) => item.status === 'open') ?? input.vacatingCases[0] ?? null;
+  const accounting = scenarioForAccounting(selected?.accounting);
+  return {
+    scenarioId: accounting ?? 'crossub',
+    accountingKnown: accounting !== null,
+    propertyUuid: propertyId,
+    liveProperty: selected ? propertyFromTenancy(selected) : null,
+    rentPaidTo: selected?.rentPaidTo ?? '',
+    rentPaidToIso: selected?.rentPaidToIso ?? null,
+    paymentCycle: selected?.paymentCycle ?? null,
+    paymentReference: selected?.paymentReference ?? '',
+    maintenance: input.maintenance.filter(matchesRepair),
+    inspections,
+    ledger: input.ledger.filter((item) => matches(item.propertyId)),
+    rentReview: review,
+    rentReviewStatus: review?.status ?? 'pending',
+    rentReviewCounter: review?.counter ?? null,
+    rentReviewMoveOut: review?.moveOut ?? '',
+    vacating,
+    terminationStarted: Boolean(vacating && vacating.status !== 'cancelled'),
+    terminationMoveOut: vacating?.vacateDate ?? '',
+    keyReturnSubmitted: Boolean(vacating?.submitted),
+    keyReturnPhotos: vacating?.photoUrls ?? [],
+    routineAction: openRoutine
+      ? {
+          id: openRoutine.id,
+          flow: openRoutine.flow === ROUTINE_FLOW.SELF ? ROUTINE_FLOW.SELF : ROUTINE_FLOW.IN_PERSON,
+          status: openRoutine.status,
+          scheduledAt: openRoutine.scheduledAt,
+          address: openRoutine.address,
+          actionRequired: openRoutine.actionRequired,
+        }
+      : null,
+    nextRoutineAt: openRoutine?.scheduledAt ?? null,
+  };
+}
+
 export async function loadAccount(): Promise<LoadedAccount> {
   const [
     tenancies,
@@ -331,7 +554,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
     settled(() => tenantApi.ledger(), []),
     settled(() => tenantApi.documents(), []),
     settled(() => tenantApi.applications(), []),
-    settled(() => tenantApi.maintenance(), [] as MaintenanceDto[]),
+    settled(() => tenantApi.maintenance(), [] as Awaited<ReturnType<typeof tenantApi.maintenance>>),
     settled(() => tenantApi.messages(), [] as Awaited<ReturnType<typeof tenantApi.messages>>),
     settled(() => tenantApi.notifications(), [] as NotificationDto[]),
     settled(() => tenantApi.inspections(), []),
@@ -354,7 +577,6 @@ export async function loadAccount(): Promise<LoadedAccount> {
   const routineList = Array.isArray(routines.value) ? routines.value : [];
   const routineNeedingAction = routineList.find((item) => item.tenantActionRequired) ?? null;
   const key = onboarding.value?.keyCollection;
-  const settlement = vacatingCase?.repairQuoteSettlementSummary;
   const failures = [tenancies, ledger, messages, notifications].filter((item) => !item.ok).map((item) => item.error);
   const authFailed = failures.some((item) => item?.toLowerCase().includes('session') || item?.includes('401'));
   const accounting = scenarioForAccounting(tenancy?.accounting);
@@ -424,60 +646,34 @@ export async function loadAccount(): Promise<LoadedAccount> {
     tenancies: tenancies.value.map(mapTenancy),
     ledger: ledger.value.map((item) => ({
       id: item.id,
+      propertyId: item.propertyId,
       when: dateLabel(item.occurredAt),
       amount: item.amount,
       detail: item.description || item.type,
       type: item.type,
       direction: item.direction,
     })),
-    inspections: inspections.value.map((item) => ({
-      id: item.id,
-      type: item.type,
-      title: item.type.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()),
-      when: dateLabel(item.scheduledDate),
-      scheduledAt: item.scheduledDate,
-      status: item.status,
-      address: item.propertyAddress || '',
-    })),
-    rentReview: review
-      ? {
-          id: review.id,
-          address: review.propertyAddress || tenancy?.propertyAddress || '',
-          currentRent: review.currentRentWeekly ?? 0,
-          proposedRent: review.noticeTerms?.newRentWeekly ?? review.proposedRentWeekly ?? review.currentOffer?.rentAmount ?? 0,
-          effective: dateLabel(review.noticeTerms?.rentIncreaseOn || review.effectiveDate),
-          effectiveIso: review.noticeTerms?.rentIncreaseOn || review.effectiveDate,
-          negotiable: review.rentNegotiable !== false,
-          offerId: review.currentOffer?.id,
-          version: review.negotiationVersion,
-          counter: review.tenantCounterWeekly,
-          moveOut: dateLabel(review.tenantMoveOutDate),
-        }
-      : null,
+    inspections: [
+      ...routineList.map(mapRoutineInspection),
+      ...inspections.value.map((item) => ({
+        id: item.id,
+        propertyId: item.propertyId,
+        type: item.type,
+        title: item.type.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()),
+        when: dateLabel(item.scheduledDate),
+        scheduledAt: item.scheduledDate,
+        status: item.status,
+        address: item.propertyAddress || '',
+        flow: null,
+        actionRequired: false,
+      })),
+    ],
+    rentReviews: reviews.value.map((item) => mapReview(item, tenancy?.propertyAddress || '')),
+    rentReview: review ? mapReview(review, tenancy?.propertyAddress || '') : null,
     rentReviewStatus: review ? reviewStatus(review) : 'pending',
     rentReviewCounter: review?.tenantCounterWeekly ?? null,
-    vacating: vacatingCase
-      ? {
-          id: vacatingCase.id,
-          address: vacatingCase.propertyAddress || '',
-          reason: vacatingCase.terminationReason || 'End of lease',
-          vacateDate: dateLabel(vacatingCase.vacatingDate),
-          keysReturned: vacatingCase.keysReturned,
-          keysReturnAddress: vacatingCase.keysReturnAddress,
-          photoUrls: vacatingCase.keyReturnPhotoUrls ?? [],
-          submitted: Boolean(vacatingCase.tenantKeyReturnSubmittedAt),
-          cleaning: vacatingCase.cleaningArrangement,
-          bond: settlement?.bondHeld ?? tenancy?.bond ?? 0,
-          arrears: settlement?.unpaidRent ?? 0,
-          bills: settlement?.unpaidBills ?? 0,
-          deductions: settlement?.maintenanceCost ?? 0,
-          refund: settlement?.netRefund ?? vacatingCase.refundAmount,
-          debt: settlement?.debtAmount ?? vacatingCase.debtAmount,
-          hasSummary: Boolean(settlement),
-          movingReferralRequestedAt: vacatingCase.movingReferralRequestedAt,
-          settlementStatus: vacatingCase.tenantSettlementStatus,
-        }
-      : null,
+    vacatingCases: vacating.value.map((item) => mapVacating(item, tenancy?.bond ?? 0)),
+    vacating: vacatingCase ? mapVacating(vacatingCase, tenancy?.bond ?? 0) : null,
     terminationStarted: Boolean(vacatingCase && vacatingCase.status !== 'cancelled'),
     terminationMoveOut: dateLabel(vacatingCase?.vacatingDate),
     keyReturnSubmitted: Boolean(vacatingCase?.tenantKeyReturnSubmittedAt),
@@ -494,6 +690,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
           status: routineNeedingAction.status,
           scheduledAt: routineNeedingAction.scheduledAt,
           address: routineNeedingAction.propertyAddress || '',
+          actionRequired: true,
         }
       : null,
     guideSeen: Boolean(welcome.value?.acknowledged),
@@ -506,5 +703,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
       null,
     nextRentReviewAt: tenancy?.nextRentReviewAt ?? null,
     onboardingActive: Boolean(onboarding.value?.steps?.length),
+    onboardingComplete: Boolean(onboarding.error?.toLowerCase().includes('complete')),
+    onboardingStepIds: (onboarding.value?.steps ?? []).map((step) => step.id).filter(isOnboardingStep),
   };
 }

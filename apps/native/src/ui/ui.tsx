@@ -24,7 +24,7 @@ export function TabHeader({ kicker, title }: { kicker: string; title: string }) 
   return (
     <View style={styles.top}>
       <View style={styles.grow}>
-        <Text style={styles.kicker}>{kicker}</Text>
+        {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
         <Text style={styles.h1}>{title}</Text>
       </View>
       <View style={styles.headerTools}>
@@ -231,17 +231,17 @@ export function ToastHost() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: 20, paddingBottom: 32, gap: 12 },
-  tabScroll: { paddingBottom: 28 },
+  tabScroll: { paddingBottom: 120 },
   top: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   headerTools: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   grow: { flex: 1 },
   kicker: { color: colors.green, fontSize: 11, fontWeight: '700', letterSpacing: 1.4 },
-  h1: { color: colors.ink, fontSize: 28, fontWeight: '700', letterSpacing: -0.6, marginTop: 4 },
+  h1: { color: colors.ink, fontSize: 28, fontWeight: '700', letterSpacing: -0.6 },
   h2: { color: colors.ink, fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   iconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
@@ -255,11 +255,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 16,
     gap: 10,
   },
-  soft: { backgroundColor: colors.soft, borderColor: '#dbecdf' },
+  soft: { backgroundColor: colors.soft, borderColor: colors.greenLine },
   section: { gap: 10, marginTop: 8 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
@@ -279,18 +279,18 @@ const styles = StyleSheet.create({
   tagGreen: { backgroundColor: colors.greenTag },
   tagAmber: { backgroundColor: colors.amberBg },
   tagText: { fontSize: 10, fontWeight: '700', color: '#75847a' },
-  tagTextGreen: { color: '#138150' },
+  tagTextGreen: { color: colors.greenDark },
   tagTextAmber: { color: colors.amber },
   button: {
-    minHeight: 44,
-    borderRadius: 12,
+    minHeight: 48,
+    borderRadius: 24,
     backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 14,
   },
   buttonSecondary: { backgroundColor: '#f0f4f1' },
-  buttonOutline: { backgroundColor: colors.card, borderWidth: 1, borderColor: '#cee4d4' },
+  buttonOutline: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.greenLine },
   buttonText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   buttonTextDark: { color: colors.green },
   notice: { backgroundColor: colors.notice, borderRadius: 12, padding: 12 },
@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12, fontWeight: '700', color: '#58695e' },
   input: {
     borderWidth: 1,
-    borderColor: '#dfe8e0',
-    borderRadius: 11,
+    borderRadius: 16,
+    borderColor: '#e4eeea',
     backgroundColor: colors.card,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   },
   choiceOn: { borderColor: colors.green, backgroundColor: colors.soft },
   taskHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
-  event: { paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: '#dce9df', paddingBottom: 14, gap: 4 },
+  event: { paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.greenLine, paddingBottom: 14, gap: 4 },
   dot: {
     position: 'absolute',
     left: -6,

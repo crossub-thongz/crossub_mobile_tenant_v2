@@ -43,6 +43,7 @@ export type LedgerDto = {
   amount: number | null;
   description: string | null;
   occurredAt: string | null;
+  propertyId: string | null;
 };
 
 export type DocumentDto = {
@@ -72,6 +73,7 @@ export type MaintenanceDto = {
   description: string | null;
   categoryName: string | null;
   photos: string[];
+  propertyId?: string | null;
   propertyAddress: string | null;
   buildingName?: string | null;
   strataPlanNumber?: string | null;
@@ -100,6 +102,7 @@ export type InspectionDto = {
   id: string;
   type: string;
   status: string;
+  propertyId: string | null;
   propertyAddress: string | null;
   scheduledDate: string | null;
 };
@@ -117,13 +120,25 @@ export type RentReviewDto = {
   waitingFor: string | null;
   negotiationVersion: number;
   currentOffer: { id: string; rentAmount: number } | null;
-  noticeTerms: { rentIncreaseOn: string | null; newRentWeekly: number } | null;
+  propertyId: string | null;
+  noticeTerms: {
+    rentIncreaseOn: string | null;
+    newRentWeekly: number;
+    leaseAgreementPdfAvailable?: boolean;
+    leaseAgreementSigned?: boolean;
+    requiresLeaseAgreementSign?: boolean;
+  } | null;
 };
 
 export type VacatingDto = {
   id: string;
+  propertyId: string | null;
   propertyAddress: string | null;
   status: string;
+  tenantResponsibilityReviewStatus?: 'none' | 'pending' | 'accepted' | 'declined';
+  tenantResponsibilityItems?: { area: string; description: string; quote?: string | null; bondDeductible?: boolean }[];
+  tenantRepairQuoteStatus?: 'pending' | 'accepted' | 'declined' | 'none';
+  tenantBondAckSentAt?: string | null;
   vacatingDate: string | null;
   terminationReason: string | null;
   keysReturned: boolean;
@@ -139,7 +154,10 @@ export type VacatingDto = {
     maintenanceCost: number;
     bondHeld: number;
     netRefund: number;
+    debtAmount?: number;
   } | null;
+  tenantSettlementStatus: 'pending' | 'accepted' | 'declined';
+  movingReferralRequestedAt: string | null;
 };
 
 export type OnboardingStepDto = { id: string; status: string; amount?: number | null };
@@ -160,6 +178,7 @@ export type RoutineInspectionDto = {
   status: string;
   scheduledAt: string | null;
   tenantActionRequired: boolean;
+  propertyId: string;
   propertyAddress: string | null;
 };
 
@@ -326,6 +345,28 @@ export const tenantApi = {
       }),
     ),
 
+  acceptRepairQuote: (caseId: string) =>
+    unwrap(crossub.PATCH('/tenant/vacating-cases/{caseId}/repair-quote/accept', { params: { path: { caseId } } })),
+
+  declineRepairQuote: (caseId: string, reason: string) =>
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/repair-quote/decline', {
+        params: { path: { caseId } },
+        body: { reason },
+      }),
+    ),
+
+  acceptResponsibilities: (caseId: string) =>
+    unwrap(crossub.PATCH('/tenant/vacating-cases/{caseId}/responsibilities/accept', { params: { path: { caseId } } })),
+
+  declineResponsibilities: (caseId: string, reason: string) =>
+    unwrap(
+      crossub.PATCH('/tenant/vacating-cases/{caseId}/responsibilities/decline', {
+        params: { path: { caseId } },
+        body: { reason },
+      }),
+    ),
+
   setOutgoingAttendance: (caseId: string, attendance: 'yes' | 'no') =>
     unwrap(
       crossub.PATCH('/tenant/vacating-cases/{caseId}/outgoing-attendance', {
@@ -363,6 +404,9 @@ export const tenantApi = {
 
   markNotificationRead: (id: string) =>
     unwrap(crossub.PATCH('/tenant/notifications/{notificationId}/read', { params: { path: { notificationId: id } } })),
+
+  signLeaseAgreement: (reviewId: string) =>
+    unwrap(crossub.POST('/tenant/rent-reviews/{reviewId}/sign-lease-agreement', { params: { path: { reviewId } } })),
 
   respondRentReview: (
     reviewId: string,

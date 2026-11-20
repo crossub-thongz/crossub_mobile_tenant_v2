@@ -51,7 +51,7 @@ export function SelfInspectionScreen() {
     let cancelled = false;
     async function load() {
       try {
-        let id = demo.routineAction?.flow === 'self' ? demo.routineAction.id : null;
+        let id = demo.routineAction?.flow === 'self' && demo.routineAction.actionRequired ? demo.routineAction.id : null;
         if (!id) {
           const list = await tenantApi.routineInspections();
           id = list.find((item) => item.flow === 'self' && item.tenantActionRequired)?.id ?? null;

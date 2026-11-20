@@ -1,6 +1,6 @@
 export type ScenarioId = 'crossub' | 'agent-trust' | 'self-accounting';
 export type PropertyId = 'berry' | 'halifax';
-export type ActivityFilter = 'Action Required' | 'In Progress' | 'History';
+export type ActivityFilter = 'All' | 'Action Required' | 'In Progress' | 'History';
 export type InboxFilter = 'All' | 'Unread' | 'Maintenance' | 'Inspection' | 'Leasing' | 'General';
 export type KeyMode = 'Crossub Booking' | 'Agent Record Only' | 'Agent Booking';
 export type CleaningChoice = 'Crossub Cleaning' | "Agent's Cleaner" | 'Tenant Arranged';

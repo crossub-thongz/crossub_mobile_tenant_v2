@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { downloadAuthedPdf } from '@/src/api/files';
+import { tenantApi } from '@/src/api/tenant';
 import { money } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
@@ -17,6 +18,7 @@ export default function RentReviewDetailScreen() {
   const [moveOut, setMoveOut] = useState(demo.rentReviewMoveOut);
   const [error, setError] = useState<string | null>(null);
   const [dispute, setDispute] = useState(false);
+  const [signing, setSigning] = useState(false);
 
   const review = demo.rentReview;
   if (!review || (reviewId && reviewId !== review.id)) {
@@ -38,7 +40,24 @@ export default function RentReviewDetailScreen() {
         <Text style={styles.amount}>{money(review.proposedRent)} / week</Text>
         <Text style={styles.body}>Effective {review.effective || 'the date on the notice'}</Text>
       </Card>
-      <Notice>Accepting records your answer. It does not sign a lease extension. The agreement arrives separately.</Notice>
+      <Notice>Accepting records your answer. A fixed-term agreement is signed separately when your property manager sends it.</Notice>
+      {review.leaseAgreementSigned ? <Notice>The lease agreement is signed.</Notice> : null}
+      {demo.rentReviewStatus === 'accepted' && review.requiresLeaseAgreementSign && !review.leaseAgreementSigned ? (
+        <Button
+          label={signing ? 'Signing…' : 'Sign agreement'}
+          onPress={() => {
+            if (signing) return;
+            setSigning(true);
+            setError(null);
+            void tenantApi
+              .signLeaseAgreement(review.id)
+              .then(() => demo.refreshAccount())
+              .then(() => demo.notify('Agreement signed'))
+              .catch((err) => setError(err instanceof Error ? err.message : 'Could not sign the agreement'))
+              .finally(() => setSigning(false));
+          }}
+        />
+      ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button
         label="Download notice of rent increase"

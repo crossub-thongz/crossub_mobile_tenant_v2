@@ -1,76 +1,124 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 
-function tint(color: unknown) {
-  return typeof color === 'string' ? color : colors.muted;
-}
+const ORDER = ['activity', 'inbox', 'index', 'payments', 'profile'] as const;
 
-const TAB_BAR_HEIGHT = 52;
+const LABEL: Record<(typeof ORDER)[number], string> = {
+  activity: 'Activity',
+  inbox: 'Inbox',
+  index: 'Home',
+  payments: 'Payments',
+  profile: 'Profile',
+};
 
-export default function TabsLayout() {
+function TenantTabBar({
+  state,
+  navigateToTab,
+}: {
+  state: { index: number; routes: { key: string; name: string }[] };
+  navigateToTab: (routeKey: string) => void;
+}) {
   const insets = useSafeAreaInsets();
-  const paddingBottom = Math.max(insets.bottom, 10);
   const unread = useDemo().threads.filter((thread) => thread.unread).length;
+  const routes = ORDER.map((name) => state.routes.find((route) => route.name === name)).filter((route) => route != null);
 
   return (
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <View style={styles.bar}>
+        {routes.map((route) => {
+          const index = state.routes.findIndex((item) => item.key === route.key);
+          const focused = state.index === index;
+          const name = route.name as (typeof ORDER)[number];
+          const isHome = name === 'index';
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={{ selected: focused }}
+              onPress={() => {
+                if (!focused) navigateToTab(route.key);
+              }}
+              style={styles.item}
+            >
+              {isHome ? (
+                <View style={styles.home}>
+                  <Ionicons name="sync" size={26} color="#fff" />
+                </View>
+              ) : (
+                <View>
+                  <Ionicons
+                    name={iconName(name, focused)}
+                    size={22}
+                    color={focused ? colors.green : '#9aa8a1'}
+                  />
+                  {name === 'inbox' && unread > 0 ? <View style={styles.dot} /> : null}
+                </View>
+              )}
+              <Text style={[styles.label, focused && styles.labelOn, isHome && styles.homeLabel]}>{LABEL[name]}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function iconName(name: Exclude<(typeof ORDER)[number], 'index'>, focused: boolean): keyof typeof Ionicons.glyphMap {
+  if (name === 'activity') return focused ? 'list' : 'list-outline';
+  if (name === 'inbox') return focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
+  if (name === 'payments') return focused ? 'card' : 'card-outline';
+  return focused ? 'person' : 'person-outline';
+}
+
+export default function TabsLayout() {
+  return (
     <Tabs
+      tabBar={(props) => <TenantTabBar state={props.state} navigateToTab={props.navigateToTab} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#fffffff5',
-          borderTopColor: '#e3e9e4',
-          height: TAB_BAR_HEIGHT + paddingBottom,
-          paddingBottom,
-          paddingTop: 6,
-        },
-        tabBarActiveTintColor: colors.green,
-        tabBarInactiveTintColor: '#98a49a',
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarStyle: { position: 'absolute', backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, height: 92 },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} color={tint(color)} size={20} />,
-        }}
-      />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          title: 'Activity',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'list' : 'list-outline'} color={tint(color)} size={20} />,
-        }}
-      />
-      <Tabs.Screen
-        name="inbox"
-        options={{
-          title: 'Inbox',
-          tabBarBadge: unread > 0 ? unread : undefined,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} color={tint(color)} size={20} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="payments"
-        options={{
-          title: 'Payments',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'card' : 'card-outline'} color={tint(color)} size={20} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} color={tint(color)} size={20} />,
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="activity" options={{ title: 'Activity' }} />
+      <Tabs.Screen name="inbox" options={{ title: 'Inbox' }} />
+      <Tabs.Screen name="payments" options={{ title: 'Payments' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: { backgroundColor: 'transparent', paddingHorizontal: 16 },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.greenLine,
+  },
+  item: { flex: 1, alignItems: 'center', gap: 4, minHeight: 52, justifyContent: 'flex-end' },
+  home: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -28,
+  },
+  label: { color: '#9aa8a1', fontSize: 11, fontWeight: '600' },
+  labelOn: { color: colors.green },
+  homeLabel: { color: colors.green, fontWeight: '700' },
+  dot: { position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger },
+});

@@ -107,7 +107,18 @@ export function VacatingScreen() {
         <RowItem icon="cube-outline" title="Move-out services" subtitle="Cleaning and a moving referral" onPress={() => router.push('/move-out-services')} />
         <RowItem icon="clipboard-outline" title="Final inspection" subtitle="Review findings" onPress={() => router.push('/flow/final')} />
         <RowItem icon="key-outline" title="Key return" subtitle="Arrange or record" onPress={() => router.push('/flow/keys')} />
-        <RowItem icon="cash-outline" title="Final settlement" subtitle="Review charges" onPress={() => router.push('/flow/settlement')} />
+        <RowItem
+          icon="cash-outline"
+          title="Final settlement"
+          subtitle={
+            vacating?.status === 'open' && vacating.responsibilityStatus === 'pending'
+              ? 'Confirm repair responsibilities'
+              : vacating?.status === 'open' && vacating.repairQuoteStatus === 'pending' && vacating.bondAckSent
+                ? 'Respond to the repair quote'
+                : 'Review charges'
+          }
+          onPress={() => router.push('/flow/settlement')}
+        />
       </Card>
       <Notice>Finishing this list does not close the vacating task or the tenancy. Your manager closes those.</Notice>
     </Screen>
@@ -141,6 +152,9 @@ export function CleaningScreen() {
 }
 
 const SETTLEMENT_STATUS = { PENDING: 'pending', ACCEPTED: 'accepted', DECLINED: 'declined' } as const;
+const RESPONSIBILITY = { PENDING: 'pending', ACCEPTED: 'accepted', DECLINED: 'declined' } as const;
+const QUOTE = { PENDING: 'pending', NONE: 'none' } as const;
+const CASE_OPEN = 'open';
 
 export function SettlementScreen() {
   const demo = useDemo();
@@ -150,6 +164,8 @@ export function SettlementScreen() {
   const [busy, setBusy] = useState(false);
   const ready = Boolean(vacating && (vacating.refund != null || vacating.debt != null));
   const waiting = vacating?.settlementStatus === SETTLEMENT_STATUS.PENDING && ready;
+  const reviewResponsibilities = vacating?.status === CASE_OPEN && vacating.responsibilityStatus === RESPONSIBILITY.PENDING;
+  const reviewQuote = vacating?.status === CASE_OPEN && vacating.repairQuoteStatus === QUOTE.PENDING && vacating.bondAckSent;
 
   async function accept() {
     if (!vacating || busy) return;
@@ -192,6 +208,93 @@ export function SettlementScreen() {
       <Text style={styles.h2}>Final settlement</Text>
       {!vacating ? <Notice>No vacating case is open on this tenancy, so there is no settlement to review.</Notice> : null}
       {vacating && !ready ? <Notice>No settlement figures have been sent for this vacating case yet.</Notice> : null}
+      {reviewResponsibilities && vacating ? (
+        <Card>
+          <Text style={styles.title}>Repair responsibilities</Text>
+          <Text style={styles.muted}>Your property manager listed these items from the outgoing inspection. Confirm them before a quote is prepared.</Text>
+          {vacating.responsibilityItems.map((item) => (
+            <Text key={`${item.area}-${item.description}`} style={styles.body}>
+              {item.area}: {item.description}{item.quote ? ` · ${item.quote}` : ''}{item.bondDeductible ? ' · bond deductible' : ''}
+            </Text>
+          ))}
+          <Field label="Reason if you disagree">
+            <Input multiline value={reason} onChangeText={setReason} placeholder="What should be reviewed?" />
+          </Field>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button
+            label={busy ? 'Sending…' : 'I acknowledge these items'}
+            onPress={() => {
+              setBusy(true);
+              setError(null);
+              void tenantApi.acceptResponsibilities(vacating.id)
+                .then(() => demo.refreshAccount())
+                .then(() => demo.notify('Responsibilities acknowledged'))
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not save that answer'))
+                .finally(() => setBusy(false));
+            }}
+          />
+          <Button
+            label="I disagree"
+            tone="outline"
+            onPress={() => {
+              const note = reason.trim();
+              if (!note) {
+                setError('Say why you disagree');
+                return;
+              }
+              setBusy(true);
+              setError(null);
+              void tenantApi.declineResponsibilities(vacating.id, note)
+                .then(() => demo.refreshAccount())
+                .then(() => demo.notify('Disagreement sent'))
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not save that answer'))
+                .finally(() => setBusy(false));
+            }}
+          />
+        </Card>
+      ) : null}
+      {vacating && vacating.responsibilityStatus === RESPONSIBILITY.ACCEPTED ? <Notice>You acknowledged the repair responsibilities.</Notice> : null}
+      {vacating && vacating.responsibilityStatus === RESPONSIBILITY.DECLINED ? <Notice>You disagreed with the repair responsibilities. Your property manager will send an update.</Notice> : null}
+      {reviewQuote && vacating ? (
+        <Card>
+          <Text style={styles.title}>Repair quote</Text>
+          <Text style={styles.muted}>These items may be deducted from the bond. Agreeing does not move the money.</Text>
+          <Field label="Reason if you disagree">
+            <Input multiline value={reason} onChangeText={setReason} placeholder="What should be reviewed?" />
+          </Field>
+          {error && !reviewResponsibilities ? <Text style={styles.error}>{error}</Text> : null}
+          <Button
+            label={busy ? 'Sending…' : 'Agree to the quote'}
+            onPress={() => {
+              setBusy(true);
+              setError(null);
+              void tenantApi.acceptRepairQuote(vacating.id)
+                .then(() => demo.refreshAccount())
+                .then(() => demo.notify('Quote accepted'))
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not accept the quote'))
+                .finally(() => setBusy(false));
+            }}
+          />
+          <Button
+            label="Disagree with the quote"
+            tone="outline"
+            onPress={() => {
+              const note = reason.trim();
+              if (!note) {
+                setError('Say why you disagree');
+                return;
+              }
+              setBusy(true);
+              setError(null);
+              void tenantApi.declineRepairQuote(vacating.id, note)
+                .then(() => demo.refreshAccount())
+                .then(() => demo.notify('Quote disagreement sent'))
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not decline the quote'))
+                .finally(() => setBusy(false));
+            }}
+          />
+        </Card>
+      ) : null}
       {vacating && ready ? (
         <Card>
           {vacating.hasSummary ? <Amount label="Unpaid rent" value={vacating.arrears} /> : null}

@@ -8,7 +8,12 @@ import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { Card, Screen, TabHeader, Tag } from '@/src/ui/ui';
 
-const FILTERS: ActivityFilter[] = ['Action Required', 'In Progress', 'History'];
+const FILTERS: { id: ActivityFilter; label: string }[] = [
+  { id: 'All', label: 'All' },
+  { id: 'Action Required', label: 'Action Required' },
+  { id: 'In Progress', label: 'In Progress' },
+  { id: 'History', label: 'Completed' },
+];
 const CLOSED_INSPECTION = new Set(['COMPLETED', 'PUBLISHED', 'CANCELLED']);
 const CLOSED_REPAIR = new Set(['COMPLETED', 'CANCELLED']);
 
@@ -33,10 +38,11 @@ export default function ActivityScreen() {
   const router = useRouter();
   const demo = useDemo();
   const items: ActivityItem[] = [];
+  const selfInspectionId = demo.routineAction?.flow === 'self' && demo.routineAction.actionRequired ? demo.routineAction.id : null;
 
   for (const inspection of demo.inspections) {
     if (inspection.status === 'DRAFT') continue;
-    const closed = CLOSED_INSPECTION.has(inspection.status);
+    const closed = CLOSED_INSPECTION.has(inspection.status.toUpperCase());
     const needsAction = demo.routineAction?.id === inspection.id;
     items.push({
       key: `inspection-${inspection.id}`,
@@ -44,7 +50,7 @@ export default function ActivityScreen() {
       detail: [statusLabel(inspection.status), inspection.when].filter(Boolean).join(' · '),
       kind: needsAction ? 'Action Required' : closed ? 'History' : 'In Progress',
       type: 'Inspection',
-      href: inspectionPath(inspection.type, inspection.id, demo.routineAction?.flow === 'self' ? demo.routineAction.id : null),
+      href: inspectionPath(inspection.type, inspection.id, selfInspectionId),
       currentOnly: !closed,
     });
   }
@@ -56,7 +62,7 @@ export default function ActivityScreen() {
       detail: [statusLabel(demo.routineAction.status), demo.routineAction.scheduledAt?.slice(0, 10)].filter(Boolean).join(' · '),
       kind: 'Action Required',
       type: 'Inspection',
-      href: demo.routineAction.flow === 'self' ? '/flow/self-inspection' : '/flow/inspection',
+      href: demo.routineAction.flow === 'self' && demo.routineAction.actionRequired ? '/flow/self-inspection' : `/flow/inspection?id=${demo.routineAction.id}`,
       currentOnly: true,
     });
   }
@@ -126,20 +132,20 @@ export default function ActivityScreen() {
     });
   }
 
-  const visible = items.filter((item) => (demo.current || !item.currentOnly) && item.kind === demo.activityFilter);
+  const visible = items.filter((item) => (demo.current || !item.currentOnly) && (demo.activityFilter === 'All' || item.kind === demo.activityFilter));
 
   return (
     <Screen tab>
-      <TabHeader kicker="YOUR RENTAL JOURNEY" title="Activity" />
+      <TabHeader kicker="" title="Activity" />
       <View style={styles.pills}>
         {FILTERS.map((filter) => (
           <Pressable
-            key={filter}
+            key={filter.id}
             accessibilityRole="button"
-            onPress={() => demo.setActivityFilter(filter)}
-            style={[styles.pill, demo.activityFilter === filter && styles.pillOn]}
+            onPress={() => demo.setActivityFilter(filter.id)}
+            style={[styles.pill, demo.activityFilter === filter.id && styles.pillOn]}
           >
-            <Text style={[styles.pillText, demo.activityFilter === filter && styles.pillTextOn]}>{filter}</Text>
+            <Text style={[styles.pillText, demo.activityFilter === filter.id && styles.pillTextOn]}>{filter.label}</Text>
           </Pressable>
         ))}
       </View>

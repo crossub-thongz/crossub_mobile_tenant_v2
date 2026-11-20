@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { useAuth } from '@/src/auth/auth-context';
 import { ApiError } from '@/src/api/http';
-import { loadAccount, type LiveDocument, type LiveInspection, type LiveKeyCollection, type LiveLedgerRow, type LiveMaintenance, type LiveReview, type LiveRoutineAction, type LiveTenancy, type LiveVacating } from '@/src/api/load-account';
+import { loadAccount, scopeAccount, type LiveDocument, type LiveInspection, type LiveKeyCollection, type LiveLedgerRow, type LiveMaintenance, type LiveReview, type LiveRoutineAction, type LiveTenancy, type LiveVacating } from '@/src/api/load-account';
 import type { GuestApplicationInput } from '@/src/api/listings';
 import { departmentFor, messageAttachment, tenantApi, type EvidenceFile } from '@/src/api/tenant';
 import {
@@ -68,8 +68,11 @@ type DemoState = {
   ledger: LiveLedgerRow[];
   documents: LiveDocument[];
   tenancies: LiveTenancy[];
+  selectedTenancyId: string | null;
   inspections: LiveInspection[];
+  rentReviews: LiveReview[];
   rentReview: LiveReview | null;
+  vacatingCases: LiveVacating[];
   vacating: LiveVacating | null;
   maintenance: LiveMaintenance[];
   keyReturnPhotos: string[];
@@ -107,6 +110,8 @@ type DemoState = {
   nextRoutineAt: string | null;
   nextRentReviewAt: string | null;
   onboardingActive: boolean;
+  onboardingComplete: boolean;
+  onboardingStepIds: OnboardingStepId[];
 };
 
 const initialCounts = Object.fromEntries(ROOMS.map((room) => [room, 0]));
@@ -115,7 +120,7 @@ const initialState: DemoState = {
   scenarioId: 'crossub',
   accountingKnown: false,
   propertyId: 'berry',
-  activityFilter: 'Action Required',
+  activityFilter: 'All',
   inboxFilter: 'All',
   inspectionConfirmed: false,
   renewalResponded: false,
@@ -137,8 +142,11 @@ const initialState: DemoState = {
   ledger: [],
   documents: [],
   tenancies: [],
+  selectedTenancyId: null,
   inspections: [],
+  rentReviews: [],
   rentReview: null,
+  vacatingCases: [],
   vacating: null,
   maintenance: [],
   keyReturnPhotos: [],
@@ -176,6 +184,8 @@ const initialState: DemoState = {
   nextRoutineAt: null,
   nextRentReviewAt: null,
   onboardingActive: false,
+  onboardingComplete: false,
+  onboardingStepIds: [],
 };
 
 type DemoApi = DemoState & {
@@ -193,6 +203,7 @@ type DemoApi = DemoState & {
   attachKeyPhoto: () => void;
   submitKeyEvidence: () => boolean;
   refreshAccount: () => Promise<void>;
+  selectTenancy: (id: string) => void;
   noteRentPayment: (amount: number) => void;
   addMaintenance: (title: string, urgent: boolean, photos: EvidenceFile[], video: string, propertyId: string) => Promise<string | null>;
   addKeyReturnPhoto: (file: EvidenceFile) => string | null;
@@ -287,9 +298,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, [refreshAccount, status]);
 
   const api = useMemo<DemoApi>(() => {
-    const scenario = scenarioById(state.scenarioId);
+    const scoped = scopeAccount(state);
+    const scenario = scenarioById(scoped.scenarioId);
     const property =
-      state.liveProperty ??
+      scoped.liveProperty ??
       (state.accountStatus === 'ready'
         ? {
             id: state.propertyId,
@@ -308,10 +320,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
     return {
       ...state,
+      ...scoped,
       scenario,
       property,
       current,
       refreshAccount,
+      selectTenancy: (id) => {
+        const tenancy = state.tenancies.find((item) => item.id === id);
+        if (!tenancy) return;
+        const next = scopeAccount({ ...state, selectedTenancyId: id });
+        const cleaning = next.vacating?.cleaning === 'booked' ? 'Crossub Cleaning' : next.vacating?.cleaning === 'own_arrangement' ? 'Tenant Arranged' : null;
+        patch({ selectedTenancyId: id, cleaning });
+      },
       noteRentPayment: (amount) => {
         patch({ rentPaymentNote: { amount, at: new Date().toISOString() } });
         notify('Payment noted. The ledger updates when the transfer clears.');
@@ -326,7 +346,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             subject: 'Routine inspection',
             body: 'I can attend the scheduled inspection.',
             department: 'INSPECTION',
-            ...(state.propertyUuid ? { propertyId: state.propertyUuid } : {}),
+            ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
           })
           .then(() => notify('Attendance sent to your property manager'))
           .catch((err) => notify(failureMessage(err, 'Could not confirm attendance')));
@@ -337,7 +357,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       },
       setCleaning: (cleaning) => {
         patch({ cleaning });
-        const caseId = state.vacating?.id;
+        const caseId = scoped.vacating?.id;
         if (!caseId) return;
         const choice = cleaning === 'Crossub Cleaning' ? 'booked' : 'own_arrangement';
         void tenantApi.setCleaning(caseId, choice).catch((err) => notify(failureMessage(err, 'Could not save the cleaning choice')));
@@ -417,7 +437,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('Add at least one photo of the keys or access devices');
           return false;
         }
-        const caseId = state.vacating?.id;
+        const caseId = scoped.vacating?.id;
         if (!caseId) {
           notify('No vacating case is open on this account.');
           return false;
@@ -549,7 +569,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             subject: subject.trim(),
             body: body.trim(),
             department: departmentFor(category),
-            ...(state.propertyUuid ? { propertyId: state.propertyUuid } : {}),
+            ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
             ...(file ? { attachments: [messageAttachment(file)] } : {}),
           });
           await refreshAccount();
@@ -689,7 +709,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         return null;
       },
       acceptRentReview: () => {
-        const review = state.rentReview;
+        const review = scoped.rentReview;
         if (!review) {
           notify('No rent review is open on this account.');
           return;
@@ -709,7 +729,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       },
       counterRentReview: (amount) => {
         if (!Number.isFinite(amount) || amount <= 0) return 'Enter a weekly amount.';
-        const review = state.rentReview;
+        const review = scoped.rentReview;
         if (!review) return 'No rent review is open on this account.';
         void tenantApi
           .respondRentReview(review.id, {
@@ -728,7 +748,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       },
       vacateFromRentReview: (date) => {
         if (!date.trim()) return 'Enter the date you plan to vacate.';
-        const review = state.rentReview;
+        const review = scoped.rentReview;
         if (!review) return 'No rent review is open on this account.';
         void tenantApi
           .respondRentReview(review.id, {
@@ -750,7 +770,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         void tenantApi
           .createVacating({
             expectedVacateDate: date.trim(),
-            ...(state.propertyUuid ? { propertyId: state.propertyUuid } : {}),
+            ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
           })
           .then(async () => {
             patch({ terminationMoveOut: date.trim(), terminationStarted: true });
@@ -761,7 +781,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         return null;
       },
       requestMoving: () => {
-        const caseId = state.vacating?.id;
+        const caseId = scoped.vacating?.id;
         if (!caseId) {
           notify('A vacating case is required before a moving referral.');
           return;

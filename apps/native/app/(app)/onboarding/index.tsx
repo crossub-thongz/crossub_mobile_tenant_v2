@@ -1,16 +1,15 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ONBOARDING_LABEL, ONBOARDING_STEPS, type OnboardingStepId } from '@/src/demo/applications';
+import { ONBOARDING_LABEL, ONBOARDING_STEPS } from '@/src/demo/applications';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
-import { BackButton, Card, Screen, Tag } from '@/src/ui/ui';
+import { BackButton, Card, Notice, Screen, Tag } from '@/src/ui/ui';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { onboarding, applications, onboardingActive } = useDemo();
-  const liveIds: OnboardingStepId[] = ['deposit', 'bond', 'lease_signing', 'key_pickup'];
-  const steps = onboardingActive ? ONBOARDING_STEPS.filter((step) => liveIds.includes(step.id)) : ONBOARDING_STEPS;
+  const { onboarding, applications, onboardingActive, onboardingComplete, onboardingStepIds } = useDemo();
+  const steps = ONBOARDING_STEPS.filter((step) => onboardingStepIds.includes(step.id));
   const approved = applications.find((item) => item.status === 'approved');
   const done = steps.filter((step) => onboarding[step.id] === 'completed').length;
 
@@ -18,25 +17,33 @@ export default function OnboardingScreen() {
     <Screen>
       <BackButton fallback="/profile" />
       <Text style={styles.title}>Onboarding</Text>
+      {onboardingComplete ? <Notice>Move-in checklist is already complete for this tenancy.</Notice> : null}
+      {!onboardingComplete && !onboardingActive ? <Notice>No move-in checklist is open on this account.</Notice> : null}
+      {onboardingActive ? (
       <Text style={styles.body}>
         {approved
           ? `You have been approved for ${approved.propertyAddress}. Complete the move-in checklist below.`
           : 'After an application is approved, the deposit, bond, lease, and key steps appear here.'}
       </Text>
+      ) : null}
+      {onboardingActive ? (
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${steps.length === 0 ? 0 : (done / steps.length) * 100}%` }]} />
       </View>
+      ) : null}
+      {onboardingActive ? (
       <Text style={styles.body}>
         {done}/{steps.length} complete
       </Text>
-      {steps.map((step, index) => (
+      ) : null}
+      {onboardingActive ? steps.map((step, index) => (
         <Card key={step.id} onPress={() => router.push(`/onboarding/${step.id}`)}>
           <Text style={styles.step}>Step {index + 1}</Text>
           <Text style={styles.address}>{step.title}</Text>
           <Text style={styles.body}>{step.description}</Text>
           <Tag label={ONBOARDING_LABEL[onboarding[step.id]]} tone={onboarding[step.id] === 'completed' ? 'green' : onboarding[step.id] === 'uploaded' ? 'amber' : 'neutral'} />
         </Card>
-      ))}
+      )) : null}
     </Screen>
   );
 }
@@ -46,6 +53,6 @@ const styles = StyleSheet.create({
   body: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   address: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   step: { color: colors.muted, fontSize: 11, fontWeight: '700' },
-  progressTrack: { height: 8, borderRadius: 99, backgroundColor: '#e7eee9', overflow: 'hidden' },
+  progressTrack: { height: 8, borderRadius: 99, backgroundColor: colors.greenSoft, overflow: 'hidden' },
   progressFill: { height: 8, backgroundColor: colors.green },
 });

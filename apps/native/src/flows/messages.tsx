@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   body: { color: colors.ink, fontSize: 14, lineHeight: 20 },
   meta: { color: '#8b998c', fontSize: 11, marginTop: 6 },
   bubble: { maxWidth: '88%', borderRadius: 15, padding: 12 },
-  mine: { alignSelf: 'flex-end', backgroundColor: '#dcf2e3' },
+  mine: { alignSelf: 'flex-end', backgroundColor: colors.greenWash },
   theirs: { alignSelf: 'flex-start', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   composer: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   flex: { flex: 1 },

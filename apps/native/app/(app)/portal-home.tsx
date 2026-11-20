@@ -1,28 +1,29 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { inspectionPath } from '@/src/api/load-account';
 import { cycleAmount, normalizeCycle } from '@/src/api/rent';
 import { useAuth } from '@/src/auth/auth-context';
 import { money } from '@/src/demo/model';
+import { colors } from '@/src/theme';
 import { useDemo } from '@/src/demo/store';
-import { ArrearsBanner, useRentArrears } from '@/src/flows/arrears-banner';
+import { useRentArrears } from '@/src/flows/arrears-banner';
 import { AppMenuButton } from '@/src/ui/app-menu';
 import { BackButton, Screen } from '@/src/ui/ui';
 
-const primary = '#00b894';
-const ink = '#020617';
-const muted = '#334155';
-const line = '#e2e8f0';
-const danger = '#ef4444';
-
 type IonName = keyof typeof Ionicons.glyphMap;
 
-function greeting(name: string): string {
-  const hour = new Date().getHours();
-  const hello = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  return name ? `${hello}, ${name}` : hello;
+function statusTone(status: string): 'progress' | 'done' | 'attention' {
+  const value = status.toLowerCase();
+  if (value.includes('complete') || value.includes('approved')) return 'done';
+  if (value.includes('action') || value.includes('required')) return 'attention';
+  return 'progress';
+}
+
+function statusText(status: string): string {
+  const words = status.replaceAll('_', ' ').toLowerCase();
+  return words.replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
 function cycleLabel(cycle: ReturnType<typeof normalizeCycle>): string {
@@ -50,12 +51,13 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
 
   const attention: { id: string; icon: IonName; title: string; subtitle: string; href: Href }[] = [];
   if (demo.routineAction) {
+    const routine = demo.routineAction;
     attention.push({
       id: 'routine',
       icon: 'clipboard-outline',
       title: 'Routine inspection',
-      subtitle: demo.routineAction.flow === 'self' ? 'Complete your self-inspection' : 'Be available for the visit',
-      href: demo.routineAction.flow === 'self' ? '/flow/self-inspection' : '/flow/inspections',
+      subtitle: routine.flow === 'self' && routine.actionRequired ? 'Complete your self-inspection' : routine.scheduledAt?.slice(0, 10) || 'Open the visit',
+      href: routine.flow === 'self' && routine.actionRequired ? '/flow/self-inspection' : `/flow/inspection?id=${routine.id}`,
     });
   }
   if (onboardingOpen) {
@@ -95,6 +97,9 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
     });
   }
 
+  const selfInspectionId = demo.routineAction?.flow === 'self' && demo.routineAction.actionRequired ? demo.routineAction.id : null;
+  const featuredInspection = (demo.routineAction ? demo.inspections.find((item) => item.id === demo.routineAction?.id) : undefined)
+    ?? demo.inspections.find((item) => !['completed', 'cancelled', 'COMPLETED', 'CANCELLED', 'PUBLISHED'].includes(item.status));
   const progress = [
     ...openRepairs.slice(0, 2).map((item) => ({
       id: item.id,
@@ -103,13 +108,15 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
       subtitle: item.urgent ? `Urgent · ${item.status}` : item.status,
       href: `/flow/maintenance?job=${item.id}` as Href,
     })),
-    ...demo.inspections.slice(0, 1).map((item) => ({
-      id: item.id,
-      icon: 'clipboard-outline' as const,
-      title: item.title,
-      subtitle: item.when || item.status,
-      href: inspectionPath(item.type, item.id, demo.routineAction?.flow === 'self' ? demo.routineAction.id : null) as Href,
-    })),
+    ...(featuredInspection
+      ? [{
+          id: featuredInspection.id,
+          icon: 'clipboard-outline' as const,
+          title: featuredInspection.title,
+          subtitle: featuredInspection.when || featuredInspection.status,
+          href: inspectionPath(featuredInspection.type, featuredInspection.id, selfInspectionId) as Href,
+        }]
+      : []),
     ...(demo.keyCollection?.time
       ? [{
           id: 'keys',
@@ -121,219 +128,178 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
       : []),
   ];
 
-  const actions: { icon: IonName; label: string; href: Href }[] = [
-    { icon: 'construct-outline', label: 'Report issue', href: '/flow/report' },
-    { icon: 'chatbubble-outline', label: 'Contact us', href: '/flow/new-message' },
-    { icon: 'clipboard-outline', label: 'Inspections', href: '/flow/inspections' },
-    { icon: 'key-outline', label: 'Key handover', href: '/flow/keys' },
+  const actions: { icon: IonName; title: string; subtitle: string; href: Href }[] = [
+    { icon: 'construct-outline', title: 'Report Issue', subtitle: 'Submit maintenance request', href: '/flow/report' },
+    { icon: 'call-outline', title: 'Contact Us', subtitle: 'Contact us tell us your request', href: '/flow/new-message' },
+    { icon: 'clipboard-outline', title: 'Inspections', subtitle: 'Manage your inspections', href: '/flow/inspections' },
+    { icon: 'key-outline', title: 'Key Handover', subtitle: 'Submit key handover', href: '/flow/keys' },
   ];
 
+  const slides: { id: string; title: string; meta: string; value: string; action: string; href: Href }[] = [];
+  if (arrears) {
+    slides.push({
+      id: 'arrears',
+      title: 'Rent past the paid-to date',
+      meta: `Due on ${arrears.paidToLabel}`,
+      value: money(arrears.outstanding),
+      action: 'Pay Now',
+      href: '/payments',
+    });
+  }
+  if (demo.terminationStarted && demo.vacating) {
+    slides.push({
+      id: 'vacating',
+      title: 'End of lease',
+      meta: 'Vacate',
+      value: demo.vacating.vacateDate || 'Date on the notice',
+      action: 'Renew Now',
+      href: '/termination',
+    });
+  }
+  if (!arrears && rentAmount > 0) {
+    slides.push({
+      id: 'rent',
+      title: 'Next Rent Payment',
+      meta: cycleLabel(cycle),
+      value: money(rentAmount),
+      action: 'Pay Now',
+      href: showsLedger ? '/payments' : '/flow/rent-details',
+    });
+  }
+  for (const item of attention) {
+    if (item.id === 'vacating') continue;
+    slides.push({ id: item.id, title: item.title, meta: '', value: item.subtitle, action: 'Open', href: item.href });
+  }
+  const name = [user?.firstName, user?.lastName].map((part) => part?.trim()).filter(Boolean).join(' ');
+
   return (
-    <Screen tab={tab} background="#ffffff">
+    <Screen tab={tab} background={colors.bg}>
       {tab ? null : <BackButton fallback="/" />}
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.kicker}>My home</Text>
-          <Text style={styles.greeting}>{greeting(user?.firstName?.trim().split(/\s+/)[0] ?? '')}</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            onPress={() => router.push('/flow/notifications')}
-            style={styles.bell}
-          >
-            <Ionicons name="notifications-outline" size={18} color={ink} />
+      <View style={styles.helloCard}>
+        <View style={styles.helloRow}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={18} color="#fff" />
+          </View>
+          <Text style={styles.hello}>{name ? `Hi, ${name}` : 'Hi'}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push('/flow/notifications')} style={styles.round}>
+            <Ionicons name="notifications-outline" size={18} color={colors.ink} />
             {unreadNotices ? <View style={styles.dot} /> : null}
           </Pressable>
           <AppMenuButton />
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick actions</Text>
-        <View style={styles.actions}>
-          {actions.map((action) => (
-            <Pressable key={action.label} accessibilityRole="button" onPress={() => router.push(action.href)} style={styles.action}>
-              <View style={styles.actionIcon}>
-                <Ionicons name={action.icon} size={18} color={primary} />
-              </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push(demo.current ? '/flow/tenancy' : '/listings')}
-        style={styles.card}
-      >
-        <View style={styles.between}>
+        <Pressable accessibilityRole="button" onPress={() => router.push(demo.current ? '/flow/properties' : '/listings')} style={styles.address}>
+          <Ionicons name="business" size={16} color={colors.green} />
           <View style={styles.flex}>
-            <Text style={styles.eyebrow}>Your property</Text>
-            <Text style={styles.address}>{demo.current ? demo.property.title : 'No property linked'}</Text>
-            <Text style={styles.meta}>
-              {demo.current ? `${demo.property.place || 'Current tenancy'} · ${demo.property.status}` : 'Browse listings to apply'}
-            </Text>
+            <Text style={styles.addressKicker}>Current Address</Text>
+            <Text style={styles.addressTitle}>{demo.current ? demo.property.title : 'No property linked'}</Text>
           </View>
-          <Ionicons name="chevron-down" size={16} color="#94a3b8" />
-        </View>
-      </Pressable>
+          <Ionicons name="chevron-down" size={16} color={colors.muted} />
+        </Pressable>
+      </View>
 
-      <ArrearsBanner />
+      <Text style={styles.section}>Quick Actions</Text>
+      <View style={styles.grid}>
+        {actions.map((action) => (
+          <Pressable key={action.title} accessibilityRole="button" onPress={() => router.push(action.href)} style={styles.action}>
+            <View style={styles.actionIcon}>
+              <Ionicons name={action.icon} size={18} color={colors.green} />
+            </View>
+            <Text style={styles.actionTitle}>{action.title}</Text>
+            <Text style={styles.actionSub}>{action.subtitle}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {slides.length > 0 ? (
+        <>
+          <Text style={styles.section}>Needs Your Attention</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.slideRow}>
+            {slides.map((slide) => (
+              <Pressable key={slide.id} accessibilityRole="button" onPress={() => router.push(slide.href)} style={styles.alert}>
+                <Text style={styles.alertTitle}>{slide.title}</Text>
+                <View style={styles.alertBody}>
+                  <View style={styles.flex}>
+                    {slide.meta ? <Text style={styles.alertMeta}>{slide.meta}</Text> : null}
+                    <Text style={styles.alertValue}>{slide.value}</Text>
+                  </View>
+                  <View style={styles.pay}>
+                    <Text style={styles.payText}>{slide.action}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#fff" />
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
 
       {demo.accountStatus === 'loading' ? <Text style={styles.meta}>Loading your tenancy…</Text> : null}
       {demo.accountError ? <Text style={styles.error}>{demo.accountError}</Text> : null}
 
-      {attention.length > 0 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>Needs your attention</Text>
-            <Text style={styles.count}>{attention.length} {attention.length === 1 ? 'item' : 'items'}</Text>
-          </View>
-          <View style={styles.card}>
-            {attention.slice(0, 3).map((item) => (
-              <HomeRow key={item.id} icon={item.icon} title={item.title} subtitle={item.subtitle} href={item.href} />
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Rent information</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push(showsLedger ? '/payments' : '/flow/rent-details')}
-          style={styles.card}
-        >
-          <View style={styles.between}>
-            <Text style={styles.eyebrow}>{showsLedger ? 'Next rent payment' : 'Weekly rent'}</Text>
-            <Text style={[styles.pill, arrears ? styles.pillDanger : showsLedger ? styles.pillGreen : styles.pillNeutral]}>
-              {arrears ? 'Outstanding' : showsLedger ? 'Up to date' : accountsRent ? 'Crossub Accounting' : 'Agent trust'}
-            </Text>
-          </View>
-          <Text style={styles.rent}>{rentAmount > 0 ? money(rentAmount) : '—'}</Text>
-          <View style={styles.between}>
-            <Text style={styles.meta}>
-              {arrears
-                ? `Due ${arrears.paidToLabel} · ${cycleLabel(cycle)}`
-                : showsLedger
-                  ? `Paid to ${demo.rentPaidTo || '—'} · ${cycleLabel(cycle)}`
-                  : accountsRent
-                    ? 'Rent is recorded in Crossub Accounting'
-                    : 'Your agent manages this trust account'}
-            </Text>
-            <Ionicons name="arrow-forward" size={16} color={primary} />
-          </View>
-        </Pressable>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>In progress</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/activity')}>
-            <Text style={styles.link}>View all</Text>
-          </Pressable>
-        </View>
-        <View style={styles.card}>
-          {progress.length === 0 ? <Text style={styles.meta}>Nothing is in progress.</Text> : null}
-          {progress.map((item) => (
-            <HomeRow key={item.id} icon={item.icon} title={item.title} subtitle={item.subtitle} href={item.href} />
-          ))}
-        </View>
-      </View>
+      <Text style={styles.section}>In Progress</Text>
+      {progress.length === 0 ? <Text style={styles.meta}>Nothing is in progress.</Text> : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.slideRow}>
+          {progress.map((item) => {
+            const tone = statusTone(item.subtitle);
+            return (
+              <Pressable key={item.id} accessibilityRole="button" onPress={() => router.push(item.href)} style={styles.job}>
+                <View style={styles.jobIcon}>
+                  <Ionicons name={item.icon} size={18} color={colors.green} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.jobTitle} numberOfLines={2}>{item.title}</Text>
+                  <Text style={styles.meta}>{item.subtitle}</Text>
+                  <View style={[styles.pill, tone === 'done' && styles.pillDone, tone === 'attention' && styles.pillAlert]}>
+                    <Text style={[styles.pillText, tone === 'done' && styles.pillTextDone, tone === 'attention' && styles.pillTextAlert]}>
+                      {statusText(item.subtitle.split(' · ').pop() || item.subtitle)}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#b7c4bd" />
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
     </Screen>
   );
 }
 
-function HomeRow({ icon, title, subtitle, href }: { icon: IonName; title: string; subtitle: string; href: Href }) {
-  const router = useRouter();
-  return (
-    <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={styles.row}>
-      <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={18} color={primary} />
-      </View>
-      <View style={styles.flex}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        <Text style={styles.meta}>{subtitle}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerText: { flex: 1, gap: 4 },
-  kicker: { color: muted, fontSize: 12, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' },
-  greeting: { color: ink, fontSize: 28, fontWeight: '700', letterSpacing: -0.4 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bell: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: danger },
-  card: { borderRadius: 16, borderWidth: 1, borderColor: line, backgroundColor: '#fff', padding: 16, gap: 8 },
-  between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  helloCard: { backgroundColor: '#fff', borderRadius: 24, padding: 14, gap: 12 },
+  helloRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#12324a', alignItems: 'center', justifyContent: 'center' },
+  hello: { flex: 1, color: colors.green, fontSize: 18, fontWeight: '700' },
+  round: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  dot: { position: 'absolute', top: 7, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger },
+  address: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.soft, borderRadius: 16, padding: 12 },
+  addressKicker: { color: colors.muted, fontSize: 11 },
+  addressTitle: { color: colors.ink, fontSize: 14, fontWeight: '700' },
   flex: { flex: 1 },
-  eyebrow: { color: muted, fontSize: 11, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase' },
-  address: { color: ink, fontSize: 16, fontWeight: '700', marginTop: 6 },
-  meta: { color: muted, fontSize: 13, lineHeight: 18 },
-  error: { color: danger, fontSize: 13 },
-  section: { gap: 8 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { color: muted, fontSize: 12, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase' },
-  count: {
-    overflow: 'hidden',
-    borderRadius: 999,
-    backgroundColor: 'rgba(245,158,11,0.15)',
-    color: '#b45309',
-    fontSize: 11,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  rent: { color: ink, fontSize: 32, fontWeight: '700', letterSpacing: -0.6 },
-  pill: { overflow: 'hidden', borderRadius: 999, fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3 },
-  pillGreen: { backgroundColor: 'rgba(0,184,148,0.15)', color: primary },
-  pillDanger: { backgroundColor: 'rgba(239,68,68,0.12)', color: danger },
-  pillNeutral: { backgroundColor: '#f1f5f9', color: muted },
-  link: { color: primary, fontSize: 13, fontWeight: '700' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-  rowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,184,148,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowTitle: { color: ink, fontSize: 15, fontWeight: '600' },
-  actions: { flexDirection: 'row', gap: 8 },
-  action: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: line,
-    backgroundColor: '#fff',
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-  },
-  actionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,184,148,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionLabel: { color: ink, fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  section: { color: colors.ink, fontSize: 18, fontWeight: '700', marginTop: 6 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  action: { width: '48%', flexGrow: 1, backgroundColor: '#fff', borderRadius: 22, padding: 16, gap: 8, minHeight: 132 },
+  actionIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
+  actionTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  actionSub: { color: colors.muted, fontSize: 12, lineHeight: 16 },
+  slideRow: { gap: 12, paddingRight: 8 },
+  alert: { width: 280, backgroundColor: colors.danger, borderRadius: 22, padding: 16, gap: 12 },
+  alertTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  alertBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  alertMeta: { color: '#ffe4e4', fontSize: 12 },
+  alertValue: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  pay: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6 },
+  payText: { color: colors.green, fontSize: 12, fontWeight: '700' },
+  meta: { color: colors.muted, fontSize: 12, lineHeight: 16 },
+  error: { color: colors.danger, fontSize: 13 },
+  job: { width: 260, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 22, padding: 14 },
+  jobIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
+  jobTitle: { color: colors.ink, fontSize: 14, fontWeight: '700' },
+  pill: { alignSelf: 'flex-start', marginTop: 6, backgroundColor: '#fff1d6', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  pillDone: { backgroundColor: colors.greenTag },
+  pillAlert: { backgroundColor: '#ffe1e1' },
+  pillText: { color: colors.amber, fontSize: 11, fontWeight: '700' },
+  pillTextDone: { color: colors.green },
+  pillTextAlert: { color: colors.danger },
 });
+

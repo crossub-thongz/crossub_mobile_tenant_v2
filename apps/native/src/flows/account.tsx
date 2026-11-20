@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { downloadAuthedPdf, isApiFile } from '@/src/api/files';
 import { requestPasswordReset } from '@/src/api/auth';
@@ -14,32 +14,44 @@ import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Field, Input, Notice, Screen } from '@/src/ui/ui';
 
 export function PropertiesScreen() {
-  const { tenancies, current } = useDemo();
+  const { tenancies, current, selectedTenancyId, selectTenancy } = useDemo();
   const active = tenancies.filter((item) => item.current);
   const previous = tenancies.filter((item) => !item.current);
+  const showing =
+    tenancies.find((item) => item.id === selectedTenancyId)?.id ??
+    tenancies.find((item) => item.status === 'ACTIVE')?.id ??
+    tenancies.find((item) => item.current)?.id ??
+    tenancies[0]?.id;
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>My properties</Text>
+      <Text style={styles.muted}>Choose a tenancy. Home, payments, repairs, and inspections follow that property.</Text>
       {tenancies.length === 0 ? <Notice>No properties are on this account.</Notice> : null}
       {active.length > 0 ? <Text style={styles.kicker}>CURRENT</Text> : null}
       {active.map((item) => (
-        <Card key={item.id}>
-          <Text style={styles.title}>{item.address}</Text>
-          <Text style={styles.muted}>
-            {[item.place, item.start && item.end ? `${item.start} – ${item.end}` : item.start || item.end].filter(Boolean).join(' · ')}
-          </Text>
-          {item.rent > 0 ? <Text style={styles.muted}>{money(item.rent)} {item.frequency.toLowerCase()}</Text> : null}
-        </Card>
+        <Pressable key={item.id} accessibilityRole="button" onPress={() => selectTenancy(item.id)}>
+          <Card>
+            <Text style={styles.title}>{item.address}</Text>
+            <Text style={styles.muted}>
+              {[item.place, item.start && item.end ? `${item.start} – ${item.end}` : item.start || item.end].filter(Boolean).join(' · ')}
+            </Text>
+            {item.rent > 0 ? <Text style={styles.muted}>{money(item.rent)} {item.frequency.toLowerCase()}</Text> : null}
+            {showing === item.id ? <Text style={styles.kicker}>Showing on Home</Text> : null}
+          </Card>
+        </Pressable>
       ))}
       {previous.length > 0 ? <Text style={styles.kicker}>PREVIOUS</Text> : null}
       {previous.map((item) => (
-        <Card key={item.id}>
-          <Text style={styles.title}>{item.address}</Text>
-          <Text style={styles.muted}>
-            {[item.place, item.start && item.end ? `${item.start} – ${item.end}` : item.start || item.end].filter(Boolean).join(' · ')}
-          </Text>
-        </Card>
+        <Pressable key={item.id} accessibilityRole="button" onPress={() => selectTenancy(item.id)}>
+          <Card>
+            <Text style={styles.title}>{item.address}</Text>
+            <Text style={styles.muted}>
+              {[item.place, item.start && item.end ? `${item.start} – ${item.end}` : item.start || item.end].filter(Boolean).join(' · ')}
+            </Text>
+            {showing === item.id ? <Text style={styles.kicker}>Showing on Home</Text> : null}
+          </Card>
+        </Pressable>
       ))}
       {!current && tenancies.length > 0 ? <Notice>This tenancy has ended. You can read what you are still allowed to see.</Notice> : null}
     </Screen>

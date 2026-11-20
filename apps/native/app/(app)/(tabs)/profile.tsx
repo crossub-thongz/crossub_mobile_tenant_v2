@@ -34,7 +34,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen tab>
-      <TabHeader kicker="ACCOUNT & TENANCY" title="Profile" />
+      <TabHeader kicker="" title="Profile" />
       <Card onPress={() => router.push('/flow/personal')}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.muted}>{email || 'No email on this account'}</Text>

@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/src/auth/auth-context';
@@ -38,33 +38,35 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.inner}>
-          <Text style={styles.brand}>crossub</Text>
-          <Text style={styles.kicker}>TENANT</Text>
+          <Image source={require('@/assets/brand/logo.png')} style={styles.logo} />
           <Text style={styles.title}>Your rental home, made simple.</Text>
           <Text style={styles.sub}>Sign in with the account from your tenancy invitation.</Text>
-
-          <Text style={styles.label}>Email</Text>
-          <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} />
-
-          <Text style={styles.label}>Password</Text>
-          <Input secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Password" onSubmitEditing={onSubmit} />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <Pressable accessibilityRole="button" onPress={onSubmit} disabled={submitting} style={styles.button}>
-            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
-          </Pressable>
-
-          <Link href="/forgot-password" style={styles.link}>
-            Forgot password?
-          </Link>
-          <Link href="/listings" style={styles.link}>
-            Browse listings
-          </Link>
-          <Link href="/invite" style={styles.link}>
-            I have an invitation
-          </Link>
-          <Text style={styles.hint}>Sign in with the same tenant account you use on the web portal.</Text>
+          <View style={styles.card}>
+            <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="Email Address" />
+            <Input secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Password" onSubmitEditing={onSubmit} />
+            <Link href="/forgot-password" asChild>
+              <Pressable style={styles.forgotHit}>
+                <Text style={styles.forgot}>Forgot Password?</Text>
+              </Pressable>
+            </Link>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Pressable accessibilityRole="button" onPress={onSubmit} disabled={submitting} style={styles.button}>
+              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in →</Text>}
+            </Pressable>
+          </View>
+          <View style={styles.footer}>
+            <Text style={styles.existing}>Existing Tenant?</Text>
+            <Link href="/listings" asChild>
+              <Pressable style={styles.linkHit}>
+                <Text style={styles.link}>Browse listings</Text>
+              </Pressable>
+            </Link>
+            <Link href="/invite" asChild>
+              <Pressable style={styles.linkHit}>
+                <Text style={styles.link}>I have an invitation</Text>
+              </Pressable>
+            </Link>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -75,15 +77,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  inner: { flex: 1, padding: 24, justifyContent: 'center', gap: 8 },
-  brand: { color: colors.green, fontSize: 28, fontWeight: '800', letterSpacing: -1 },
-  kicker: { color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1.6 },
-  title: { color: colors.ink, fontSize: 28, fontWeight: '700', letterSpacing: -0.6, marginTop: 12 },
-  sub: { color: colors.muted, fontSize: 14, lineHeight: 20, marginBottom: 12 },
-  label: { color: '#58695e', fontSize: 12, fontWeight: '700', marginTop: 8 },
+  inner: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  logo: { width: 88, height: 88, borderRadius: 22, marginBottom: 8 },
+  title: { color: colors.ink, fontSize: 28, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center' },
+  sub: { color: colors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: 8 },
+  card: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 16, gap: 10 },
+  forgotHit: { alignSelf: 'flex-end' },
+  forgot: { color: colors.green, fontWeight: '700', fontSize: 13 },
   error: { color: colors.danger, fontSize: 13 },
-  button: { marginTop: 12, minHeight: 48, borderRadius: 12, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  link: { color: colors.green, fontWeight: '700', marginTop: 8 },
-  hint: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 8 },
+  button: { minHeight: 48, borderRadius: 24, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  footer: { alignItems: 'center', gap: 8, marginTop: 16 },
+  existing: { color: colors.muted, fontSize: 13 },
+  linkHit: { alignSelf: 'center' },
+  link: { color: colors.green, fontWeight: '700' },
 });

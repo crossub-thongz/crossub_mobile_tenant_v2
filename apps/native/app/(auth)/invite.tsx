@@ -15,7 +15,7 @@ export default function InviteScreen() {
   return (
     <Screen>
       <Text style={styles.brand}>Invitation</Text>
-      <Text style={styles.sub}>Email is the only activation channel in V1.</Text>
+      <Text style={styles.sub}>How tenant account activation works via email.</Text>
       {STEPS.map((step) => (
         <Card key={step}>
           <Text style={styles.body}>{step}</Text>

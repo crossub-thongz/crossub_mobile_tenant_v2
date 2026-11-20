@@ -16,35 +16,57 @@ export { EntryScreen } from '@/src/flows/ingoing-report';
 const INSPECTION_TYPE = { ROUTINE: 'ROUTINE', OPEN: 'OPEN' } as const;
 const REPAIR_PHOTO_LIMIT = 10;
 
+const ROUTINE_CLOSED = new Set(['completed', 'cancelled', 'COMPLETED', 'CANCELLED', 'PUBLISHED']);
+
 export function InspectionScreen() {
   const router = useRouter();
   const demo = useDemo();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const inspectionId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const scheduled = (inspectionId ? demo.inspections.find((item) => item.id === inspectionId) : undefined)
-    ?? demo.inspections.find((item) => item.type === INSPECTION_TYPE.ROUTINE);
+  const routines = demo.inspections.filter((item) => item.type === INSPECTION_TYPE.ROUTINE);
+  const scheduled = (inspectionId ? routines.find((item) => item.id === inspectionId) ?? demo.inspections.find((item) => item.id === inspectionId) : undefined)
+    ?? routines.find((item) => !ROUTINE_CLOSED.has(item.status))
+    ?? routines[0];
   const inspectionThread = demo.threads.find((item) => item.category === 'Inspection');
-  const status = demo.inspectionConfirmed ? 'Scheduled' : 'Action Required';
+  const closed = scheduled ? ROUTINE_CLOSED.has(scheduled.status) : true;
+  const selfVisit = scheduled?.flow === 'self' && scheduled.actionRequired && !closed;
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
     <Screen>
       <BackButton />
-      <TaskHeader title="Routine inspection" status={status} />
+      <TaskHeader title={scheduled?.title || 'Routine inspection'} status={scheduled ? statusLabel(scheduled.status) : 'None scheduled'} />
       <Card>
-        <Text style={styles.kicker}>IN-PERSON INSPECTION</Text>
+        <Text style={styles.kicker}>{scheduled?.flow === 'self' ? 'SELF INSPECTION' : 'IN-PERSON INSPECTION'}</Text>
         <Text style={styles.title}>{scheduled?.when || 'No inspection is scheduled'}</Text>
-        <Text style={styles.muted}>{scheduled ? `${scheduled.title} · ${scheduled.status}` : 'Your property manager has not booked one yet.'}</Text>
+        <Text style={styles.muted}>{scheduled ? `${scheduled.address || 'This property'} · ${statusLabel(scheduled.status)}` : 'Your property manager has not booked one on this property yet.'}</Text>
         <Text style={styles.body}>Conducted by {demo.scenario.team}</Text>
-        <Text style={styles.body}>Access: contact tenant before entry</Text>
       </Card>
-      {demo.inspectionConfirmed ? (
-        <Notice>You confirmed this arrangement. Confirmation is not a blanket permission to enter.</Notice>
+      {selfVisit ? <Button label="Complete self-inspection" onPress={() => router.push('/flow/self-inspection')} /> : null}
+      {!scheduled || closed || selfVisit ? null : sent ? (
+        <Notice>Your attendance message is with your property manager. The appointment time stays until they change it.</Notice>
       ) : (
         <View style={styles.stack}>
-          <Button label="Confirm attendance" onPress={demo.confirmInspection} />
+          <Button
+            label="Tell them I can attend"
+            onPress={() => {
+              setError(null);
+              void tenantApi
+                .createMessage({
+                  subject: 'Routine inspection',
+                  body: `I can attend the routine inspection${scheduled.when ? ` on ${scheduled.when}` : ''}.`,
+                  department: 'INSPECTION',
+                  ...(demo.propertyUuid ? { propertyId: demo.propertyUuid } : {}),
+                })
+                .then(() => setSent(true))
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not send attendance'));
+            }}
+          />
           <Button label="Request reschedule" tone="secondary" onPress={() => router.push('/flow/reschedule')} />
         </View>
       )}
-      <Timeline status={status} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Timeline status={scheduled ? statusLabel(scheduled.status) : 'None scheduled'} />
       <Button
         label={inspectionThread ? 'Open conversation' : 'Message your property manager'}
         tone="outline"

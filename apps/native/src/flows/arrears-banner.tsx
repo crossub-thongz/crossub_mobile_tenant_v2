@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { arrearsFromPaidTo } from '@/src/api/rent';
 import { money } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
+import { colors } from '@/src/theme';
 
 export function useRentArrears() {
   const demo = useDemo();
@@ -45,5 +46,5 @@ const styles = StyleSheet.create({
   title: { color: '#020617', fontSize: 15, fontWeight: '700' },
   body: { color: '#334155', fontSize: 13, lineHeight: 18 },
   amount: { color: '#020617', fontSize: 14, fontWeight: '700', marginTop: 4 },
-  link: { color: '#00b894', fontSize: 13, fontWeight: '700', marginTop: 6 },
+  link: { color: colors.green, fontSize: 13, fontWeight: '700', marginTop: 6 },
 });

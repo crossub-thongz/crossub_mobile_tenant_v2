@@ -29,7 +29,7 @@ export default function ForgotPasswordScreen() {
       <Link href="/login" style={styles.back}>
         Back to sign in
       </Link>
-      <Text style={styles.title}>Set or reset your password</Text>
+      <Text style={styles.title}>Forgot password?</Text>
       <Text style={styles.body}>
         Enter the email address your property manager has on file and we'll send you a link. This works whether you have signed in before or have never set a password.
       </Text>
