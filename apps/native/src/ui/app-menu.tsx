@@ -46,8 +46,9 @@ export function AppMenuButton() {
         <Ionicons name="menu-outline" size={22} color={ink} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close menu" style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={[styles.panel, { paddingTop: insets.top + 8 }]} onPress={() => undefined}>
+        <View style={styles.backdrop}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close menu" style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} />
+          <View style={[styles.panel, { paddingTop: insets.top + 8 }]}>
             <View style={styles.panelHead}>
               <Text style={styles.kicker}>Menu</Text>
               <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setOpen(false)} style={styles.close}>
@@ -72,8 +73,8 @@ export function AppMenuButton() {
               <Ionicons name="log-out-outline" size={18} color={danger} />
               <Text style={styles.logoutText}>Log out</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );

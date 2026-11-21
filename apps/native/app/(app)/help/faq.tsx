@@ -10,7 +10,7 @@ const SECTIONS = [
     title: 'Account and sign-in',
     items: [
       ['How do I sign in for the first time?', 'Your property manager emails tenant login details after the lease is set up. Use that email and password on the sign-in screen.'],
-      ['What if I forget my password?', 'Use Forgot password? on the sign-in screen. The link on this device sets a new password. Email delivery starts when the identity service is connected.'],
+      ['What if I forget my password?', 'Use Forgot password? on the sign-in screen. Enter the email on your tenancy and the reset link is sent to that address. Sending it is a real email.'],
       ['Can I browse without an account?', 'Yes. Browse listings and start an application without signing in. Sign in to track an application or manage a tenancy.'],
     ],
   },
@@ -25,7 +25,7 @@ const SECTIONS = [
     title: 'Lease, rent, and repairs',
     items: [
       ['Where is my lease?', 'Property and Tenancy details show the address, rent, and dates. Documents lists the agreement once it is on the tenancy.'],
-      ['How do I report a repair?', 'Home has Report issue. The live app will attach photos and a tracking number. This preview keeps a status card.'],
+      ['How do I report a repair?', 'Home has Report issue. Describe the problem and add at least one photo or video. A tracking number is issued when the report is accepted. Leaving the form blank does not create a repair.'],
     ],
   },
 ] as const;

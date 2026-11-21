@@ -69,16 +69,18 @@ export default function RentReviewDetailScreen() {
           );
         }}
       />
-      <Button
-        label="Download lease agreement"
-        tone="outline"
-        onPress={() => {
-          setError(null);
-          void downloadAuthedPdf(`/api/v1/tenant/rent-reviews/${review.id}/residential-tenancy-agreement.pdf`, 'residential-tenancy-agreement.pdf').catch((err) =>
-            setError(err instanceof Error ? err.message : 'Could not download the agreement'),
-          );
-        }}
-      />
+      {review.leaseAgreementPdfAvailable ? (
+        <Button
+          label="Download lease agreement"
+          tone="outline"
+          onPress={() => {
+            setError(null);
+            void downloadAuthedPdf(`/api/v1/tenant/rent-reviews/${review.id}/residential-tenancy-agreement.pdf`, 'residential-tenancy-agreement.pdf').catch((err) =>
+              setError(err instanceof Error ? err.message : 'Could not download the agreement'),
+            );
+          }}
+        />
+      ) : null}
       {demo.rentReviewStatus === 'pending' ? (
         <>
           <Button label="Accept the increase" onPress={demo.acceptRentReview} />
