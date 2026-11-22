@@ -66,7 +66,7 @@ export default function ApplyScreen() {
         <BackButton fallback={`/listings/${property.id}`} />
         <Text style={styles.title}>Check in first</Text>
         <Text style={styles.body}>This open inspection links your visit to the application. Check in, then come back to apply.</Text>
-        <Button label="Check in" onPress={() => router.replace(`/listings/${property.id}/check-in?sessionId=${property.sessionId}`)} />
+        <Button label="Check in" onPress={() => router.dismissTo(`/listings/${property.id}/check-in?sessionId=${property.sessionId}`)} />
       </Screen>
     );
   }
@@ -87,11 +87,11 @@ export default function ApplyScreen() {
         <Text style={styles.title}>{property.address}</Text>
         <Text style={styles.body}>Your application was sent to CROSSUB. The reference is on the confirmation from the tenant API.</Text>
         {status === 'authed' ? (
-          <Button label="View application" onPress={() => router.replace(`/applications/${submittedId}`)} />
+          <Button label="View application" onPress={() => router.dismissTo(`/applications/${submittedId}`)} />
         ) : (
-          <Button label="Sign in to track it" onPress={() => router.replace('/login')} />
+          <Button label="Sign in to track it" onPress={() => router.dismissTo('/login')} />
         )}
-        <Button label="Back to listings" tone="outline" onPress={() => router.replace('/listings')} />
+        <Button label="Back to listings" tone="outline" onPress={() => router.dismissTo('/listings')} />
       </Screen>
     );
   }

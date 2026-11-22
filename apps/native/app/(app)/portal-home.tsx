@@ -100,6 +100,15 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
   const selfInspectionId = demo.routineAction?.flow === 'self' && demo.routineAction.actionRequired ? demo.routineAction.id : null;
   const featuredInspection = (demo.routineAction ? demo.inspections.find((item) => item.id === demo.routineAction?.id) : undefined)
     ?? demo.inspections.find((item) => !['completed', 'cancelled', 'COMPLETED', 'CANCELLED', 'PUBLISHED'].includes(item.status));
+  const leasingKeys = demo.onboardingActive && demo.onboardingStepIds.includes('key_pickup');
+  const vacatingKeys = demo.vacating?.status === 'open';
+  const keyHref: Href | null = leasingKeys && vacatingKeys
+    ? '/flow/keys'
+    : leasingKeys
+      ? '/onboarding/key_pickup'
+      : vacatingKeys
+        ? '/flow/keys'
+        : null;
   const progress = [
     ...openRepairs.slice(0, 2).map((item) => ({
       id: item.id,
@@ -117,13 +126,13 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
           href: inspectionPath(featuredInspection.type, featuredInspection.id, selfInspectionId) as Href,
         }]
       : []),
-    ...(demo.keyCollection?.time
+    ...(keyHref && demo.keyCollection?.time
       ? [{
           id: 'keys',
           icon: 'key-outline' as const,
           title: 'Key handover',
           subtitle: demo.keyCollection.time.slice(0, 16).replace('T', ' '),
-          href: '/flow/keys' as Href,
+          href: keyHref,
         }]
       : []),
   ];
@@ -132,7 +141,9 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
     { icon: 'construct-outline', title: 'Report Issue', subtitle: 'Submit maintenance request', href: '/flow/report' },
     { icon: 'call-outline', title: 'Contact Us', subtitle: 'Contact us tell us your request', href: '/flow/new-message' },
     { icon: 'clipboard-outline', title: 'Inspections', subtitle: 'Manage your inspections', href: '/flow/inspections' },
-    { icon: 'key-outline', title: 'Key Handover', subtitle: 'Submit key handover', href: '/flow/keys' },
+    ...(keyHref
+      ? [{ icon: 'key-outline' as const, title: 'Key Handover', subtitle: 'Submit key handover', href: keyHref }]
+      : []),
   ];
 
   const slides: { id: string; title: string; meta: string; value: string; action: string; href: Href }[] = [];

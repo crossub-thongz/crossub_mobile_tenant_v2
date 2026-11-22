@@ -22,7 +22,7 @@ export default function InviteScreen() {
         </Card>
       ))}
       <Notice>Opening a tenancy from a link still checks person, membership, and the resource on the server. The app does not trust the address in the link.</Notice>
-      <Link href="/login" style={styles.link}>
+      <Link href="/login" dismissTo style={styles.link}>
         Back to sign in
       </Link>
     </Screen>

@@ -34,7 +34,7 @@ export default function TutorialScreen() {
         label="Got it — go to Home"
         onPress={() => {
           finishTutorial();
-          router.replace('/');
+          router.dismissTo('/');
         }}
       />
       <Button label="I'm looking for a property" tone="outline" onPress={() => router.push('/listings')} />

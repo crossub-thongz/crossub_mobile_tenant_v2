@@ -119,7 +119,7 @@ export function RescheduleScreen() {
               })
               .then(() => {
                 demo.notify('Reschedule request sent to your property manager');
-                router.replace('/flow/inspection');
+                router.dismissTo('/flow/inspection');
               })
               .catch((err) => {
                 setError(err instanceof Error ? err.message : 'Could not send the request');

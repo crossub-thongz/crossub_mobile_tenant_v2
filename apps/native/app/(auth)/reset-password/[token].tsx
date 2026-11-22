@@ -43,7 +43,7 @@ export default function ResetPasswordScreen() {
       return;
     }
     void submitNewPassword(linkToken, password)
-      .then(() => router.replace('/login'))
+      .then(() => router.dismissTo('/login'))
       .catch((err) => {
         const message = err instanceof Error ? err.message : 'Could not reset the password';
         if (message.toLowerCase().includes('used')) setProblem('used');
@@ -57,15 +57,15 @@ export default function ResetPasswordScreen() {
       <Screen>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.body}>{copy.body}</Text>
-        <Button label="Sign in" onPress={() => router.replace('/login')} />
-        <Button label="Request a new link" tone="outline" onPress={() => router.replace('/forgot-password')} />
+        <Button label="Sign in" onPress={() => router.dismissTo('/login')} />
+        <Button label="Request a new link" tone="outline" onPress={() => router.dismissTo('/forgot-password')} />
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <Link href="/login" style={styles.back}>
+      <Link href="/login" dismissTo style={styles.back}>
         Back to sign in
       </Link>
       <Text style={styles.title}>Choose a new password</Text>

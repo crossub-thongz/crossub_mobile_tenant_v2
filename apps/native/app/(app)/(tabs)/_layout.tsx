@@ -6,6 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 
+const HOME_SIZE = 56;
+const BAR_PADDING_TOP = 8;
+const BAR_BORDER = 1;
 const ORDER = ['activity', 'inbox', 'index', 'payments', 'profile'] as const;
 
 const LABEL: Record<(typeof ORDER)[number], string> = {
@@ -43,6 +46,7 @@ function TenantTabBar({
               onPress={() => {
                 if (!focused) navigateToTab(route.key);
               }}
+              hitSlop={isHome ? { top: HOME_SIZE / 2 } : undefined}
               style={styles.item}
             >
               {isHome ? (
@@ -81,7 +85,7 @@ export default function TabsLayout() {
       tabBar={(props) => <TenantTabBar state={props.state} navigateToTab={props.navigateToTab} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { position: 'absolute', backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, height: 92 },
+        tabBarStyle: { position: 'absolute', backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, height: 92, overflow: 'visible' },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
@@ -95,27 +99,30 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: 'transparent', paddingHorizontal: 16 },
+  wrap: { backgroundColor: 'transparent', paddingHorizontal: 16, overflow: 'visible' },
   bar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     backgroundColor: '#fff',
     borderRadius: 28,
     paddingHorizontal: 8,
-    paddingTop: 8,
+    paddingTop: BAR_PADDING_TOP,
     paddingBottom: 8,
-    borderWidth: 1,
+    borderWidth: BAR_BORDER,
     borderColor: colors.greenLine,
+    overflow: 'visible',
   },
-  item: { flex: 1, alignItems: 'center', gap: 4, minHeight: 52, justifyContent: 'flex-end' },
+  item: { flex: 1, alignItems: 'center', gap: 4, minHeight: 52, justifyContent: 'flex-end', overflow: 'visible' },
   home: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    position: 'absolute',
+    alignSelf: 'center',
+    width: HOME_SIZE,
+    height: HOME_SIZE,
+    borderRadius: HOME_SIZE / 2,
     backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -28,
+    top: -(HOME_SIZE / 2) - BAR_PADDING_TOP - BAR_BORDER,
   },
   label: { color: '#9aa8a1', fontSize: 11, fontWeight: '600' },
   labelOn: { color: colors.green },

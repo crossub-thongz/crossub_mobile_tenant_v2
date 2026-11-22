@@ -10,9 +10,20 @@ Build 18 has the phone changes. Staging does not yet serve the attendance save o
 
 Password for every login below: ChangeMe!Now123
 
+These staging logins were read on 22 Nov 2026. Each tenant below is linked to a property. The agent manages those same properties.
+
+| Account | Email | Password | Linked to |
+| --- | --- | --- | --- |
+| Tenant staging | tony.chan+tenant@crossub.com.au | ChangeMe!Now123 | 7 Demo Street, Sydney. Tony Demo Apartment. ACTIVE lease on Tony Demo Agency. Home opens on this address. |
+| Tenant staging | qa.charlie.tenant@crossub.com.au | ChangeMe!Now123 | Casey Qatenant. 31 QA Home Street, Sydney. One ACTIVE lease, $610 a week, on Tony Demo Agency. Home opens on this address. |
+| Tenant staging | qa.delta.tenant@crossub.com.au | ChangeMe!Now123 | Drew Qatenant. 32 QA Home Street, Sydney. One ACTIVE lease, $620 a week, on Tony Demo Agency. Home opens on this address. |
+| Agent staging | tony.chan+agent@crossub.com.au | ChangeMe!Now123 | Tony Demo Agency, which manages 7 Demo Street, 31 QA Home Street, and 32 QA Home Street. Sign in at https://crossub-mobile-agent.onrender.com/login. Account Manager (Full Access). The tenant app must refuse this login. |
+
 | Name | Email | Role |
 | --- | --- | --- |
-| Tony Chan | tony.chan+tenant@crossub.com.au | Tenant. Use this for Home. Five tenancies. Home starts on the ACTIVE lease. |
+| Tony Chan | tony.chan+tenant@crossub.com.au | Tenant. Use this for Home. Five tenancies. Home starts on the ACTIVE lease at 7 Demo Street, Sydney. |
+| Casey Qatenant | qa.charlie.tenant@crossub.com.au | Tenant. One ACTIVE lease at 31 QA Home Street, Sydney. |
+| Drew Qatenant | qa.delta.tenant@crossub.com.au | Tenant. One ACTIVE lease at 32 QA Home Street, Sydney. |
 | Quinn Qatenant | qa.alpha.tenant@crossub.com.au | Tenant. Signs in. Tenancy list is empty. |
 | Riley Qatenant | qa.bravo.tenant@crossub.com.au | Tenant. Signs in, then tenancies are refused because the user is not linked to a tenant profile. |
 | Tony Chan | tony.chan+agent@crossub.com.au | Account Manager (Full Access). Staging agent and the staff Full Service login. The tenant app must refuse it. |

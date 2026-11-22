@@ -12,8 +12,6 @@ export type Scenario = {
   label: string;
   /** Rent payments are recorded in Crossub Accounting. */
   ledger: boolean;
-  /** Who accounts for the rent. This is the only difference between account types. */
-  accounting: string;
   team: string;
   trustName: string;
 };
@@ -23,7 +21,6 @@ export const SCENARIOS: Scenario[] = [
     id: 'crossub',
     label: 'Full Service Crossub Trust',
     ledger: true,
-    accounting: 'Crossub manages this trust account as part of full service. Rent is recorded in Crossub Accounting.',
     team: 'Crossub Management',
     trustName: 'Crossub Trust Account',
   },
@@ -31,7 +28,6 @@ export const SCENARIOS: Scenario[] = [
     id: 'agent-trust',
     label: 'Full Service Agent Trust',
     ledger: false,
-    accounting: 'Your agent manages their own trust account. Paid-to dates, arrears and receipts stay with the agency.',
     team: 'Crossub Management',
     trustName: 'Agency Trust Account',
   },
@@ -39,7 +35,6 @@ export const SCENARIOS: Scenario[] = [
     id: 'self-accounting',
     label: 'Self Manage Crossub Accounting',
     ledger: true,
-    accounting: 'Your agent uses Crossub Accounting to manage their own trust account.',
     team: 'Crossub Management',
     trustName: 'Crossub Accounting',
   },

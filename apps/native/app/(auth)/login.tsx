@@ -1,11 +1,15 @@
 import { Link } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, Keyboard, Linking, Platform, Pressable, StyleSheet, Text, View, type KeyboardEvent } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useAuth } from '@/src/auth/auth-context';
 import { colors } from '@/src/theme';
 import { Input } from '@/src/ui/ui';
+
+const PRIVACY_URL = 'https://www.crossub.com/AU/privacy';
+const TERMS_URL = 'https://www.crossub.com/AU/terms';
 
 export default function LoginScreen() {
   const { login, status } = useAuth();
@@ -13,6 +17,24 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const bottomInset = useSafeAreaInsets().bottom;
+  const lift = useSharedValue(0);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const move = (event: KeyboardEvent) => {
+      const visible = Math.max(Dimensions.get('window').height - event.endCoordinates.screenY, 0);
+      const overlap = Math.max(visible - bottomInset, 0);
+      const next = -overlap / 2;
+      lift.value = event.duration
+        ? withTiming(next, { duration: event.duration, easing: Easing.bezier(0.38, 0.7, 0.125, 1) })
+        : next;
+    };
+    const subscription = Keyboard.addListener('keyboardWillChangeFrame', move);
+    return () => subscription.remove();
+  }, [bottomInset, lift]);
+
+  const liftStyle = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));
 
   const onSubmit = async () => {
     setSubmitting(true);
@@ -36,8 +58,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.inner}>
+      <Animated.View style={[styles.inner, liftStyle]}>
           <Image source={require('@/assets/brand/logo.png')} style={styles.logo} />
           <Text style={styles.title}>Your rental home, made simple.</Text>
           <Text style={styles.sub}>Sign in with the account from your tenancy invitation.</Text>
@@ -67,15 +88,21 @@ export default function LoginScreen() {
               </Pressable>
             </Link>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+      </Animated.View>
+      <View style={styles.legal}>
+        <Pressable accessibilityRole="link" onPress={() => Linking.openURL(PRIVACY_URL)} hitSlop={8}>
+          <Text style={styles.legalText}>Privacy Policy</Text>
+        </Pressable>
+        <Pressable accessibilityRole="link" onPress={() => Linking.openURL(TERMS_URL)} hitSlop={8}>
+          <Text style={styles.legalText}>Terms of Use</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  flex: { flex: 1 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   inner: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center', gap: 8 },
   logo: { width: 88, height: 88, borderRadius: 22, marginBottom: 8 },
@@ -91,4 +118,6 @@ const styles = StyleSheet.create({
   existing: { color: colors.muted, fontSize: 13 },
   linkHit: { alignSelf: 'center' },
   link: { color: colors.green, fontWeight: '700' },
+  legal: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, paddingBottom: 8 },
+  legalText: { color: colors.muted, fontSize: 12 },
 });

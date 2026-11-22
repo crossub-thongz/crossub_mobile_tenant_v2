@@ -53,7 +53,6 @@ export default function PaymentsScreen() {
   return (
     <Screen tab>
       <TabHeader kicker="" title="Payments" />
-      <Notice>{scenario.accounting}</Notice>
       {arrears ? (
         <View style={styles.arrears}>
           <Text style={styles.arrearsTitle}>Rent past the paid-to date</Text>
@@ -96,7 +95,6 @@ export default function PaymentsScreen() {
         </>
       ) : (
         <>
-          <Notice>Payment history, arrears, paid-to dates and receipts stay with the agency. This trust account is not in Crossub Accounting.</Notice>
           <Card>
             <RowItem icon="home-outline" title="Tenancy rent details" subtitle={`${money(property.rent)} per week`} onPress={() => router.push('/flow/rent-details')} />
             <RowItem icon="reader-outline" title="Published invoices" subtitle="No payment status is invented" onPress={() => router.push('/flow/invoices')} />

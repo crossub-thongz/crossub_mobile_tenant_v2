@@ -1,5 +1,8 @@
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+
+const APP_NAME = Constants.expoConfig?.name ?? 'CROSSUB';
 
 const KEY = 'csb_device_lock';
 let memory = false;
@@ -41,7 +44,7 @@ async function localAuth() {
 export async function unlockWithBiometrics(): Promise<boolean> {
   const LocalAuthentication = await localAuth();
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Unlock CROS Tenant',
+    promptMessage: `Unlock ${APP_NAME}`,
     cancelLabel: 'Cancel',
     disableDeviceFallback: false,
   });

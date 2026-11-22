@@ -81,26 +81,26 @@ export default function ActivityScreen() {
     });
   }
 
-  const keyDone = demo.onboarding.key_pickup === 'completed';
-  const keyDetail = demo.keyCollection?.time
-    ? `Collection ${demo.keyCollection.time.slice(0, 16).replace('T', ' ')}`
-    : demo.vacating?.keysReturnAddress
-      ? `Return keys to ${demo.vacating.keysReturnAddress}`
-      : demo.keyReturnSubmitted
-        ? 'Key return submitted'
-        : keyDone
-          ? 'Key collection recorded'
-          : demo.vacating?.keysReturned
-            ? 'Keys returned'
-            : '';
-  if (keyDetail) {
+  const leasingKeys = demo.onboardingActive && demo.onboardingStepIds.includes('key_pickup');
+  const vacatingKeys = demo.vacating?.status === 'open';
+  if (leasingKeys || vacatingKeys) {
+    const keyDone = demo.onboarding.key_pickup === 'completed';
+    const keyDetail = leasingKeys && demo.keyCollection?.time
+      ? `Collection ${demo.keyCollection.time.slice(0, 16).replace('T', ' ')}`
+      : vacatingKeys && demo.vacating?.keysReturnAddress
+        ? `Return keys to ${demo.vacating.keysReturnAddress}`
+        : leasingKeys
+          ? 'Key collection'
+          : demo.keyReturnSubmitted
+            ? 'Key return submitted'
+            : 'Key return';
     items.push({
       key: 'keys',
       name: 'Keys',
       detail: keyDetail,
-      kind: keyDone || demo.keyReturnSubmitted || demo.vacating?.keysReturned ? 'History' : 'Action Required',
+      kind: (leasingKeys && !keyDone) || (vacatingKeys && !demo.keyReturnSubmitted && !demo.vacating?.keysReturned) ? 'Action Required' : 'History',
       type: 'Key Handover',
-      href: '/flow/keys',
+      href: leasingKeys && vacatingKeys ? '/flow/keys' : leasingKeys ? '/onboarding/key_pickup' : '/flow/keys',
       currentOnly: true,
     });
   }

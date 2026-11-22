@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -47,7 +48,7 @@ export function AuthGate() {
       ) : null}
       {locked ? (
         <View style={styles.boot}>
-          <Text style={styles.lockTitle}>Unlock CROS Tenant</Text>
+          <Text style={styles.lockTitle}>Unlock {Constants.expoConfig?.name ?? 'CROSSUB'}</Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => {

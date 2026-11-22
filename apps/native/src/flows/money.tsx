@@ -59,7 +59,7 @@ export function LedgerScreen() {
 
 export function RentDetailsScreen() {
   const router = useRouter();
-  const { property, scenario } = useDemo();
+  const { property } = useDemo();
   return (
     <Screen>
       <BackButton />
@@ -68,9 +68,6 @@ export function RentDetailsScreen() {
         <Text style={styles.muted}>Contractual rent</Text>
         <Text style={styles.amount}>{money(property.rent)}</Text>
         <Text style={styles.muted}>{property.frequency}</Text>
-        <Text style={styles.body}>
-          {scenario.accounting}
-        </Text>
       </Card>
       <Button label="Contact the responsible team" tone="outline" onPress={() => router.push('/flow/new-message')} />
     </Screen>
@@ -159,7 +156,6 @@ const styles = StyleSheet.create({
   h2: { color: colors.ink, fontSize: 22, fontWeight: '700' },
   title: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   muted: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  body: { color: colors.ink, fontSize: 14, lineHeight: 20 },
   amount: { color: colors.ink, fontSize: 28, fontWeight: '700' },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 8 },
   flex: { flex: 1 },

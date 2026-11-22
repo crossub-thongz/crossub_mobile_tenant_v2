@@ -32,7 +32,7 @@ export default function MoveOutServicesScreen() {
       ) : (
         <Notice>A moving referral needs an open vacating case.</Notice>
       )}
-      <Button label="Back to vacating steps" tone="outline" onPress={() => router.push('/flow/vacating')} />
+      <Button label="Back to vacating steps" tone="outline" onPress={() => router.dismissTo('/flow/vacating')} />
     </Screen>
   );
 }

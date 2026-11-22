@@ -26,7 +26,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <Screen>
-      <Link href="/login" style={styles.back}>
+      <Link href="/login" dismissTo style={styles.back}>
         Back to sign in
       </Link>
       <Text style={styles.title}>Forgot password?</Text>
@@ -39,7 +39,7 @@ export default function ForgotPasswordScreen() {
             If that address has an account, the link is on its way. Open it soon, then choose a password and come back to sign in.
           </Text>
           <Text style={styles.body}>Nothing after a few minutes? Check your junk folder, and make sure you used the address your lease is under.</Text>
-          <Button label="Back to sign in" tone="outline" onPress={() => router.replace('/login')} />
+          <Button label="Back to sign in" tone="outline" onPress={() => router.dismissTo('/login')} />
         </>
       ) : (
         <>

@@ -2,7 +2,7 @@
 
 Tenant app for CROSSUB. It is an Expo client, built in the same workspace shape as the inspector app in `crossub_mobile`.
 
-The phone icon, splash image and Android adaptive icon are the inspector app icon. The bundle id is `com.crossub.tenant`, so it can sit beside CROS Inspect on a device.
+The phone icon, splash image and Android adaptive icon are the inspector app icon. Production is `com.crossub.tenant` and shows as CROSSUB. Staging is `com.crossub.tenant.staging` and shows as CROSSUB Staging, so it can sit beside production on a device.
 
 ## What this build does
 

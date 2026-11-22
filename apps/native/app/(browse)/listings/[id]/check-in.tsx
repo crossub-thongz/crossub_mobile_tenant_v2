@@ -57,8 +57,8 @@ export default function CheckInScreen() {
         <Text style={styles.body}>
           Thank you for checking in, {form.name.trim()}. Your check-in stays linked if you apply for this property.
         </Text>
-        <Button label="Apply for this property" onPress={() => router.replace(`/listings/${property.id}/apply`)} />
-        <Button label="View property details" tone="outline" onPress={() => router.replace(`/listings/${property.id}`)} />
+        <Button label="Apply for this property" onPress={() => router.dismissTo(`/listings/${property.id}/apply`)} />
+        <Button label="View property details" tone="outline" onPress={() => router.dismissTo(`/listings/${property.id}`)} />
       </Screen>
     );
   }

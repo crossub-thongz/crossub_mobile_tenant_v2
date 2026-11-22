@@ -6,7 +6,7 @@ import { tenantApi } from '@/src/api/tenant';
 import { useAuth } from '@/src/auth/auth-context';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
-import { Card, Notice, RowItem, Screen, Section, TabHeader } from '@/src/ui/ui';
+import { Card, RowItem, Screen, Section, TabHeader } from '@/src/ui/ui';
 
 function displayName(first: string | null | undefined, last: string | null | undefined): string {
   const name = [first, last].map((part) => part?.trim()).filter(Boolean).join(' ');
@@ -61,17 +61,6 @@ export default function ProfileScreen() {
         <RowItem icon="lock-closed-outline" title="Privacy and security" subtitle="Password, MFA, device unlock" onPress={() => router.push('/flow/security')} />
         <RowItem icon="help-circle-outline" title="Help" subtitle="FAQ, tutorial, and the access agreement" onPress={() => router.push('/help')} />
       </Card>
-
-      <Section title="Account type" />
-      {demo.accountStatus === 'ready' && demo.accountingKnown ? (
-        <Card>
-          <Text style={styles.name}>{demo.scenario.label}</Text>
-          <Text style={styles.muted}>{demo.scenario.accounting}</Text>
-        </Card>
-      ) : null}
-      {demo.accountStatus === 'ready' && !demo.accountingKnown ? (
-        <Notice>Account type is not on this tenancy. It comes from the agency, and this account cannot change it.</Notice>
-      ) : null}
 
       <Pressable accessibilityRole="button" onPress={() => logout()} style={styles.signOut}>
         <Text style={styles.signOutText}>Sign out</Text>

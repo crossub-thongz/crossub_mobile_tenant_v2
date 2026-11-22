@@ -5,7 +5,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { pickEvidence } from '@/src/api/pick-evidence';
 import { tenantApi } from '@/src/api/tenant';
 import { money, type CleaningChoice } from '@/src/demo/model';
-import { KeyCollectionForm } from '@/src/flows/key-collection';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen } from '@/src/ui/ui';
@@ -44,49 +43,57 @@ export function RenewalScreen() {
 }
 
 export function KeysScreen() {
+  const router = useRouter();
   const demo = useDemo();
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const collecting = demo.onboardingActive && demo.onboarding.key_pickup !== 'completed';
-  const returning = Boolean(demo.vacating);
+  const leasingKeys = demo.onboardingActive && demo.onboardingStepIds.includes('key_pickup');
+  const returning = demo.vacating?.status === 'open';
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Key handover</Text>
-      <Text style={styles.muted}>Move-in collection is saved on the lease. Key return uses the address on the vacating case.</Text>
-      {collecting || demo.keyCollection ? <KeyCollectionForm /> : null}
-      {returning ? (
+      {!leasingKeys && !returning ? (
+        <Notice>Key handover is available when this tenancy has an open leasing or vacating task.</Notice>
+      ) : null}
+      {leasingKeys ? (
         <Card>
-          <Text style={styles.title}>Return keys to</Text>
-          <Text style={styles.body}>
-            {demo.vacating?.keysReturnAddress || 'Your property manager will send the key return location shortly.'}
-          </Text>
-          {demo.vacating?.keysReturned ? <Notice>Keys are marked returned on this vacating case.</Notice> : null}
+          <Text style={styles.title}>Key collection</Text>
+          <Text style={styles.body}>This is the key collection step on the leasing task.</Text>
+          <Button label="Open key collection" onPress={() => router.push('/onboarding/key_pickup')} />
         </Card>
       ) : null}
-      {!collecting && !demo.keyCollection && !returning ? (
-        <Notice>Key collection appears here once a lease is being prepared. Key return appears on an open vacating case.</Notice>
+      {returning ? (
+        <>
+          <Card>
+            <Text style={styles.title}>Return keys to</Text>
+            <Text style={styles.body}>
+              {demo.vacating?.keysReturnAddress || 'Your property manager will send the key return location shortly.'}
+            </Text>
+            {demo.vacating?.keysReturned ? <Notice>Keys are marked returned on this vacating case.</Notice> : null}
+          </Card>
+          <Card>
+            <Text style={styles.title}>Returned keys and access devices</Text>
+            <Text style={styles.muted}>Add a clear photo of the keys, remotes, or cards you returned. Up to 4.</Text>
+            {demo.keyReturnPhotos.map((name) => (
+              <Button key={name} label={`Remove ${name}`} tone="outline" onPress={() => demo.removeKeyReturnPhoto(name)} />
+            ))}
+            {photoError ? <Text style={styles.error}>{photoError}</Text> : null}
+            <Button
+              label="Add photo"
+              tone="secondary"
+              onPress={() => {
+                void pickEvidence()
+                  .then((file) => {
+                    if (!file) return;
+                    setPhotoError(demo.addKeyReturnPhoto(file));
+                  })
+                  .catch((err) => setPhotoError(err instanceof Error ? err.message : 'Could not open the photo library'));
+              }}
+            />
+            <Button label={demo.keyReturnSubmitted ? 'Return submitted' : 'Submit key return'} onPress={demo.submitKeyReturn} />
+          </Card>
+        </>
       ) : null}
-      <Card>
-        <Text style={styles.title}>Returned keys and access devices</Text>
-        <Text style={styles.muted}>Add a clear photo of the keys, remotes, or cards you returned. Up to 4.</Text>
-        {demo.keyReturnPhotos.map((name) => (
-          <Button key={name} label={`Remove ${name}`} tone="outline" onPress={() => demo.removeKeyReturnPhoto(name)} />
-        ))}
-        {photoError ? <Text style={styles.error}>{photoError}</Text> : null}
-        <Button
-          label="Add photo"
-          tone="secondary"
-          onPress={() => {
-            void pickEvidence()
-              .then((file) => {
-                if (!file) return;
-                setPhotoError(demo.addKeyReturnPhoto(file));
-              })
-              .catch((err) => setPhotoError(err instanceof Error ? err.message : 'Could not open the photo library'));
-          }}
-        />
-        <Button label={demo.keyReturnSubmitted ? 'Return submitted' : 'Submit key return'} onPress={demo.submitKeyReturn} />
-      </Card>
     </Screen>
   );
 }
@@ -106,7 +113,9 @@ export function VacatingScreen() {
         <RowItem icon="sparkles-outline" title="Cleaning" subtitle={cleaning ?? 'Choose an arrangement'} onPress={() => router.push('/flow/cleaning')} />
         <RowItem icon="cube-outline" title="Move-out services" subtitle="Cleaning and a moving referral" onPress={() => router.push('/move-out-services')} />
         <RowItem icon="clipboard-outline" title="Final inspection" subtitle="Review findings" onPress={() => router.push('/flow/final')} />
-        <RowItem icon="key-outline" title="Key return" subtitle="Arrange or record" onPress={() => router.push('/flow/keys')} />
+        {vacating?.status === 'open' ? (
+          <RowItem icon="key-outline" title="Key return" subtitle="Arrange or record" onPress={() => router.push('/flow/keys')} />
+        ) : null}
         <RowItem
           icon="cash-outline"
           title="Final settlement"
@@ -144,7 +153,7 @@ export function CleaningScreen() {
             return;
           }
           demo.notify('Choice recorded. The vacating task stays open.');
-          router.replace('/flow/vacating');
+          router.dismissTo('/flow/vacating');
         }}
       />
     </Screen>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "CROS Tenant",
+    "name": "CROSSUB",
     "slug": "crossub-tenant",
     "owner": "crossub-property-management",
     "version": "0.1.0",
@@ -17,15 +17,15 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "CFBundleDisplayName": "CROS Tenant",
-        "CFBundleName": "CROS Tenant",
+        "CFBundleDisplayName": "CROSSUB",
+        "CFBundleName": "CROSSUB",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "CROS Tenant uses the microphone for Ask Cros voice calls.",
-        "NSFaceIDUsageDescription": "CROS Tenant uses Face ID to unlock the app on this phone."
+        "NSMicrophoneUsageDescription": "CROSSUB uses the microphone for Ask Cros voice calls.",
+        "NSFaceIDUsageDescription": "CROSSUB uses Face ID to unlock the app on this phone."
       }
     },
     "android": {
-      "label": "CROS Tenant",
+      "label": "CROSSUB",
       "package": "com.crossub.tenant",
       "versionCode": 1,
       "adaptiveIcon": {
@@ -44,7 +44,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "CROS Tenant uses Face ID to unlock the app on this phone."
+          "faceIDPermission": "CROSSUB uses Face ID to unlock the app on this phone."
         }
       ],
       "@livekit/react-native-expo-plugin",
@@ -52,8 +52,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "CROS Tenant uses your photos when you attach repair or key-return pictures.",
-          "cameraPermission": "CROS Tenant uses the camera when you photograph a repair."
+          "photosPermission": "CROSSUB uses your photos when you attach repair or key-return pictures.",
+          "cameraPermission": "CROSSUB uses the camera when you photograph a repair."
         }
       ],
       "expo-router",

@@ -25,7 +25,7 @@ export default function ListingsScreen() {
           <Text style={styles.kicker}>CROSSUB RENTALS</Text>
           <Text style={styles.title}>Browse listings</Text>
         </View>
-        <Pressable accessibilityRole="button" onPress={() => router.push(status === 'authed' ? '/' : '/login')}>
+        <Pressable accessibilityRole="button" onPress={() => router.dismissTo(status === 'authed' ? '/' : '/login')}>
           <Text style={styles.link}>{status === 'authed' ? 'My home' : 'Sign in'}</Text>
         </Pressable>
       </View>
