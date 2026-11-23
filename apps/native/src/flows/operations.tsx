@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { inspectionPath } from '@/src/api/load-account';
@@ -25,9 +25,10 @@ export function InspectionScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const inspectionId = Array.isArray(params.id) ? params.id[0] : params.id;
   const routines = demo.inspections.filter((item) => item.type === INSPECTION_TYPE.ROUTINE);
-  const scheduled = (inspectionId ? routines.find((item) => item.id === inspectionId) ?? demo.inspections.find((item) => item.id === inspectionId) : undefined)
-    ?? routines.find((item) => !ROUTINE_CLOSED.has(item.status))
-    ?? routines[0];
+  const openedInspection = inspectionId
+    ? routines.find((item) => item.id === inspectionId) ?? demo.inspections.find((item) => item.id === inspectionId)
+    : undefined;
+  const scheduled = inspectionId ? openedInspection : routines.find((item) => !ROUTINE_CLOSED.has(item.status)) ?? routines[0];
   const inspectionThread = demo.threads.find((item) => item.category === 'Inspection');
   const closed = scheduled ? ROUTINE_CLOSED.has(scheduled.status) : true;
   const selfVisit = scheduled?.flow === 'self' && scheduled.actionRequired && !closed;
@@ -37,6 +38,7 @@ export function InspectionScreen() {
   return (
     <Screen>
       <BackButton />
+      {inspectionId && !openedInspection ? <Notice>This inspection is not on the selected property.</Notice> : null}
       <TaskHeader title={scheduled?.title || 'Routine inspection'} status={scheduled ? statusLabel(scheduled.status) : 'None scheduled'} />
       <Card>
         <Text style={styles.kicker}>{scheduled?.flow === 'self' ? 'SELF INSPECTION' : 'IN-PERSON INSPECTION'}</Text>
@@ -53,16 +55,16 @@ export function InspectionScreen() {
             label={busy ? 'Saving…' : 'I can attend'}
             onPress={() => {
               if (busy) return;
-              setBusy(true);
-              setError(null);
-              void tenantApi
-                .confirmRoutineAttendance(scheduled.id, ROUTINE_ATTENDANCE.YES)
-                .then(() => demo.refreshAccount())
-                .catch((err) => setError(err instanceof Error ? err.message : 'Could not save attendance'))
-                .finally(() => setBusy(false));
+            setBusy(true);
+            setError(null);
+            return tenantApi
+              .confirmRoutineAttendance(scheduled.id, ROUTINE_ATTENDANCE.YES)
+              .then(() => demo.refreshAccount())
+              .catch((err) => setError(err instanceof Error ? err.message : 'Could not save attendance'))
+              .finally(() => setBusy(false));
             }}
           />
-          <Button label="Request reschedule" tone="secondary" onPress={() => router.push('/flow/reschedule')} />
+          <Button label="Request reschedule" tone="secondary" onPress={() => router.push(scheduled?.id ? `/flow/reschedule?inspection=${scheduled.id}` : '/flow/reschedule')} />
         </View>
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -79,6 +81,11 @@ export function InspectionScreen() {
 export function RescheduleScreen() {
   const router = useRouter();
   const demo = useDemo();
+  const params = useLocalSearchParams<{ inspection?: string | string[]; job?: string | string[] }>();
+  const inspectionId = Array.isArray(params.inspection) ? params.inspection[0] : params.inspection;
+  const jobId = Array.isArray(params.job) ? params.job[0] : params.job;
+  const inspection = inspectionId ? demo.inspections.find((item) => item.id === inspectionId) : undefined;
+  const job = jobId ? (demo.maintenanceAll.find((item) => item.id === jobId) ?? demo.maintenance.find((item) => item.id === jobId)) : undefined;
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [reason, setReason] = useState('');
@@ -89,6 +96,10 @@ export function RescheduleScreen() {
       <BackButton />
       <Text style={styles.h2}>Request reschedule</Text>
       <Text style={styles.muted}>The current appointment stays in place until your property manager sets a new time. This sends them a message.</Text>
+      {inspectionId && !inspection ? <Notice>This inspection is not on the selected property.</Notice> : null}
+      {jobId && !job ? <Notice>This repair is not on your account.</Notice> : null}
+      {inspection ? <Text style={styles.body}>{[inspection.title, inspection.address, inspection.when].filter(Boolean).join(' · ')}</Text> : null}
+      {job ? <Text style={styles.body}>{[job.tracking, job.title, job.address].filter(Boolean).join(' · ')}</Text> : null}
       <Card>
         <Field label="Preferred date">
           <Input value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
@@ -108,23 +119,31 @@ export function RescheduleScreen() {
               setError('Enter a preferred date, a time, and a reason.');
               return;
             }
+            if ((inspectionId && !inspection) || (jobId && !job)) return;
             setBusy(true);
             setError(null);
-            void tenantApi
+            const about = job
+              ? `Repair ${job.tracking || job.id}: ${job.title}\n${job.address}`
+              : inspection
+                ? `${inspection.title} at ${inspection.address || 'this property'} on ${inspection.when || 'the booked date'}`
+                : 'This appointment';
+            return tenantApi
               .createMessage({
-                subject: 'Reschedule request',
-                body: `Preferred date: ${date.trim()}\nTime: ${time.trim()}\n${reason.trim()}`,
-                department: 'INSPECTION',
-                ...(demo.propertyUuid ? { propertyId: demo.propertyUuid } : {}),
+                subject: job ? `Reschedule repair ${job.tracking || ''}`.trim() : 'Reschedule request',
+                body: `${about}\nPreferred date: ${date.trim()}\nTime: ${time.trim()}\n${reason.trim()}`,
+                department: job ? 'MAINTENANCE' : 'INSPECTION',
+                ...((job?.propertyId || inspection?.propertyId || demo.propertyUuid)
+                  ? { propertyId: job?.propertyId || inspection?.propertyId || demo.propertyUuid || undefined }
+                  : {}),
               })
               .then(() => {
                 demo.notify('Reschedule request sent to your property manager');
-                router.dismissTo('/flow/inspection');
+                router.dismissTo(job ? `/flow/maintenance?job=${job.id}` : '/flow/inspection');
               })
               .catch((err) => {
                 setError(err instanceof Error ? err.message : 'Could not send the request');
-                setBusy(false);
-              });
+              })
+              .finally(() => setBusy(false));
           }}
         />
       </Card>
@@ -180,9 +199,9 @@ export function OpenInspectionScreen() {
           <Text style={styles.title}>{item.when || 'Date not set'}</Text>
           <Text style={styles.body}>{item.address || item.title}</Text>
           <Text style={styles.muted}>{item.status}</Text>
+          <Button label="Request change" tone="secondary" onPress={() => router.push(`/flow/reschedule?inspection=${item.id}`)} />
         </Card>
       ))}
-      <Button label="Request change" tone="secondary" onPress={() => router.push('/flow/reschedule')} />
       <Notice>A change request sends a message. It does not move the published time.</Notice>
     </Screen>
   );
@@ -198,11 +217,16 @@ export function ReportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
+  const requestKey = useRef(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const properties = demo.tenancies.filter((tenancy, index, all) => {
     if (!tenancy.current || !tenancy.propertyId) return false;
     return all.findIndex((item) => item.propertyId === tenancy.propertyId) === index;
   });
-  const selectedPropertyId = properties.length === 1 ? properties[0].propertyId : propertyId;
+  const selectedPropertyId =
+    propertyId ??
+    (properties.some((tenancy) => tenancy.propertyId === demo.propertyUuid) ? demo.propertyUuid : null) ??
+    (properties.length === 1 ? properties[0].propertyId : null);
+  const selectedProperty = properties.find((tenancy) => tenancy.propertyId === selectedPropertyId);
 
   function addPhotos(open: () => Promise<EvidenceFile[]>, failure: string) {
     if (picking || busy) return;
@@ -227,7 +251,7 @@ export function ReportScreen() {
       <Text style={styles.muted}>Describe the problem and attach at least one photo or video, up to 10. A tracking number is issued when the report is accepted.</Text>
       <Card>
         {properties.length === 0 ? <Notice>No current property is on this account.</Notice> : null}
-        {properties.length === 1 ? <Text style={styles.body}>Property: {properties[0].address}</Text> : null}
+        {selectedProperty ? <Text style={styles.body}>This report is for {selectedProperty.address}.</Text> : null}
         {properties.length > 1 ? (
           <Field label="Which property?">
             <View style={styles.stack}>
@@ -331,10 +355,9 @@ export function ReportScreen() {
             }
             setError(null);
             setBusy(true);
-            void demo.addMaintenance(issue, urgent, photos, '', selectedPropertyId).then((tracking) => {
-              setBusy(false);
-              if (tracking) router.replace(`/flow/maintenance?job=${tracking}`);
-            });
+            return demo.addMaintenance(issue, urgent, photos, '', selectedPropertyId, requestKey.current).then((createdId) => {
+              if (createdId) router.replace(`/flow/maintenance?job=${createdId}`);
+            }).finally(() => setBusy(false));
           }}
         />
       </Card>
@@ -385,7 +408,7 @@ function RepairDecisions({ job }: { job: ReturnType<typeof useDemo>['maintenance
           </Field>
           <Button
             label="I agree this repair is mine"
-            onPress={() => void run(() => tenantApi.ackRepairResponsibility(job.id, { agreed: true }), 'Responsibility saved')}
+            onPress={() => run(() => tenantApi.ackRepairResponsibility(job.id, { agreed: true }), 'Responsibility saved')}
           />
           <Button
             label="I disagree"
@@ -395,7 +418,7 @@ function RepairDecisions({ job }: { job: ReturnType<typeof useDemo>['maintenance
                 setError('Tell us why you disagree.');
                 return;
               }
-              void run(() => tenantApi.ackRepairResponsibility(job.id, { agreed: false, reason: reason.trim() }), 'Disagreement saved');
+              return run(() => tenantApi.ackRepairResponsibility(job.id, { agreed: false, reason: reason.trim() }), 'Disagreement saved');
             }}
           />
         </>
@@ -416,7 +439,7 @@ function RepairDecisions({ job }: { job: ReturnType<typeof useDemo>['maintenance
               setError('Answer each question before sending.');
               return;
             }
-            void run(
+            return run(
               () =>
                 tenantApi.answerRepairQuestions(job.id, {
                   answers: pending.map((question) => ({
@@ -433,7 +456,7 @@ function RepairDecisions({ job }: { job: ReturnType<typeof useDemo>['maintenance
       {job.completionApprovalPending ? (
         <Button
           label="The repair is finished"
-          onPress={() => void run(() => tenantApi.approveRepairCompletion(job.id), 'Repair marked finished')}
+          onPress={() => run(() => tenantApi.approveRepairCompletion(job.id), 'Repair marked finished')}
         />
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -452,28 +475,28 @@ export function MaintenanceScreen() {
   const router = useRouter();
   const { job: jobParam } = useLocalSearchParams<{ job?: string | string[] }>();
   const jobId = Array.isArray(jobParam) ? jobParam[0] : jobParam;
-  const { maintenance } = useDemo();
-  const opened = jobId ? maintenance.find((item) => item.id === jobId) : undefined;
-  const showList = !jobId && maintenance.length > 1;
-  const job = jobId ? opened : showList ? undefined : maintenance[0];
+  const { maintenance, maintenanceAll } = useDemo();
+  const opened = jobId ? (maintenanceAll.find((item) => item.id === jobId) ?? maintenance.find((item) => item.id === jobId)) : undefined;
+  const job = jobId ? opened : undefined;
   return (
     <Screen>
       <BackButton />
       {maintenance.length === 0 ? <Notice>Repairs you submit appear here from your tenancy.</Notice> : null}
       {!job ? <Button label="Report a repair" onPress={() => router.push('/flow/report')} /> : null}
-      {jobId && !opened ? <Notice>This repair is not on this account.</Notice> : null}
-      {showList ? <Text style={styles.h2}>Repairs</Text> : null}
-      {showList ? (
+      {jobId && !opened ? <Notice>This repair is not on your account.</Notice> : null}
+      {!jobId ? <Text style={styles.h2}>Repairs</Text> : null}
+      {!jobId ? (
         maintenance.map((item) => (
           <Card key={item.id} onPress={() => router.push(`/flow/maintenance?job=${item.id}`)}>
             <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.muted}>{[item.tracking, statusLabel(item.status)].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.muted}>{[item.address, item.tracking, statusLabel(item.status)].filter(Boolean).join(' · ')}</Text>
           </Card>
         ))
       ) : null}
       {job ? (
         <>
           <TaskHeader title={job.title} status={statusLabel(job.status)} />
+          <Text style={styles.body}>{job.address || 'Property not recorded on this repair'}</Text>
           <Card>
             <Text style={styles.muted}>{[job.tracking, job.category, job.urgent ? 'Urgent' : ''].filter(Boolean).join(' · ')}</Text>
             {job.photos.length > 0 ? (
@@ -504,7 +527,7 @@ export function MaintenanceScreen() {
           </Card>
           <View style={styles.stack}>
             <Button label="Message your agent" onPress={() => router.push('/flow/new-message')} />
-            {job.scheduleApprovalPending ? <Button label="Respond to proposed time" tone="secondary" onPress={() => router.push('/flow/appointment')} /> : null}
+            {job.scheduleApprovalPending ? <Button label="Respond to proposed time" tone="secondary" onPress={() => router.push(`/flow/appointment?job=${job.id}`)} /> : null}
           </View>
           <Notice>When the contractor finishes, you confirm whether the issue is resolved. Silence does not close the request.</Notice>
         </>
@@ -515,21 +538,26 @@ export function MaintenanceScreen() {
 
 export function AppointmentScreen() {
   const router = useRouter();
-  const { notify, maintenance, refreshAccount } = useDemo();
-  const job = maintenance.find((item) => item.scheduleApprovalPending) ?? maintenance[0];
+  const params = useLocalSearchParams<{ job?: string | string[] }>();
+  const jobId = Array.isArray(params.job) ? params.job[0] : params.job;
+  const { notify, maintenance, maintenanceAll, refreshAccount } = useDemo();
+  const job = jobId ? (maintenanceAll.find((item) => item.id === jobId) ?? maintenance.find((item) => item.id === jobId)) : undefined;
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Repair appointment</Text>
       <Card>
+        {!job ? <Notice>Open this from the repair it belongs to. A different repair is not shown here.</Notice> : null}
         <Tag label="Action Required" tone="amber" />
-        <Text style={styles.title}>Contractor proposes</Text>
+        <Text style={styles.title}>{job ? job.title : 'Repair appointment'}</Text>
+        <Text style={styles.body}>{job?.address || ''}</Text>
         <Text style={styles.body}>{job?.scheduleProposedTimes || 'No time has been proposed yet.'}</Text>
         <Button
           label="Confirm appointment"
+          disabled={!job}
           onPress={() => {
-            if (!job) return;
-            void import('@/src/api/tenant').then(({ tenantApi }) =>
+            if (!job) return Promise.resolve();
+            return import('@/src/api/tenant').then(({ tenantApi }) =>
               tenantApi.respondSchedule(job.id, 'approved').then(async () => {
                 await refreshAccount();
                 notify('Appointment confirmed');
@@ -538,7 +566,7 @@ export function AppointmentScreen() {
             );
           }}
         />
-        <Button label="Request another time" tone="secondary" onPress={() => router.push('/flow/reschedule')} />
+        <Button label="Request another time" tone="secondary" disabled={!job} onPress={() => { if (job) router.push(`/flow/reschedule?job=${job.id}`); }} />
       </Card>
       <Notice>Confirming a time does not give unrestricted access. Your access preference stays on the request.</Notice>
     </Screen>

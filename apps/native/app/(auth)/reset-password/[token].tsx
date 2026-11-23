@@ -42,7 +42,7 @@ export default function ResetPasswordScreen() {
       setError('Those passwords do not match.');
       return;
     }
-    void submitNewPassword(linkToken, password)
+    return submitNewPassword(linkToken, password)
       .then(() => router.dismissTo('/login'))
       .catch((err) => {
         const message = err instanceof Error ? err.message : 'Could not reset the password';

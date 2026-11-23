@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 
+import { sameProperty } from '@/src/api/load-account';
 import { tenantApi } from '@/src/api/tenant';
 import type { components } from '@crossub-thongz/api-contract';
 import { useDemo } from '@/src/demo/store';
@@ -14,7 +15,6 @@ function pickReport(rows: IngoingInspection[]): IngoingInspection | null {
   return (
     rows.find((item) => item.status === 'awaiting_confirmation') ??
     rows.find((item) => item.status !== 'confirmed' && item.status !== 'rejected') ??
-    rows[0] ??
     null
   );
 }
@@ -33,7 +33,10 @@ export function EntryScreen() {
     async function load() {
       try {
         const rows = await tenantApi.ingoingInspections();
-        const chosen = pickReport(rows);
+        const mine = rows.filter((item) =>
+          sameProperty(item, demo.propertyUuid, demo.property.title),
+        );
+        const chosen = pickReport(mine);
         if (!chosen) {
           if (!cancelled) setReport(null);
           return;
@@ -50,7 +53,7 @@ export function EntryScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [demo.property.title, demo.propertyUuid]);
 
   const sections = report?.sections ?? [];
   const waiting = report?.status === 'awaiting_confirmation' && !report.tenantApproved && !report.tenantRejected;
@@ -119,10 +122,10 @@ export function EntryScreen() {
                   </Field>
                   <View style={styles.row}>
                     <View style={styles.flex}>
-                      <Button label="Confirm" onPress={() => void feedback(section, 'confirmed')} />
+                      <Button label="Confirm" onPress={() => feedback(section, 'confirmed')} />
                     </View>
                     <View style={styles.flex}>
-                      <Button label="Dispute" tone="secondary" onPress={() => void feedback(section, 'disputed')} />
+                      <Button label="Dispute" tone="secondary" onPress={() => feedback(section, 'disputed')} />
                     </View>
                   </View>
                 </>
@@ -139,7 +142,7 @@ export function EntryScreen() {
                   if (busy || !report) return;
                   setBusy(true);
                   setError(null);
-                  void tenantApi
+                  return tenantApi
                     .approveIngoing(report.id)
                     .then((next) => {
                       setReport(next.sections ? next : { ...report, ...next, sections: report.sections });
@@ -164,7 +167,7 @@ export function EntryScreen() {
                   }
                   setBusy(true);
                   setError(null);
-                  void tenantApi
+                  return tenantApi
                     .rejectIngoing(report.id, reason)
                     .then((next) => {
                       setReport(next.sections ? next : { ...report, ...next, sections: report.sections });

@@ -181,7 +181,7 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
     if (item.id === 'vacating') continue;
     slides.push({ id: item.id, title: item.title, meta: '', value: item.subtitle, action: 'Open', href: item.href });
   }
-  const name = [user?.firstName, user?.lastName].map((part) => part?.trim()).filter(Boolean).join(' ');
+  const name = demo.tenantName || [user?.firstName, user?.lastName].map((part) => part?.trim()).filter(Boolean).join(' ');
 
   return (
     <Screen tab={tab} background={colors.bg}>
@@ -191,7 +191,7 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
           <View style={styles.avatar}>
             <Ionicons name="person" size={18} color="#fff" />
           </View>
-          <Text style={styles.hello}>{name ? `Hi, ${name}` : 'Hi'}</Text>
+          <Text style={styles.hello}>{name ? `Hi ${name}` : 'Hi'}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push('/flow/notifications')} style={styles.round}>
             <Ionicons name="notifications-outline" size={18} color={colors.ink} />
             {unreadNotices ? <View style={styles.dot} /> : null}

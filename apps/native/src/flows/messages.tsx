@@ -64,7 +64,7 @@ export function NewMessageScreen() {
         <Button
           label="Send message"
           onPress={() => {
-            void demo.createThread({ category, subject, body, file }).then((id) => {
+            return demo.createThread({ category, subject, body, file }).then((id) => {
               if (id) router.replace(`/flow/conversation?thread=${id}`);
             });
           }}
@@ -124,7 +124,7 @@ export function ConversationScreen() {
           <Button
             label="Send"
             onPress={() => {
-              void demo.sendChat(threadId, text, file).then((sent) => {
+              return demo.sendChat(threadId, text, file).then((sent) => {
                 if (sent) {
                   setText('');
                   setFile(null);

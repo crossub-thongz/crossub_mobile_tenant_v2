@@ -75,6 +75,8 @@ type DemoState = {
   vacatingCases: LiveVacating[];
   vacating: LiveVacating | null;
   maintenance: LiveMaintenance[];
+  maintenanceAll: LiveMaintenance[];
+  tenantName: string;
   keyReturnPhotos: string[];
   keyReturnFiles: Record<string, EvidenceFile>;
   keyReturnSubmitted: boolean;
@@ -115,6 +117,25 @@ type DemoState = {
 };
 
 const initialCounts = Object.fromEntries(ROOMS.map((room) => [room, 0]));
+const submitLocks = new Set<string>();
+let maintenanceSubmit: Promise<string | null> | null = null;
+
+function guardSubmit(key: string, run: () => Promise<void>): void {
+  if (submitLocks.has(key)) return;
+  submitLocks.add(key);
+  void run().finally(() => submitLocks.delete(key));
+}
+
+function existingRequestId(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null;
+  const record = body as { id?: unknown; message?: unknown };
+  if (typeof record.id === 'string') return record.id;
+  if (record.message && typeof record.message === 'object') {
+    const nested = (record.message as { id?: unknown }).id;
+    if (typeof nested === 'string') return nested;
+  }
+  return null;
+}
 
 const initialState: DemoState = {
   scenarioId: 'crossub',
@@ -149,6 +170,8 @@ const initialState: DemoState = {
   vacatingCases: [],
   vacating: null,
   maintenance: [],
+  maintenanceAll: [],
+  tenantName: '',
   keyReturnPhotos: [],
   keyReturnFiles: {},
   keyReturnSubmitted: false,
@@ -205,7 +228,7 @@ type DemoApi = DemoState & {
   refreshAccount: () => Promise<void>;
   selectTenancy: (id: string) => void;
   noteRentPayment: (amount: number) => void;
-  addMaintenance: (title: string, urgent: boolean, photos: EvidenceFile[], video: string, propertyId: string) => Promise<string | null>;
+  addMaintenance: (title: string, urgent: boolean, photos: EvidenceFile[], video: string, propertyId: string, clientRequestId: string) => Promise<string | null>;
   addKeyReturnPhoto: (file: EvidenceFile) => string | null;
   removeKeyReturnPhoto: (name: string) => void;
   submitKeyReturn: () => boolean;
@@ -341,15 +364,19 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setInboxFilter: (inboxFilter) => patch({ inboxFilter }),
       confirmInspection: () => {
         patch({ inspectionConfirmed: true });
-        void tenantApi
-          .createMessage({
-            subject: 'Routine inspection',
-            body: 'I can attend the scheduled inspection.',
-            department: 'INSPECTION',
-            ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
-          })
-          .then(() => notify('Attendance sent to your property manager'))
-          .catch((err) => notify(failureMessage(err, 'Could not confirm attendance')));
+        guardSubmit(`attendance:${scoped.propertyUuid ?? 'home'}`, async () => {
+          try {
+            await tenantApi.createMessage({
+              subject: 'Routine inspection',
+              body: 'I can attend the scheduled inspection.',
+              department: 'INSPECTION',
+              ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
+            });
+            notify('Attendance sent to your property manager');
+          } catch (err) {
+            notify(failureMessage(err, 'Could not confirm attendance'));
+          }
+        });
       },
       respondRenewal: () => {
         patch({ renewalResponded: true });
@@ -360,7 +387,13 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         const caseId = scoped.vacating?.id;
         if (!caseId) return;
         const choice = cleaning === 'Crossub Cleaning' ? 'booked' : 'own_arrangement';
-        void tenantApi.setCleaning(caseId, choice).catch((err) => notify(failureMessage(err, 'Could not save the cleaning choice')));
+        guardSubmit(`cleaning:${caseId}`, async () => {
+          try {
+            await tenantApi.setCleaning(caseId, choice);
+          } catch (err) {
+            notify(failureMessage(err, 'Could not save the cleaning choice'));
+          }
+        });
       },
       setKeyMode: (keyMode) => patch({ keyMode }),
       bookKey: () => {
@@ -380,43 +413,56 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         notify('Evidence sent for confirmation');
         return true;
       },
-      addMaintenance: async (title, urgent, photos, video, propertyId) => {
+      addMaintenance: (title, urgent, photos, video, propertyId, clientRequestId) => {
+        if (maintenanceSubmit) return maintenanceSubmit;
         const trimmed = title.trim();
         const files = video.trim() && photos.length === 0 ? [] : photos;
         if (!trimmed) {
           notify('Describe the issue first');
-          return null;
+          return Promise.resolve(null);
         }
         if (files.length === 0) {
           notify('Add at least one photo or video');
-          return null;
+          return Promise.resolve(null);
         }
-        if (!propertyId) {
+        if (!propertyId || !clientRequestId) {
           notify('Choose the property for this repair');
-          return null;
+          return Promise.resolve(null);
         }
         const selected = state.tenancies.find((item) => item.propertyId === propertyId && item.current);
         if (!selected) {
           notify('This tenancy has ended. New requests are closed.');
-          return null;
+          return Promise.resolve(null);
         }
-        try {
-          const urls: string[] = [];
-          for (const file of files) urls.push((await tenantApi.uploadMaintenancePhoto(file)).url);
-          const created = await tenantApi.createMaintenance({
-            description: trimmed,
-            urgent,
-            photos: urls,
-            propertyId,
-          });
-          const tracking = created.orderNumber || created.id.slice(0, 8);
-          await refreshAccount();
-          notify(`${tracking} issued.`);
-          return created.id;
-        } catch (err) {
-          notify(failureMessage(err, 'Could not submit the repair'));
-          return null;
-        }
+        maintenanceSubmit = (async () => {
+          try {
+            const urls: string[] = [];
+            for (const file of files) urls.push((await tenantApi.uploadMaintenancePhoto(file)).url);
+            const created = await tenantApi.createMaintenance({
+              description: trimmed,
+              urgent,
+              photos: urls,
+              propertyId,
+              clientRequestId,
+            });
+            if (created.propertyId && created.propertyId !== propertyId) {
+              notify('This report was filed on a different property from the one you selected.');
+            }
+            const filed = state.tenancies.find((item) => item.propertyId === (created.propertyId || propertyId));
+            if (filed) patch({ selectedTenancyId: filed.id });
+            await refreshAccount();
+            notify(`${created.orderNumber || created.id.slice(0, 8)} issued.`);
+            return created.id;
+          } catch (err) {
+            const existing = err instanceof ApiError && err.status === 409 ? existingRequestId(err.body) : null;
+            if (existing) return existing;
+            notify(failureMessage(err, 'Could not submit the repair'));
+            return null;
+          } finally {
+            maintenanceSubmit = null;
+          }
+        })();
+        return maintenanceSubmit;
       },
       addKeyReturnPhoto: (file) => {
         if (state.keyReturnPhotos.length >= 4) return 'Maximum 4 photos.';
@@ -442,7 +488,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('No vacating case is open on this account.');
           return false;
         }
-        void (async () => {
+        guardSubmit(`key-return:${caseId}`, async () => {
           try {
             const urls: string[] = [];
             for (const name of state.keyReturnPhotos) {
@@ -460,24 +506,38 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             notify(failureMessage(err, 'Could not submit the key return'));
           }
-        })();
+        });
         return true;
       },
       markNoticeRead: (id) => {
-        void tenantApi
-          .markNotificationRead(id)
-          .then(() => refreshAccount())
-          .catch((err) => notify(failureMessage(err, 'Could not mark that notification read')));
+        guardSubmit(`notice:${id}`, async () => {
+          try {
+            await tenantApi.markNotificationRead(id);
+            await refreshAccount();
+          } catch (err) {
+            notify(failureMessage(err, 'Could not mark that notification read'));
+          }
+        });
       },
       markAllNoticesRead: () => {
-        void tenantApi
-          .markAllNotificationsRead()
-          .then(() => refreshAccount())
-          .catch((err) => notify(failureMessage(err, 'Could not mark notifications read')));
+        guardSubmit('notices', async () => {
+          try {
+            await tenantApi.markAllNotificationsRead();
+            await refreshAccount();
+          } catch (err) {
+            notify(failureMessage(err, 'Could not mark notifications read'));
+          }
+        });
       },
       markThreadRead: (id) => {
         patch({ threads: state.threads.map((item) => (item.id === id ? { ...item, unread: false } : item)) });
-        void tenantApi.markMessageRead(id).catch(() => undefined);
+        guardSubmit(`thread-read:${id}`, async () => {
+          try {
+            await tenantApi.markMessageRead(id);
+          } catch {
+            // Reading a thread should not block the conversation.
+          }
+        });
       },
       attachToThread: (id, name) => {
         const trimmed = name.trim();
@@ -547,6 +607,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('This conversation is closed. Start a new enquiry.');
           return false;
         }
+        const key = `chat:${threadId}`;
+        if (submitLocks.has(key)) return false;
+        submitLocks.add(key);
         try {
           await tenantApi.replyMessage(threadId, {
             body: trimmed,
@@ -557,6 +620,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           notify(failureMessage(err, 'Could not send the message'));
           return false;
+        } finally {
+          submitLocks.delete(key);
         }
       },
       createThread: async ({ category, subject, body, file }) => {
@@ -564,6 +629,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('Add a subject and a message');
           return '';
         }
+        const key = 'new-message';
+        if (submitLocks.has(key)) return '';
+        submitLocks.add(key);
         try {
           const created = await tenantApi.createMessage({
             subject: subject.trim(),
@@ -578,6 +646,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           notify(failureMessage(err, 'Could not send the message'));
           return '';
+        } finally {
+          submitLocks.delete(key);
         }
       },
       submitCheckIn: async (input) => {
@@ -585,6 +655,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           return 'Enter your name, email, and phone number.';
         }
         if (!input.sessionId) return 'This check-in link is missing the inspection session.';
+        const lockKey = `check-in:${input.sessionId}`;
+        if (submitLocks.has(lockKey)) return 'Check-in is already being sent.';
+        submitLocks.add(lockKey);
         try {
           await import('@/src/api/listings').then(({ submitOpenViewingCheckIn }) =>
             submitOpenViewingCheckIn(input.sessionId, {
@@ -607,6 +680,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           return null;
         } catch (err) {
           return failureMessage(err, 'Failed to submit check-in');
+        } finally {
+          submitLocks.delete(lockKey);
         }
       },
       submitApplication: async (input) => {
@@ -619,6 +694,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
               ? 'unemployed'
               : 'employed';
         const { documents, annualIncome, moveInDate, ...formData } = input;
+        const key = `application:${input.propertyId}:${input.email.trim().toLowerCase()}`;
+        if (submitLocks.has(key)) return '';
+        submitLocks.add(key);
         try {
           const { submitGuestApplication } = await import('@/src/api/listings');
           const created = await submitGuestApplication(input.propertyId, {
@@ -637,11 +715,13 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           notify(failureMessage(err, 'Could not submit the application'));
           return '';
+        } finally {
+          submitLocks.delete(key);
         }
       },
       uploadOnboardingProof: (stepId, file) => {
         if (stepId !== 'deposit' && stepId !== 'bond') return 'This step does not take a receipt upload.';
-        void (async () => {
+        guardSubmit(`proof:${stepId}`, async () => {
           try {
             const uploaded = await tenantApi.uploadProof(stepId, file);
             await tenantApi.submitProof(stepId, uploaded.url, file.fileName);
@@ -653,18 +733,20 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             notify(failureMessage(err, 'Could not upload the proof'));
           }
-        })();
+        });
         return null;
       },
       confirmOnboarding: (stepId) => {
         if (stepId === 'lease_signing') {
-          void tenantApi
-            .recordLeaseSigning()
-            .then(() => {
+          guardSubmit('lease-signing', async () => {
+            try {
+              await tenantApi.recordLeaseSigning();
               patch({ onboarding: { ...state.onboarding, [stepId]: 'completed' } });
               notify('Lease acceptance sent');
-            })
-            .catch((err) => notify(failureMessage(err, 'Could not record the lease signing')));
+            } catch (err) {
+              notify(failureMessage(err, 'Could not record the lease signing'));
+            }
+          });
           return;
         }
         if (stepId === 'key_pickup') {
@@ -674,7 +756,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         notify('This step is updated when your property manager confirms it');
       },
       submitKeyCollection: (time, location, file) => {
-        void (async () => {
+        guardSubmit('key-collection', async () => {
           try {
             const uploaded = await tenantApi.uploadKeyCollectionPhoto(file);
             await tenantApi.submitKeyCollection({ time, location, photoUrls: [uploaded.url] });
@@ -686,7 +768,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             notify(failureMessage(err, 'Could not save key collection'));
           }
-        })();
+        });
       },
       finishTutorial: () => {
         patch({ tutorialDone: true });
@@ -694,18 +776,26 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       },
       finishGuide: () => {
         patch({ guideSeen: true });
-        void tenantApi.acknowledgeWelcome().catch((err) => notify(failureMessage(err, 'Could not save the welcome guide')));
+        guardSubmit('welcome', async () => {
+          try {
+            await tenantApi.acknowledgeWelcome();
+          } catch (err) {
+            notify(failureMessage(err, 'Could not save the welcome guide'));
+          }
+        });
       },
       acceptAgreement: (name) => {
         const trimmed = name.trim();
         if (!trimmed) return 'Enter your full legal name.';
-        void tenantApi
-          .recordLeaseSigning()
-          .then(() => {
+        guardSubmit('agreement', async () => {
+          try {
+            await tenantApi.recordLeaseSigning();
             patch({ agreementName: trimmed });
             notify('Agreement acceptance sent');
-          })
-          .catch((err) => notify(failureMessage(err, 'Could not record the agreement')));
+          } catch (err) {
+            notify(failureMessage(err, 'Could not record the agreement'));
+          }
+        });
         return null;
       },
       acceptRentReview: () => {
@@ -714,70 +804,78 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('No rent review is open on this account.');
           return;
         }
-        void tenantApi
-          .respondRentReview(review.id, {
-            decision: 'accept',
-            respondingToOfferId: review.offerId,
-            expectedVersion: review.version,
-          })
-          .then(async () => {
+        guardSubmit(`rent-review:${review.id}:accept`, async () => {
+          try {
+            await tenantApi.respondRentReview(review.id, {
+              decision: 'accept',
+              respondingToOfferId: review.offerId,
+              expectedVersion: review.version,
+            });
             patch({ rentReviewStatus: 'accepted', rentReviewCounter: null });
             notify('Rent increase accepted. This does not sign the lease.');
             await refreshAccount();
-          })
-          .catch((err) => notify(failureMessage(err, 'Could not accept the rent review')));
+          } catch (err) {
+            notify(failureMessage(err, 'Could not accept the rent review'));
+          }
+        });
       },
       counterRentReview: (amount) => {
         if (!Number.isFinite(amount) || amount <= 0) return 'Enter a weekly amount.';
         const review = scoped.rentReview;
         if (!review) return 'No rent review is open on this account.';
-        void tenantApi
-          .respondRentReview(review.id, {
-            decision: 'counter',
-            counterWeekly: amount,
-            respondingToOfferId: review.offerId,
-            expectedVersion: review.version,
-          })
-          .then(async () => {
+        guardSubmit(`rent-review:${review.id}:counter`, async () => {
+          try {
+            await tenantApi.respondRentReview(review.id, {
+              decision: 'counter',
+              counterWeekly: amount,
+              respondingToOfferId: review.offerId,
+              expectedVersion: review.version,
+            });
             patch({ rentReviewStatus: 'countered', rentReviewCounter: amount });
             notify('Counter-offer sent');
             await refreshAccount();
-          })
-          .catch((err) => notify(failureMessage(err, 'Could not send the counter-offer')));
+          } catch (err) {
+            notify(failureMessage(err, 'Could not send the counter-offer'));
+          }
+        });
         return null;
       },
       vacateFromRentReview: (date) => {
         if (!date.trim()) return 'Enter the date you plan to vacate.';
         const review = scoped.rentReview;
         if (!review) return 'No rent review is open on this account.';
-        void tenantApi
-          .respondRentReview(review.id, {
-            decision: 'decline',
-            moveOutDate: date.trim(),
-            respondingToOfferId: review.offerId,
-            expectedVersion: review.version,
-          })
-          .then(async () => {
+        guardSubmit(`rent-review:${review.id}:decline`, async () => {
+          try {
+            await tenantApi.respondRentReview(review.id, {
+              decision: 'decline',
+              moveOutDate: date.trim(),
+              respondingToOfferId: review.offerId,
+              expectedVersion: review.version,
+            });
             patch({ rentReviewStatus: 'vacating', rentReviewMoveOut: date.trim() });
             notify('Notice to vacate sent');
             await refreshAccount();
-          })
-          .catch((err) => notify(failureMessage(err, 'Could not send notice to vacate')));
+          } catch (err) {
+            notify(failureMessage(err, 'Could not send notice to vacate'));
+          }
+        });
         return null;
       },
       confirmTermination: (date) => {
         if (!date.trim()) return 'Select a move-out date.';
-        void tenantApi
-          .createVacating({
-            expectedVacateDate: date.trim(),
-            ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
-          })
-          .then(async () => {
+        guardSubmit(`vacating:${scoped.propertyUuid ?? 'home'}`, async () => {
+          try {
+            await tenantApi.createVacating({
+              expectedVacateDate: date.trim(),
+              ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
+            });
             patch({ terminationMoveOut: date.trim(), terminationStarted: true });
             notify('Vacating case opened');
             await refreshAccount();
-          })
-          .catch((err) => notify(failureMessage(err, 'Could not open the vacating case')));
+          } catch (err) {
+            notify(failureMessage(err, 'Could not open the vacating case'));
+          }
+        });
         return null;
       },
       requestMoving: () => {
@@ -786,13 +884,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('A vacating case is required before a moving referral.');
           return;
         }
-        void tenantApi
-          .requestMovingReferral(caseId)
-          .then(async () => {
+        guardSubmit(`moving:${caseId}`, async () => {
+          try {
+            await tenantApi.requestMovingReferral(caseId);
             notify('Moving referral requested. This does not book a mover.');
             await refreshAccount();
-          })
-          .catch((err) => notify(failureMessage(err, 'Could not request a moving referral')));
+          } catch (err) {
+            notify(failureMessage(err, 'Could not request a moving referral'));
+          }
+        });
       },
       notify,
     };

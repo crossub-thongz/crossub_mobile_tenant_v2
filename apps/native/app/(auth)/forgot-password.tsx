@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
       return;
     }
     setError(null);
-    void requestPasswordReset(trimmed)
+    return requestPasswordReset(trimmed)
       .then(() => setSent(true))
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not send the reset email'));
   };

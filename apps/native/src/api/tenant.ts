@@ -395,8 +395,13 @@ export const tenantApi = {
   uploadMaintenancePhoto: (file: EvidenceFile) =>
     unwrap(crossub.POST('/tenant/maintenance-requests/photos/upload', { body: fileBody(file) })),
 
-  createMaintenance: (body: { description: string; urgent: boolean; photos: string[]; propertyId?: string }) =>
-    unwrap(crossub.POST('/tenant/maintenance-requests', { body })),
+  createMaintenance: (body: {
+    description: string;
+    urgent: boolean;
+    photos: string[];
+    propertyId?: string;
+    clientRequestId?: string;
+  }) => unwrap(crossub.POST('/tenant/maintenance-requests', { body })),
 
   respondSchedule: (requestId: string, decision: 'approved' | 'declined', declineReason?: string) =>
     unwrap(

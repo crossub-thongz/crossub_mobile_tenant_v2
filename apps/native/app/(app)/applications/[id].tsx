@@ -164,7 +164,7 @@ export default function ApplicationDetailScreen() {
               setSaving(true);
               setError(null);
               const uploaded = messageAttachment(file);
-              void tenantApi
+              return tenantApi
                 .addApplicationDocument(applicationId, {
                   category: slot.category,
                   documentType: slot.documentType,

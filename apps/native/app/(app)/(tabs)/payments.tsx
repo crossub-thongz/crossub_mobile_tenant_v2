@@ -158,7 +158,7 @@ export default function PaymentsScreen() {
               setError(null);
               const amountLine = amountDue != null ? `Amount shown: ${money(amountDue)}.` : '';
               const referenceLine = paymentReference ? `Reference: ${paymentReference}.` : '';
-              void tenantApi
+              return tenantApi
                 .createMessage({
                   subject: "I've paid",
                   department: 'ACCOUNTING',

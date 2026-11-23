@@ -137,7 +137,7 @@ export default function ApplyScreen() {
         setError('Income and the document checklist are required.');
         return;
       }
-      void submitApplication({
+      return submitApplication({
         propertyId: property.id,
         propertyAddress: property.address,
         applicantName: form.name.trim(),

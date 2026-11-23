@@ -49,7 +49,7 @@ export default function RentReviewDetailScreen() {
             if (signing) return;
             setSigning(true);
             setError(null);
-            void tenantApi
+            return tenantApi
               .signLeaseAgreement(review.id)
               .then(() => demo.refreshAccount())
               .then(() => demo.notify('Agreement signed'))

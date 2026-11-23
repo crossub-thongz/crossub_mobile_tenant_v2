@@ -79,11 +79,11 @@ export default function TerminationScreen() {
           <Field label="New vacate date">
             <Input value={moveOut} onChangeText={setMoveOut} placeholder="2026-12-14" />
           </Field>
-          <Button label="Change vacate date" onPress={() => void changeDate()} />
+          <Button label="Change vacate date" onPress={() => changeDate()} />
           <Field label="Reason for staying, if you have one">
             <Input value={reason} onChangeText={setReason} placeholder="Optional" />
           </Field>
-          <Button label="I'm not moving out" tone="secondary" onPress={() => void cancelCase()} />
+          <Button label="I'm not moving out" tone="secondary" onPress={() => cancelCase()} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button label="Move-out services" tone="outline" onPress={() => router.push('/move-out-services')} />
         </Card>
@@ -105,7 +105,7 @@ export default function TerminationScreen() {
               if (busy) return;
               setBusy(true);
               setError(null);
-              void tenantApi
+              return tenantApi
                 .createVacating({
                   expectedVacateDate: date,
                   ...(demo.propertyUuid ? { propertyId: demo.propertyUuid } : {}),

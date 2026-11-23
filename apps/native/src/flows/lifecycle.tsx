@@ -235,7 +235,7 @@ export function SettlementScreen() {
             onPress={() => {
               setBusy(true);
               setError(null);
-              void tenantApi.acceptResponsibilities(vacating.id)
+              return tenantApi.acceptResponsibilities(vacating.id)
                 .then(() => demo.refreshAccount())
                 .then(() => demo.notify('Responsibilities acknowledged'))
                 .catch((err) => setError(err instanceof Error ? err.message : 'Could not save that answer'))
@@ -253,7 +253,7 @@ export function SettlementScreen() {
               }
               setBusy(true);
               setError(null);
-              void tenantApi.declineResponsibilities(vacating.id, note)
+              return tenantApi.declineResponsibilities(vacating.id, note)
                 .then(() => demo.refreshAccount())
                 .then(() => demo.notify('Disagreement sent'))
                 .catch((err) => setError(err instanceof Error ? err.message : 'Could not save that answer'))
@@ -277,7 +277,7 @@ export function SettlementScreen() {
             onPress={() => {
               setBusy(true);
               setError(null);
-              void tenantApi.acceptRepairQuote(vacating.id)
+              return tenantApi.acceptRepairQuote(vacating.id)
                 .then(() => demo.refreshAccount())
                 .then(() => demo.notify('Quote accepted'))
                 .catch((err) => setError(err instanceof Error ? err.message : 'Could not accept the quote'))
@@ -295,7 +295,7 @@ export function SettlementScreen() {
               }
               setBusy(true);
               setError(null);
-              void tenantApi.declineRepairQuote(vacating.id, note)
+              return tenantApi.declineRepairQuote(vacating.id, note)
                 .then(() => demo.refreshAccount())
                 .then(() => demo.notify('Quote disagreement sent'))
                 .catch((err) => setError(err instanceof Error ? err.message : 'Could not decline the quote'))
@@ -321,8 +321,8 @@ export function SettlementScreen() {
             <Input multiline value={reason} onChangeText={setReason} placeholder="What should be reviewed?" />
           </Field>
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Button label={busy ? 'Sending…' : 'Accept settlement'} onPress={() => void accept()} />
-          <Button label="Decline settlement" tone="outline" onPress={() => void decline()} />
+          <Button label={busy ? 'Sending…' : 'Accept settlement'} onPress={() => accept()} />
+          <Button label="Decline settlement" tone="outline" onPress={() => decline()} />
         </Card>
       ) : null}
       {error && !waiting ? <Text style={styles.error}>{error}</Text> : null}

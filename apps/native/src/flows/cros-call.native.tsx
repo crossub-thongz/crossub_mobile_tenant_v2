@@ -55,7 +55,7 @@ export function CrosCall() {
       <>
         <Text style={styles.body}>Ask Cros on a voice call. Text replies are not available.</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button label={busy ? 'Starting the call' : 'Start voice call'} onPress={() => void start()} />
+        <Button label={busy ? 'Starting the call' : 'Start voice call'} onPress={() => start()} />
       </>
     );
   }

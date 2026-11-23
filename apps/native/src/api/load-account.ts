@@ -175,7 +175,25 @@ export type LoadedAccount = {
   onboardingActive: boolean;
   onboardingComplete: boolean;
   onboardingStepIds: OnboardingStepId[];
+  tenantName: string;
 };
+
+function streetLine(value: string | null | undefined): string {
+  return (value ?? '').split(',')[0].trim().toLowerCase();
+}
+
+/** A record belongs to the selected tenancy only when its property id or street matches. A missing id is not treated as a match. */
+export function sameProperty(
+  record: { propertyId?: string | null; propertyAddress?: string | null; address?: string | null },
+  propertyId: string | null,
+  address: string,
+): boolean {
+  if (!propertyId && !address.trim()) return true;
+  if (record.propertyId && propertyId) return record.propertyId === propertyId;
+  const left = streetLine(record.propertyAddress || record.address);
+  const right = streetLine(address);
+  return Boolean(left) && Boolean(right) && left === right;
+}
 
 function dateLabel(value: string | null | undefined): string {
   if (!value) return '';
@@ -480,16 +498,12 @@ export function scopeAccount(input: {
     input.tenancies[0] ??
     null;
   const propertyId = selected?.propertyId ?? null;
-  const propertyAddress = (selected?.address ?? '').trim().toLowerCase();
-  const matches = (id: string | null | undefined) => !propertyId || !id || id === propertyId;
-  const matchesRepair = (item: LiveMaintenance) => {
-    if (!propertyId) return true;
-    if (item.propertyId) return item.propertyId === propertyId;
-    const row = item.address.trim().toLowerCase();
-    if (!row || !propertyAddress) return true;
-    return row === propertyAddress;
-  };
-  const inspections = input.inspections.filter((item) => matches(item.propertyId));
+  const propertyAddress = selected?.address ?? '';
+  const matches = (id: string | null | undefined, address = '') =>
+    sameProperty({ propertyId: id, address }, propertyId, propertyAddress);
+  const matchesRepair = (item: LiveMaintenance) =>
+    sameProperty({ propertyId: item.propertyId, address: item.address }, propertyId, propertyAddress);
+  const inspections = input.inspections.filter((item) => matches(item.propertyId, item.address));
   const openRoutine =
     inspections.find((item) => item.type === INSPECTION_KIND.ROUTINE && item.actionRequired && !ROUTINE_DONE.has(item.status)) ??
     inspections.find((item) => item.type === INSPECTION_KIND.ROUTINE && !ROUTINE_DONE.has(item.status)) ??
@@ -511,6 +525,7 @@ export function scopeAccount(input: {
     paymentCycle: selected?.paymentCycle ?? null,
     paymentReference: selected?.paymentReference ?? '',
     maintenance: input.maintenance.filter(matchesRepair),
+    maintenanceAll: input.maintenance,
     inspections,
     ledger: input.ledger.filter((item) => matches(item.propertyId)),
     rentReview: review,
@@ -582,6 +597,11 @@ export async function loadAccount(): Promise<LoadedAccount> {
   const failures = [tenancies, ledger, messages, notifications].filter((item) => !item.ok).map((item) => item.error);
   const authFailed = failures.some((item) => item?.toLowerCase().includes('session') || item?.includes('401'));
   const accounting = scenarioForAccounting(tenancy?.accounting);
+  const profile = await settled(() => tenantApi.profile(), null);
+  const tenantName = [profile.value?.firstName, profile.value?.lastName]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ');
 
   return {
     scenarioId: accounting ?? 'crossub',
@@ -708,5 +728,6 @@ export async function loadAccount(): Promise<LoadedAccount> {
     onboardingActive: Boolean(onboarding.value?.steps?.length) && onboarding.value?.onboardingComplete !== true,
     onboardingComplete: onboarding.value?.onboardingComplete === true || Boolean(onboarding.error?.toLowerCase().includes('complete')),
     onboardingStepIds: (onboarding.value?.steps ?? []).map((step) => step.id).filter(isOnboardingStep),
+    tenantName,
   };
 }

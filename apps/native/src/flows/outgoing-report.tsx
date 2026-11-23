@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 
+import { sameProperty } from '@/src/api/load-account';
 import { tenantApi, type OutgoingInspection, type OutgoingSection } from '@/src/api/tenant';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
@@ -10,7 +11,6 @@ function pickReport(rows: OutgoingInspection[]): OutgoingInspection | null {
   return (
     rows.find((item) => item.status === 'awaiting_confirmation') ??
     rows.find((item) => item.status !== 'confirmed') ??
-    rows[0] ??
     null
   );
 }
@@ -28,7 +28,10 @@ export function FinalScreen() {
     async function load() {
       try {
         const rows = await tenantApi.outgoingInspections();
-        const chosen = pickReport(rows);
+        const mine = rows.filter((item) =>
+          sameProperty(item, demo.propertyUuid, demo.property.title),
+        );
+        const chosen = pickReport(mine);
         if (!chosen) {
           if (!cancelled) setReport(null);
           return;
@@ -45,7 +48,7 @@ export function FinalScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [demo.property.title, demo.propertyUuid]);
 
   const sections = report?.sections ?? [];
   const waiting = report?.status === 'awaiting_confirmation' && !report.tenantApproved;
@@ -98,7 +101,7 @@ export function FinalScreen() {
                   <Button
                     label="Yes"
                     onPress={() => {
-                      void tenantApi
+                      return tenantApi
                         .setOutgoingAttendance(report.vacatingCaseId, 'yes')
                         .then(() => setReport({ ...report, tenantOutgoingAttendance: 'yes' }))
                         .catch((err) => setError(err instanceof Error ? err.message : 'Could not save attendance'));
@@ -110,7 +113,7 @@ export function FinalScreen() {
                     label="No"
                     tone="secondary"
                     onPress={() => {
-                      void tenantApi
+                      return tenantApi
                         .setOutgoingAttendance(report.vacatingCaseId, 'no')
                         .then(() => setReport({ ...report, tenantOutgoingAttendance: 'no' }))
                         .catch((err) => setError(err instanceof Error ? err.message : 'Could not save attendance'));
@@ -143,7 +146,7 @@ export function FinalScreen() {
                       placeholder="What should be reviewed?"
                     />
                   </Field>
-                  <Button label="Send dispute" tone="outline" onPress={() => void dispute(section)} />
+                  <Button label="Send dispute" tone="outline" onPress={() => dispute(section)} />
                 </>
               ) : null}
             </Card>
@@ -157,7 +160,7 @@ export function FinalScreen() {
                 if (busy) return;
                 setBusy(true);
                 setError(null);
-                void tenantApi
+                return tenantApi
                   .approveOutgoing(report.id)
                   .then((next) => {
                     setReport(next.sections ? next : { ...report, ...next, sections: report.sections });

@@ -96,7 +96,7 @@ export default function CheckInScreen() {
       <Button
         label="Check in"
         onPress={() => {
-          void submitCheckIn({ propertyId: property.id, sessionId, ...form }).then((message) => {
+          return submitCheckIn({ propertyId: property.id, sessionId, ...form }).then((message) => {
           if (message) {
             setError(message);
             return;

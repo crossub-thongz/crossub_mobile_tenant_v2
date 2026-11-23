@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -116,16 +116,34 @@ export function Button({
   label,
   onPress,
   tone = 'primary',
+  disabled = false,
 }: {
   label: string;
-  onPress: () => void;
+  onPress: () => unknown;
   tone?: 'primary' | 'secondary' | 'outline';
+  disabled?: boolean;
 }) {
+  const locked = useRef(false);
+  const [pending, setPending] = useState(false);
+  const blocked = disabled || pending;
+
+  function handlePress() {
+    if (locked.current || disabled) return;
+    locked.current = true;
+    setPending(true);
+    Promise.resolve(onPress()).finally(() => {
+      locked.current = false;
+      setPending(false);
+    });
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={onPress}
-      style={[styles.button, tone === 'secondary' && styles.buttonSecondary, tone === 'outline' && styles.buttonOutline]}
+      accessibilityState={{ disabled: blocked }}
+      disabled={blocked}
+      onPress={handlePress}
+      style={[styles.button, tone === 'secondary' && styles.buttonSecondary, tone === 'outline' && styles.buttonOutline, blocked && styles.buttonDisabled]}
     >
       <Text style={[styles.buttonText, tone !== 'primary' && styles.buttonTextDark]}>{label}</Text>
     </Pressable>
@@ -291,6 +309,7 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: { backgroundColor: '#f0f4f1' },
   buttonOutline: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.greenLine },
+  buttonDisabled: { opacity: 0.55 },
   buttonText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   buttonTextDark: { color: colors.green },
   notice: { backgroundColor: colors.notice, borderRadius: 12, padding: 12 },

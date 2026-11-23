@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, Keyboard, Linking, Platform, Pressable, StyleSheet, Text, View, type KeyboardEvent } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const submitLock = useRef(false);
   const bottomInset = useSafeAreaInsets().bottom;
   const lift = useSharedValue(0);
 
@@ -37,6 +38,8 @@ export default function LoginScreen() {
   const liftStyle = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));
 
   const onSubmit = async () => {
+    if (submitLock.current) return;
+    submitLock.current = true;
     setSubmitting(true);
     setError(null);
     try {
@@ -44,6 +47,7 @@ export default function LoginScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.');
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   };

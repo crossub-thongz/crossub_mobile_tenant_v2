@@ -8,6 +8,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public body?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -95,5 +96,5 @@ export async function unwrap<T>(result: CallResult<T> | Promise<CallResult<T>>):
   if (settled.response.status === 204) return undefined as T;
   if (settled.response.ok && settled.data !== undefined && !settled.error) return settled.data;
   const fallback = `Request failed (${settled.response.status || 'network'})`;
-  throw new ApiError(settled.response.status, messageFrom(settled.error, fallback));
+  throw new ApiError(settled.response.status, messageFrom(settled.error, fallback), settled.error);
 }

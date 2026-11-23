@@ -185,7 +185,7 @@ export function SelfInspectionScreen() {
                     }
                     setBusy(true);
                     setError(null);
-                    void tenantApi
+                    return tenantApi
                       .submitRoutineSelf(inspectionId, sections)
                       .then(async () => {
                         setStatus('under_review');

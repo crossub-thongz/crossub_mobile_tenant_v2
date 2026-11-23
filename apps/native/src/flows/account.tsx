@@ -225,7 +225,7 @@ export function PersonalScreen() {
             }
             setSaving(true);
             setError(null);
-            void tenantApi
+            return tenantApi
               .updatePhone(next)
               .then((saved) => {
                 setProfile(saved);
@@ -338,7 +338,7 @@ export function SecurityScreen() {
               notify('No email is on this account.');
               return;
             }
-            void requestPasswordReset(email)
+            return requestPasswordReset(email)
               .then(() => notify('If this address has an account, the reset link is on its way.'))
               .catch((err) => notify(err instanceof Error ? err.message : 'Could not send the reset email'));
           }}
@@ -364,7 +364,7 @@ export function SecurityScreen() {
           tone="secondary"
           onPress={() => {
             setError(null);
-            void (deviceLock ? disableDeviceLock() : enableDeviceLock()).then((message) => {
+            return (deviceLock ? disableDeviceLock() : enableDeviceLock()).then((message) => {
               if (message) {
                 setError(message);
                 return;
@@ -386,7 +386,7 @@ export function SecurityScreen() {
             tone="outline"
             onPress={() => {
               setError(null);
-              void tenantApi
+              return tenantApi
                 .revokeSession(session.id)
                 .then(() => setSessions((current) => current?.filter((item) => item.id !== session.id) ?? []))
                 .catch((err) => setError(err instanceof Error ? err.message : 'Could not revoke that sign-in'));
