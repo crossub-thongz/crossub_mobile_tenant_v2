@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
-import { useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -167,9 +167,9 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-export function Input({ style, multiline, ...props }: TextInputProps) {
-  return <TextInput placeholderTextColor="#8b9b90" {...props} multiline={multiline} style={[styles.input, multiline && styles.multiline, style]} />;
-}
+export const Input = forwardRef<ComponentRef<typeof TextInput>, TextInputProps>(function Input({ style, multiline, ...props }, ref) {
+  return <TextInput ref={ref} placeholderTextColor="#8b9b90" {...props} multiline={multiline} style={[styles.input, multiline && styles.multiline, style]} />;
+});
 
 export function Choice({
   selected,

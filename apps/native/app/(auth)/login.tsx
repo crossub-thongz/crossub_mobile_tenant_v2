@@ -21,8 +21,8 @@ const TERMS_URL = 'https://www.crossub.com/AU/terms';
 
 export default function LoginScreen() {
   const { login, status } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const emailRef = useRef('');
+  const passwordRef = useRef('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,8 +41,14 @@ export default function LoginScreen() {
         ? withTiming(next, { duration: event.duration, easing: Easing.bezier(0.38, 0.7, 0.125, 1) })
         : next;
     };
-    const subscription = Keyboard.addListener('keyboardWillChangeFrame', move);
-    return () => subscription.remove();
+    const show = Keyboard.addListener('keyboardWillShow', move);
+    const hide = Keyboard.addListener('keyboardWillHide', (event) => {
+      lift.value = event.duration ? withTiming(0, { duration: event.duration }) : 0;
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, [bottomInset, lift]);
 
   const liftStyle = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));
@@ -54,7 +60,7 @@ export default function LoginScreen() {
     setError(null);
     setPasswordError(null);
     try {
-      await login(email, password);
+      await login(emailRef.current, passwordRef.current);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign in failed.';
       if (isPasswordError(err)) setPasswordError(message === 'Enter your password.' ? message : 'Invalid password');
@@ -80,21 +86,33 @@ export default function LoginScreen() {
           <Text style={styles.title}>Your rental home, made simple.</Text>
           <Text style={styles.sub}>Sign in with the account from your tenancy invitation.</Text>
           <View style={styles.card}>
-            <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="Email Address" />
+            <Input
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              autoComplete="off"
+              textContentType="none"
+              keyboardType="email-address"
+              defaultValue=""
+              onChangeText={(value) => {
+                emailRef.current = value;
+              }}
+              placeholder="Email Address"
+            />
             <View style={styles.passwordGroup}>
               <View>
                 <Input
                   autoCapitalize="none"
                   autoCorrect={false}
                   spellCheck={false}
-                  // iOS treats autoComplete="password" as a new password and reopens the AutoFill bar on every character.
                   autoComplete="off"
-                  textContentType="oneTimeCode"
+                  textContentType="none"
+                  passwordRules=""
                   secureTextEntry={!passwordVisible}
-                  value={password}
+                  defaultValue=""
                   onChangeText={(value) => {
-                    setPassword(value);
-                    setPasswordError(null);
+                    passwordRef.current = value;
+                    setPasswordError((current) => (current ? null : current));
                   }}
                   placeholder="Password"
                   onSubmitEditing={onSubmit}

@@ -273,6 +273,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenant/gii/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask Cros about this tenancy.
+         * @description Stateless, like the agent portal: resend the conversation each turn. The reply is written from this tenant’s own tenancy, repairs, inspections and ledger. Cros cannot change those records from this call.
+         */
+        post: operations["TenantAccountController_askCros"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tenant/tenancies": {
         parameters: {
             query?: never;
@@ -3688,7 +3708,7 @@ export interface paths {
         put?: never;
         /**
          * Add a tenant or landlord contact on a property.
-         * @description TENANT contacts are capped at 5. Adding a TENANT with an email automatically emails Tenant app login credentials.
+         * @description TENANT contacts are capped at 5. A tenant joins the tenancy on the property card and does not open another tenancy. Adding a TENANT with an email automatically emails Tenant app login credentials.
          */
         post: operations["AgentPortalController_addPropertyContact"];
         delete?: never;
@@ -10403,6 +10423,11 @@ export interface components {
             description: string | null;
             /** @description Trade/category label, if classified. */
             categoryName: string | null;
+            /**
+             * Format: uuid
+             * @description The property the request was filed against.
+             */
+            propertyId: string | null;
             /** @description The property the request was filed against. */
             propertyAddress: string | null;
             /** Format: date-time */
@@ -10557,6 +10582,269 @@ export interface components {
              * @example crossub-tenant-3f7c1b2a-0000-4000-8000-000000000001
              */
             roomName: string;
+        };
+        GiiChatAttachmentDto: {
+            /** @example lease-break-notice.pdf */
+            fileName: string;
+            /**
+             * @example application/pdf
+             * @enum {string}
+             */
+            mediaType: "application/pdf" | "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+            base64: string;
+        };
+        GiiChatMessageDto: {
+            /**
+             * @example user
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** @example 66 Berry Street — tenant moving out 31 August 2026 */
+            content: string;
+            attachments?: components["schemas"]["GiiChatAttachmentDto"][];
+        };
+        GiiPendingPropertyCandidateDto: {
+            /** Format: uuid */
+            propertyId: string;
+            /** @example 1A Lucy Street, Merrylands West NSW 2160 */
+            label: string;
+            tenantName?: string | null;
+        };
+        GiiScreenRecordDto: {
+            /**
+             * @example maintenance
+             * @enum {string}
+             */
+            kind: "maintenance" | "inspection" | "leasing" | "tenant_selection" | "rent_review" | "vacating" | "tribunal" | "message_thread";
+            /** @description The record id as the app routes to it. Untrusted: tools look it up under the caller's scope. */
+            id: string;
+        };
+        GiiChatContextDto: {
+            /** Format: uuid */
+            propertyId?: string;
+            /** @example 66 Berry Street, North Sydney NSW 2060 */
+            propertyLabel?: string;
+            /** @example 2026-08-31 */
+            moveOutDate?: string;
+            /** @example properties */
+            pageModule?: string;
+            /** @example Property Portal · 66 Berry Street */
+            pageLabel?: string;
+            /** @example true */
+            propertyChanged?: boolean;
+            /** @description Echo back `pendingPropertyCandidates` from the previous response when the user is picking from an ambiguous list. */
+            pendingPropertyCandidates?: components["schemas"]["GiiPendingPropertyCandidateDto"][];
+            earlierSummary?: string;
+            screenRecord?: components["schemas"]["GiiScreenRecordDto"];
+        };
+        GiiChatRequestDto: {
+            messages: components["schemas"]["GiiChatMessageDto"][];
+            context?: components["schemas"]["GiiChatContextDto"];
+        };
+        GiiTermProgressDto: {
+            /** @example 365 */
+            totalTermDays: number;
+            /** @example 243 */
+            daysOccupied: number;
+            /** @example 122 */
+            daysRemaining: number;
+            /**
+             * @description Unrounded fraction of the term elapsed. Format for display only.
+             * @example 0.6657534246575343
+             */
+            pctElapsed: number;
+        };
+        GiiBreakFeeDto: {
+            /** @example 2 */
+            weeks: number;
+            /** @example 50–<75% */
+            band: string;
+            /** @example 2000 */
+            totalFee: number;
+            /**
+             * @description The rule THIS fee comes from. Never cite a rule from elsewhere for it.
+             * @example Residential Tenancies Regulation 2019 (NSW) cl.10A
+             */
+            citation: string;
+        };
+        GiiNoticeDto: {
+            /**
+             * @description The NSW minimum notice days for this tenancy.
+             * @example 21
+             */
+            minDays: number;
+            /** @example 54 */
+            noticeDays: number;
+            /** @example true */
+            sufficient: boolean;
+            /** @example 2026-07-29 */
+            earliestCompliantVacateDate: string;
+            /**
+             * @description The rule THIS minimum comes from (s96 fixed term / s97 periodic).
+             * @example Residential Tenancies Act 2010 (NSW) s97
+             */
+            citation: string;
+        };
+        GiiRentOwedDto: {
+            /** @example 2026-08-15 */
+            rentPaidTo: string;
+            /** @example 16 */
+            daysOwed: number;
+            /** @example 2285.71 */
+            amountOwed: number;
+            /**
+             * @description Days paid beyond the vacate date.
+             * @example 0
+             */
+            creditDays: number;
+            /** @example 0 */
+            creditAmount: number;
+        };
+        GiiAssessmentDto: {
+            /**
+             * @example BREAK_LEASE
+             * @enum {string}
+             */
+            case: "BREAK_LEASE" | "FIXED_TERM_NOTICE" | "PERIODIC_NOTICE";
+            /**
+             * @example FIXED_TERM
+             * @enum {string}
+             */
+            tenancyKind: "FIXED_TERM" | "PERIODIC";
+            /** @example fixed term ends 2026-12-31 */
+            basis: string;
+            /**
+             * Format: uuid
+             * @description Echo this back as request `context.propertyId` on the next turn so Gii keeps the subject without re-resolving the address.
+             */
+            propertyId: string;
+            /** @example 66 Berry Street, North Sydney NSW 2060 */
+            propertyLabel: string;
+            /** @example Jane Tenant */
+            tenantName: string | null;
+            /** @example 2026-01-01 */
+            leaseStartDate: string | null;
+            /** @example 2026-12-31 */
+            leaseEndDate: string | null;
+            /** @example 2026-08-31 */
+            moveOutDate: string;
+            /** @example 1000 */
+            weeklyRent: number | null;
+            /** @example 142.85714285714286 */
+            dailyRent: number | null;
+            /**
+             * @description The daily rate as displayed. Render this verbatim; do not re-round.
+             * @example 142.86
+             */
+            dailyRentDisplay: string | null;
+            term: components["schemas"]["GiiTermProgressDto"] | null;
+            /** @description Null unless this is a genuine breach with a quotable fee. */
+            breakFee: components["schemas"]["GiiBreakFeeDto"] | null;
+            /**
+             * @example null
+             * @enum {string|null}
+             */
+            breakFeeIneligibleReason: "NOT_A_BREACH" | "TERM_OVER_3_YEARS" | "PRE_2020_AGREEMENT" | "UNKNOWN_LEASE_DATES" | "UNKNOWN_RENT" | null;
+            notice: components["schemas"]["GiiNoticeDto"] | null;
+            rent: components["schemas"]["GiiRentOwedDto"] | null;
+            /**
+             * @description Facts the engine lacked. Gii asks for exactly these rather than guessing.
+             * @example [
+             *       "rentPaidTo"
+             *     ]
+             */
+            missing: string[];
+            /**
+             * @example [
+             *       "Residential Tenancies Regulation 2019 (NSW) cl.10A"
+             *     ]
+             */
+            ruleCitations: string[];
+            /**
+             * @description Lease facts where the tenancy agreement and property registry disagree.
+             * @example []
+             */
+            conflicts: string[];
+        };
+        GiiLodgedDto: {
+            /** @example VT-1042 */
+            caseRef: string;
+        };
+        GiiJobCaseLinkDto: {
+            /**
+             * @description The record's id: a maintenance job, rent review, inspection, leasing cycle, End Leasing case (vacating task), inbox conversation or agent notification. For `property` and `arrears` it is the property id.
+             * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+             */
+            id: string;
+            /**
+             * @example maintenance
+             * @enum {string}
+             */
+            kind: "maintenance" | "rent_review" | "inspection" | "leasing" | "end_leasing" | "conversation" | "notification" | "property" | "arrears";
+            /**
+             * @description Business reference when one exists (order number / tracking).
+             * @example Q20227
+             */
+            reference: string | null;
+            /**
+             * @description Short button label for the chat UI.
+             * @example Q20227 · Entrance hallway window cannot lock
+             */
+            label: string;
+        };
+        GiiProposalLineDto: {
+            /** @example Issue */
+            label: string;
+            /** @example Plumbing */
+            value: string;
+        };
+        GiiProposalDto: {
+            /** @description Signed proposal. Send it back unchanged to confirm. */
+            token: string;
+            /** @example create_maintenance_job */
+            tool: string;
+            /** @example Raise a maintenance job */
+            title: string;
+            lines: components["schemas"]["GiiProposalLineDto"][];
+            /**
+             * @description `voice`: a spoken yes may confirm it (send `byVoice: true`). `screen`: it moves money or is a legal step, so only a tap on Confirm does.
+             * @example voice
+             * @enum {string}
+             */
+            confirmBy: "voice" | "screen";
+            /**
+             * @description The card as the app reads it back before anything is made, ending with how to confirm it.
+             * @example Raise a maintenance job. Property, 1008/19 Halifax Street. Issue, leaking kitchen tap. Say yes to go ahead, or no to cancel.
+             */
+            readBack: string;
+            /**
+             * Format: date-time
+             * @example 2026-10-26T01:30:00.000Z
+             */
+            expiresAt: string;
+        };
+        GiiChatResponseDto: {
+            /** @example That is a break lease — 243 of 365 days elapsed (66.6%), so a 2-week fee of $2,000.00 applies. */
+            reply: string;
+            /**
+             * @description The reply as the app reads it aloud: a short reply in full; a long one as its opening sentences, then a pointer to the screen. Dates are written out and lists are never read item by item.
+             * @example The bond is $1,000.00 and $330.00 comes off it. The rest is on your screen.
+             */
+            spoken: string;
+            /** @description The deterministic assessment behind the reply, for rendering. Null when the turn produced no assessment. */
+            assessment: components["schemas"]["GiiAssessmentDto"] | null;
+            lodged: components["schemas"]["GiiLodgedDto"] | null;
+            /** @description Job cases from tools on this turn (maintenance, rent review, inspection) for Open buttons in chat. */
+            jobCases: components["schemas"]["GiiJobCaseLinkDto"][];
+            /** @description When find_property was ambiguous this turn, echo these back as `context.pendingPropertyCandidates` so the next reply can pick by number or address fragment. */
+            pendingPropertyCandidates: components["schemas"]["GiiPendingPropertyCandidateDto"][];
+            /** @description The change Cros proposed this turn and is waiting on the officer to confirm. Show it as a Confirm card until the next message is sent. */
+            proposal: components["schemas"]["GiiProposalDto"] | null;
+            /**
+             * @example end_turn
+             * @enum {string}
+             */
+            stoppedOn: "end_turn" | "max_turns" | "max_tokens";
         };
         TenantTenancyResponseDto: {
             /** Format: uuid */
@@ -17407,269 +17695,6 @@ export interface components {
              */
             status: "PENDING_INVITE" | "ACTIVE" | "DISABLED";
         };
-        GiiChatAttachmentDto: {
-            /** @example lease-break-notice.pdf */
-            fileName: string;
-            /**
-             * @example application/pdf
-             * @enum {string}
-             */
-            mediaType: "application/pdf" | "image/png" | "image/jpeg" | "image/webp" | "image/gif";
-            base64: string;
-        };
-        GiiChatMessageDto: {
-            /**
-             * @example user
-             * @enum {string}
-             */
-            role: "user" | "assistant";
-            /** @example 66 Berry Street — tenant moving out 31 August 2026 */
-            content: string;
-            attachments?: components["schemas"]["GiiChatAttachmentDto"][];
-        };
-        GiiPendingPropertyCandidateDto: {
-            /** Format: uuid */
-            propertyId: string;
-            /** @example 1A Lucy Street, Merrylands West NSW 2160 */
-            label: string;
-            tenantName?: string | null;
-        };
-        GiiScreenRecordDto: {
-            /**
-             * @example maintenance
-             * @enum {string}
-             */
-            kind: "maintenance" | "inspection" | "leasing" | "tenant_selection" | "rent_review" | "vacating" | "tribunal" | "message_thread";
-            /** @description The record id as the app routes to it. Untrusted: tools look it up under the caller's scope. */
-            id: string;
-        };
-        GiiChatContextDto: {
-            /** Format: uuid */
-            propertyId?: string;
-            /** @example 66 Berry Street, North Sydney NSW 2060 */
-            propertyLabel?: string;
-            /** @example 2026-08-31 */
-            moveOutDate?: string;
-            /** @example properties */
-            pageModule?: string;
-            /** @example Property Portal · 66 Berry Street */
-            pageLabel?: string;
-            /** @example true */
-            propertyChanged?: boolean;
-            /** @description Echo back `pendingPropertyCandidates` from the previous response when the user is picking from an ambiguous list. */
-            pendingPropertyCandidates?: components["schemas"]["GiiPendingPropertyCandidateDto"][];
-            earlierSummary?: string;
-            screenRecord?: components["schemas"]["GiiScreenRecordDto"];
-        };
-        GiiChatRequestDto: {
-            messages: components["schemas"]["GiiChatMessageDto"][];
-            context?: components["schemas"]["GiiChatContextDto"];
-        };
-        GiiTermProgressDto: {
-            /** @example 365 */
-            totalTermDays: number;
-            /** @example 243 */
-            daysOccupied: number;
-            /** @example 122 */
-            daysRemaining: number;
-            /**
-             * @description Unrounded fraction of the term elapsed. Format for display only.
-             * @example 0.6657534246575343
-             */
-            pctElapsed: number;
-        };
-        GiiBreakFeeDto: {
-            /** @example 2 */
-            weeks: number;
-            /** @example 50–<75% */
-            band: string;
-            /** @example 2000 */
-            totalFee: number;
-            /**
-             * @description The rule THIS fee comes from. Never cite a rule from elsewhere for it.
-             * @example Residential Tenancies Regulation 2019 (NSW) cl.10A
-             */
-            citation: string;
-        };
-        GiiNoticeDto: {
-            /**
-             * @description The NSW minimum notice days for this tenancy.
-             * @example 21
-             */
-            minDays: number;
-            /** @example 54 */
-            noticeDays: number;
-            /** @example true */
-            sufficient: boolean;
-            /** @example 2026-07-29 */
-            earliestCompliantVacateDate: string;
-            /**
-             * @description The rule THIS minimum comes from (s96 fixed term / s97 periodic).
-             * @example Residential Tenancies Act 2010 (NSW) s97
-             */
-            citation: string;
-        };
-        GiiRentOwedDto: {
-            /** @example 2026-08-15 */
-            rentPaidTo: string;
-            /** @example 16 */
-            daysOwed: number;
-            /** @example 2285.71 */
-            amountOwed: number;
-            /**
-             * @description Days paid beyond the vacate date.
-             * @example 0
-             */
-            creditDays: number;
-            /** @example 0 */
-            creditAmount: number;
-        };
-        GiiAssessmentDto: {
-            /**
-             * @example BREAK_LEASE
-             * @enum {string}
-             */
-            case: "BREAK_LEASE" | "FIXED_TERM_NOTICE" | "PERIODIC_NOTICE";
-            /**
-             * @example FIXED_TERM
-             * @enum {string}
-             */
-            tenancyKind: "FIXED_TERM" | "PERIODIC";
-            /** @example fixed term ends 2026-12-31 */
-            basis: string;
-            /**
-             * Format: uuid
-             * @description Echo this back as request `context.propertyId` on the next turn so Gii keeps the subject without re-resolving the address.
-             */
-            propertyId: string;
-            /** @example 66 Berry Street, North Sydney NSW 2060 */
-            propertyLabel: string;
-            /** @example Jane Tenant */
-            tenantName: string | null;
-            /** @example 2026-01-01 */
-            leaseStartDate: string | null;
-            /** @example 2026-12-31 */
-            leaseEndDate: string | null;
-            /** @example 2026-08-31 */
-            moveOutDate: string;
-            /** @example 1000 */
-            weeklyRent: number | null;
-            /** @example 142.85714285714286 */
-            dailyRent: number | null;
-            /**
-             * @description The daily rate as displayed. Render this verbatim; do not re-round.
-             * @example 142.86
-             */
-            dailyRentDisplay: string | null;
-            term: components["schemas"]["GiiTermProgressDto"] | null;
-            /** @description Null unless this is a genuine breach with a quotable fee. */
-            breakFee: components["schemas"]["GiiBreakFeeDto"] | null;
-            /**
-             * @example null
-             * @enum {string|null}
-             */
-            breakFeeIneligibleReason: "NOT_A_BREACH" | "TERM_OVER_3_YEARS" | "PRE_2020_AGREEMENT" | "UNKNOWN_LEASE_DATES" | "UNKNOWN_RENT" | null;
-            notice: components["schemas"]["GiiNoticeDto"] | null;
-            rent: components["schemas"]["GiiRentOwedDto"] | null;
-            /**
-             * @description Facts the engine lacked. Gii asks for exactly these rather than guessing.
-             * @example [
-             *       "rentPaidTo"
-             *     ]
-             */
-            missing: string[];
-            /**
-             * @example [
-             *       "Residential Tenancies Regulation 2019 (NSW) cl.10A"
-             *     ]
-             */
-            ruleCitations: string[];
-            /**
-             * @description Lease facts where the tenancy agreement and property registry disagree.
-             * @example []
-             */
-            conflicts: string[];
-        };
-        GiiLodgedDto: {
-            /** @example VT-1042 */
-            caseRef: string;
-        };
-        GiiJobCaseLinkDto: {
-            /**
-             * @description The record's id: a maintenance job, rent review, inspection, leasing cycle, End Leasing case (vacating task), inbox conversation or agent notification. For `property` and `arrears` it is the property id.
-             * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
-             */
-            id: string;
-            /**
-             * @example maintenance
-             * @enum {string}
-             */
-            kind: "maintenance" | "rent_review" | "inspection" | "leasing" | "end_leasing" | "conversation" | "notification" | "property" | "arrears";
-            /**
-             * @description Business reference when one exists (order number / tracking).
-             * @example Q20227
-             */
-            reference: string | null;
-            /**
-             * @description Short button label for the chat UI.
-             * @example Q20227 · Entrance hallway window cannot lock
-             */
-            label: string;
-        };
-        GiiProposalLineDto: {
-            /** @example Issue */
-            label: string;
-            /** @example Plumbing */
-            value: string;
-        };
-        GiiProposalDto: {
-            /** @description Signed proposal. Send it back unchanged to confirm. */
-            token: string;
-            /** @example create_maintenance_job */
-            tool: string;
-            /** @example Raise a maintenance job */
-            title: string;
-            lines: components["schemas"]["GiiProposalLineDto"][];
-            /**
-             * @description `voice`: a spoken yes may confirm it (send `byVoice: true`). `screen`: it moves money or is a legal step, so only a tap on Confirm does.
-             * @example voice
-             * @enum {string}
-             */
-            confirmBy: "voice" | "screen";
-            /**
-             * @description The card as the app reads it back before anything is made, ending with how to confirm it.
-             * @example Raise a maintenance job. Property, 1008/19 Halifax Street. Issue, leaking kitchen tap. Say yes to go ahead, or no to cancel.
-             */
-            readBack: string;
-            /**
-             * Format: date-time
-             * @example 2026-10-26T01:30:00.000Z
-             */
-            expiresAt: string;
-        };
-        GiiChatResponseDto: {
-            /** @example That is a break lease — 243 of 365 days elapsed (66.6%), so a 2-week fee of $2,000.00 applies. */
-            reply: string;
-            /**
-             * @description The reply as the app reads it aloud: a short reply in full; a long one as its opening sentences, then a pointer to the screen. Dates are written out and lists are never read item by item.
-             * @example The bond is $1,000.00 and $330.00 comes off it. The rest is on your screen.
-             */
-            spoken: string;
-            /** @description The deterministic assessment behind the reply, for rendering. Null when the turn produced no assessment. */
-            assessment: components["schemas"]["GiiAssessmentDto"] | null;
-            lodged: components["schemas"]["GiiLodgedDto"] | null;
-            /** @description Job cases from tools on this turn (maintenance, rent review, inspection) for Open buttons in chat. */
-            jobCases: components["schemas"]["GiiJobCaseLinkDto"][];
-            /** @description When find_property was ambiguous this turn, echo these back as `context.pendingPropertyCandidates` so the next reply can pick by number or address fragment. */
-            pendingPropertyCandidates: components["schemas"]["GiiPendingPropertyCandidateDto"][];
-            /** @description The change Cros proposed this turn and is waiting on the officer to confirm. Show it as a Confirm card until the next message is sent. */
-            proposal: components["schemas"]["GiiProposalDto"] | null;
-            /**
-             * @example end_turn
-             * @enum {string}
-             */
-            stoppedOn: "end_turn" | "max_turns" | "max_tokens";
-        };
         AgentGiiBriefingCountDto: {
             /** @enum {string} */
             category: "urgent_repair" | "arrears" | "quote_waiting" | "application_approval" | "end_leasing" | "rent_review" | "repair_next_step" | "inspection" | "unanswered_message" | "lease_expiring";
@@ -20692,6 +20717,8 @@ export interface components {
             suggestion?: components["schemas"]["TrustBankLineSuggestionDto"] | null;
             /** @description Unmatched debits: a payment batch whose total equals the line. */
             suggestedBatch?: components["schemas"]["TrustBankLineBatchDto"] | null;
+            /** @description Unmatched debits (D161): every payment batch this line can be matched to (total equal to the line, no bank line yet, no payment matched on its own, within the date window). Empty otherwise. */
+            batchOptions: components["schemas"]["TrustBankLineBatchDto"][];
             /** @description Matched: the transaction it explains. */
             transaction?: components["schemas"]["TrustBankLineTransactionDto"] | null;
             /** @description Matched: the payment batch whose total it explains (D161). */
@@ -23286,6 +23313,43 @@ export interface operations {
                 content?: never;
             };
             /** @description In-app calling is not configured on this environment, or the voice worker could not be dispatched. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TenantAccountController_askCros: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiiChatRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiiChatResponseDto"];
+                };
+            };
+            /** @description The conversation is empty or does not end with the tenant’s question. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cros could not answer this turn. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -41133,7 +41197,7 @@ export interface operations {
                 from?: string;
                 to?: string;
                 search?: string;
-                /** @description Linked to a bank line or not (internal import matching). Applies to receipts and withdrawals only; D116: the screen no longer filters on it, a transaction reads Posted or Reversed. */
+                /** @description D160: reconciled (a confirmed bank match, its own line or its payment batch's) or not. Applies to posted receipts and withdrawals only (not reversal rows). */
                 reconciled?: boolean;
             };
             header?: never;

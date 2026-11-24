@@ -8,12 +8,20 @@ import { captureEvidenceBatch, pickEvidenceMany } from '@/src/api/pick-evidence'
 import { tenantApi, type EvidenceFile } from '@/src/api/tenant';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
-import { BackButton, Button, Card, Field, Input, Notice, RowItem, Screen, Tag, TaskHeader, Timeline } from '@/src/ui/ui';
+import { DatePickerField } from '@/src/ui/date-picker-field';
+import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen, Tag, TaskHeader, Timeline } from '@/src/ui/ui';
 
 export { SelfInspectionScreen } from '@/src/flows/self-routine';
 export { EntryScreen } from '@/src/flows/ingoing-report';
 
 const INSPECTION_TYPE = { ROUTINE: 'ROUTINE', OPEN: 'OPEN' } as const;
+const TIME_SLOT = { MORNING: 'morning', AFTERNOON: 'afternoon', OTHER: 'other' } as const;
+const TIME_SLOT_LABEL = {
+  [TIME_SLOT.MORNING]: 'Morning Shift (9:00–12:00)',
+  [TIME_SLOT.AFTERNOON]: 'Afternoon Shift (13:00–16:00)',
+} as const;
+
+type TimeSlot = (typeof TIME_SLOT)[keyof typeof TIME_SLOT];
 const REPAIR_PHOTO_LIMIT = 10;
 
 const ROUTINE_CLOSED = new Set(['completed', 'cancelled', 'COMPLETED', 'CANCELLED', 'PUBLISHED']);
@@ -87,7 +95,8 @@ export function RescheduleScreen() {
   const inspection = inspectionId ? demo.inspections.find((item) => item.id === inspectionId) : undefined;
   const job = jobId ? (demo.maintenanceAll.find((item) => item.id === jobId) ?? demo.maintenance.find((item) => item.id === jobId)) : undefined;
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [slot, setSlot] = useState<TimeSlot | null>(null);
+  const [otherTime, setOtherTime] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -102,10 +111,13 @@ export function RescheduleScreen() {
       {job ? <Text style={styles.body}>{[job.tracking, job.title, job.address].filter(Boolean).join(' · ')}</Text> : null}
       <Card>
         <Field label="Preferred date">
-          <Input value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
+          <DatePickerField value={date} onChange={setDate} />
         </Field>
-        <Field label="Time window">
-          <Input value={time} onChangeText={setTime} placeholder="Morning, or a time" />
+        <Field label="Time slot">
+          <Choice selected={slot === TIME_SLOT.MORNING} title="Morning Shift" body="9:00–12:00" onPress={() => setSlot(TIME_SLOT.MORNING)} />
+          <Choice selected={slot === TIME_SLOT.AFTERNOON} title="Afternoon Shift" body="13:00–16:00" onPress={() => setSlot(TIME_SLOT.AFTERNOON)} />
+          <Choice selected={slot === TIME_SLOT.OTHER} title="Other" body="Type a time" onPress={() => setSlot(TIME_SLOT.OTHER)} />
+          {slot === TIME_SLOT.OTHER ? <Input value={otherTime} onChangeText={setOtherTime} placeholder="For example, 18:30" /> : null}
         </Field>
         <Field label="Reason">
           <Input multiline value={reason} onChangeText={setReason} placeholder="Tell us why the current time does not work" />
@@ -115,8 +127,9 @@ export function RescheduleScreen() {
           label={busy ? 'Sending…' : 'Send request'}
           onPress={() => {
             if (busy) return;
-            if (!date.trim() || !time.trim() || !reason.trim()) {
-              setError('Enter a preferred date, a time, and a reason.');
+            const timeLabel = slot === TIME_SLOT.OTHER ? otherTime.trim() : slot ? TIME_SLOT_LABEL[slot] : '';
+            if (!date.trim() || !slot || !timeLabel || !reason.trim()) {
+              setError('Choose a date, a time slot, and a reason.');
               return;
             }
             if ((inspectionId && !inspection) || (jobId && !job)) return;
@@ -130,7 +143,7 @@ export function RescheduleScreen() {
             return tenantApi
               .createMessage({
                 subject: job ? `Reschedule repair ${job.tracking || ''}`.trim() : 'Reschedule request',
-                body: `${about}\nPreferred date: ${date.trim()}\nTime: ${time.trim()}\n${reason.trim()}`,
+                body: `${about}\nPreferred date: ${date.trim()}\nTime: ${slot === TIME_SLOT.OTHER ? `Other (${timeLabel})` : timeLabel}\n${reason.trim()}`,
                 department: job ? 'MAINTENANCE' : 'INSPECTION',
                 ...((job?.propertyId || inspection?.propertyId || demo.propertyUuid)
                   ? { propertyId: job?.propertyId || inspection?.propertyId || demo.propertyUuid || undefined }

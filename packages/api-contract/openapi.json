@@ -7054,7 +7054,7 @@
             "name": "reconciled",
             "required": false,
             "in": "query",
-            "description": "Linked to a bank line or not (internal import matching). Applies to receipts and withdrawals only; D116: the screen no longer filters on it, a transaction reads Posted or Reversed.",
+            "description": "D160: reconciled (a confirmed bank match, its own line or its payment batch's) or not. Applies to posted receipts and withdrawals only (not reversal rows).",
             "schema": {
               "type": "boolean"
             }
@@ -14325,16 +14325,6 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TrustReconAdjustmentListDto"
-                }
-              }
-            }
-          },
-          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -71488,6 +71478,70 @@
         ]
       }
     },
+    "/api/v1/tenant/gii/chat": {
+      "post": {
+        "description": "Stateless, like the agent portal: resend the conversation each turn. The reply is written from this tenant’s own tenancy, repairs, inspections and ledger. Cros cannot change those records from this call.",
+        "operationId": "TenantAccountController_askCros_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiiChatRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiChatResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The conversation is empty or does not end with the tenant’s question."
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Cros could not answer this turn."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ask Cros about this tenancy.",
+        "tags": [
+          "Tenant App"
+        ]
+      }
+    },
     "/api/v1/tenant/tenancies": {
       "get": {
         "operationId": "TenantAccountController_listTenancies_v1",
@@ -76845,6 +76899,563 @@
         "summary": "Submit a guest rental application (no login)",
         "tags": [
           "Public Listings"
+        ]
+      }
+    },
+    "/api/gii/compose-draft": {
+      "post": {
+        "description": "Returns paste-ready English prose for the Communication Hub compose box. Does not send mail or call chat tools.",
+        "operationId": "GiiController_composeDraft",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiiComposeDraftRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiComposeDraftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Draft a compose-box message from officer instructions",
+        "tags": [
+          "Cros Assistant"
+        ]
+      }
+    },
+    "/api/gii/actionable-cases": {
+      "get": {
+        "description": "Maintenance quotes awaiting approval, rent reviews awaiting review, and routine inspections due — scoped to the actor’s assigned agencies. Powers Gii’s proactive briefing when the panel opens. A plain scoped read: no AI, no writes.",
+        "operationId": "GiiController_actionableCases",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiActionableCasesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Today's actionable cases for the signed-in user",
+        "tags": [
+          "Cros Assistant"
+        ]
+      }
+    },
+    "/api/gii/summarise": {
+      "post": {
+        "description": "Send the last summary (if any) and the messages after it that are about to leave the history window. Returns the updated summary; send it as `context.earlierSummary` on later turns.",
+        "operationId": "GiiController_summarise",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiiSummariseRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiSummariseResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The AI provider is unavailable."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fold a long chat's older turns into its running summary",
+        "tags": [
+          "Cros Assistant"
+        ]
+      }
+    },
+    "/api/gii/conversations": {
+      "get": {
+        "description": "Only the calling staff member’s chats from the web app; the agent app keeps its own. The latest 50 are kept.",
+        "operationId": "GiiController_listConversations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GiiConversationSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This staff member's saved Cros chats on the web, newest first",
+        "tags": [
+          "Cros Assistant"
+        ]
+      }
+    },
+    "/api/gii/conversations/{id}": {
+      "get": {
+        "operationId": "GiiController_getConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiConversationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such chat for this staff member on the web."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Open a saved Cros chat",
+        "tags": [
+          "Cros Assistant"
+        ]
+      },
+      "put": {
+        "description": "The web mints the id and saves the whole transcript after every turn; a save replaces what was there. A property, when given, must be one the staff member can see.",
+        "operationId": "GiiController_saveConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiiConversationSaveDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiConversationSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The property is not one this staff member can see."
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The id belongs to another chat."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a Cros chat",
+        "tags": [
+          "Cros Assistant"
+        ]
+      },
+      "delete": {
+        "operationId": "GiiController_deleteConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such chat for this staff member on the web."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a saved Cros chat",
+        "tags": [
+          "Cros Assistant"
+        ]
+      }
+    },
+    "/api/gii/voice-status": {
+      "get": {
+        "description": "Asked before recording so the web picks a capture path it can finish: server transcription when a provider is configured, otherwise the browser recogniser. `available: false` is a normal answer, not an error.",
+        "operationId": "GiiController_voiceStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiVoiceStatusResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Can this server transcribe a Cros mic clip? (Cros web v2, 3.5)",
+        "tags": [
+          "Cros Assistant"
+        ]
+      }
+    },
+    "/api/gii/transcribe": {
+      "post": {
+        "description": "A short clip from the web microphone, returned as text by the configured provider (Deepgram or Whisper), as on the agent app. A clip with no words is a 200 with empty `text` and the reason in `outcome`.",
+        "operationId": "GiiController_transcribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiiTranscribeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiiTranscribeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but the role or permission this route needs is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Speech transcription is not configured on this environment."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Transcribe a Cros mic clip",
+        "tags": [
+          "Cros Assistant"
         ]
       }
     },
@@ -83385,7 +83996,7 @@
         ]
       },
       "post": {
-        "description": "TENANT contacts are capped at 5. Adding a TENANT with an email automatically emails Tenant app login credentials.",
+        "description": "TENANT contacts are capped at 5. A tenant joins the tenancy on the property card and does not open another tenancy. Adding a TENANT with an email automatically emails Tenant app login credentials.",
         "operationId": "AgentPortalController_addPropertyContact_v1",
         "parameters": [
           {
@@ -102699,7 +103310,7 @@
             "name": "reconciled",
             "required": false,
             "in": "query",
-            "description": "Linked to a bank line or not (internal import matching). Applies to receipts and withdrawals only; D116: the screen no longer filters on it, a transaction reads Posted or Reversed.",
+            "description": "D160: reconciled (a confirmed bank match, its own line or its payment batch's) or not. Applies to posted receipts and withdrawals only (not reversal rows).",
             "schema": {
               "type": "boolean"
             }
@@ -114436,563 +115047,6 @@
         ]
       }
     },
-    "/api/gii/compose-draft": {
-      "post": {
-        "description": "Returns paste-ready English prose for the Communication Hub compose box. Does not send mail or call chat tools.",
-        "operationId": "GiiController_composeDraft",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GiiComposeDraftRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiComposeDraftResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Draft a compose-box message from officer instructions",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
-    "/api/gii/actionable-cases": {
-      "get": {
-        "description": "Maintenance quotes awaiting approval, rent reviews awaiting review, and routine inspections due — scoped to the actor’s assigned agencies. Powers Gii’s proactive briefing when the panel opens. A plain scoped read: no AI, no writes.",
-        "operationId": "GiiController_actionableCases",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiActionableCasesResponseDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Today's actionable cases for the signed-in user",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
-    "/api/gii/summarise": {
-      "post": {
-        "description": "Send the last summary (if any) and the messages after it that are about to leave the history window. Returns the updated summary; send it as `context.earlierSummary` on later turns.",
-        "operationId": "GiiController_summarise",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GiiSummariseRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiSummariseResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The AI provider is unavailable."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Fold a long chat's older turns into its running summary",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
-    "/api/gii/conversations": {
-      "get": {
-        "description": "Only the calling staff member’s chats from the web app; the agent app keeps its own. The latest 50 are kept.",
-        "operationId": "GiiController_listConversations",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GiiConversationSummaryDto"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "This staff member's saved Cros chats on the web, newest first",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
-    "/api/gii/conversations/{id}": {
-      "get": {
-        "operationId": "GiiController_getConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiConversationDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such chat for this staff member on the web."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Open a saved Cros chat",
-        "tags": [
-          "Cros Assistant"
-        ]
-      },
-      "put": {
-        "description": "The web mints the id and saves the whole transcript after every turn; a save replaces what was there. A property, when given, must be one the staff member can see.",
-        "operationId": "GiiController_saveConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GiiConversationSaveDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiConversationSummaryDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The property is not one this staff member can see."
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The id belongs to another chat."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Save a Cros chat",
-        "tags": [
-          "Cros Assistant"
-        ]
-      },
-      "delete": {
-        "operationId": "GiiController_deleteConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such chat for this staff member on the web."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a saved Cros chat",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
-    "/api/gii/voice-status": {
-      "get": {
-        "description": "Asked before recording so the web picks a capture path it can finish: server transcription when a provider is configured, otherwise the browser recogniser. `available: false` is a normal answer, not an error.",
-        "operationId": "GiiController_voiceStatus",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiVoiceStatusResponseDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Can this server transcribe a Cros mic clip? (Cros web v2, 3.5)",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
-    "/api/gii/transcribe": {
-      "post": {
-        "description": "A short clip from the web microphone, returned as text by the configured provider (Deepgram or Whisper), as on the agent app. A clip with no words is a 200 with empty `text` and the reason in `outcome`.",
-        "operationId": "GiiController_transcribe",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GiiTranscribeRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GiiTranscribeResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in, or the session has expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Signed in, but the role or permission this route needs is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Speech transcription is not configured on this environment."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Transcribe a Cros mic clip",
-        "tags": [
-          "Cros Assistant"
-        ]
-      }
-    },
     "/api/case-console/cases": {
       "get": {
         "operationId": "CaseConsoleController_listCases",
@@ -125169,6 +125223,13 @@
               }
             ]
           },
+          "batchOptions": {
+            "description": "Unmatched debits (D161): every payment batch this line can be matched to (total equal to the line, no bank line yet, no payment matched on its own, within the date window). Empty otherwise.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrustBankLineBatchDto"
+            }
+          },
           "transaction": {
             "nullable": true,
             "description": "Matched: the transaction it explains.",
@@ -125214,7 +125275,8 @@
           "lineDate",
           "memo",
           "amountCents",
-          "view"
+          "view",
+          "batchOptions"
         ]
       },
       "TrustBankWorkspaceCountsDto": {
@@ -146908,6 +146970,7 @@
               "sent",
               "no_email",
               "failed",
+              "already_emailed",
               "off",
               "none"
             ],
@@ -149799,6 +149862,12 @@
             "nullable": true,
             "description": "Trade/category label, if classified."
           },
+          "propertyId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "The property the request was filed against."
+          },
           "propertyAddress": {
             "type": "string",
             "nullable": true,
@@ -149938,6 +150007,7 @@
           "urgent",
           "description",
           "categoryName",
+          "propertyId",
           "propertyAddress",
           "createdAt",
           "scheduledDate",
@@ -150064,6 +150134,665 @@
           "serverUrl",
           "token",
           "roomName"
+        ]
+      },
+      "GiiChatAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "lease-break-notice.pdf"
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "application/pdf",
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/gif"
+            ],
+            "example": "application/pdf"
+          },
+          "base64": {
+            "type": "string",
+            "maxLength": 10485760
+          }
+        },
+        "required": [
+          "fileName",
+          "mediaType",
+          "base64"
+        ]
+      },
+      "GiiChatMessageDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "example": "user"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "example": "66 Berry Street — tenant moving out 31 August 2026"
+          },
+          "attachments": {
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiChatAttachmentDto"
+            }
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ]
+      },
+      "GiiPendingPropertyCandidateDto": {
+        "type": "object",
+        "properties": {
+          "propertyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 240,
+            "example": "1A Lucy Street, Merrylands West NSW 2160"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "propertyId",
+          "label"
+        ]
+      },
+      "GiiScreenRecordDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "maintenance",
+              "inspection",
+              "leasing",
+              "tenant_selection",
+              "rent_review",
+              "vacating",
+              "tribunal",
+              "message_thread"
+            ],
+            "example": "maintenance"
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "GII_SCREEN_RECORD_ID_PATTERN",
+            "description": "The record id as the app routes to it. Untrusted: tools look it up under the caller's scope."
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ]
+      },
+      "GiiChatContextDto": {
+        "type": "object",
+        "properties": {
+          "propertyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "propertyLabel": {
+            "type": "string",
+            "maxLength": 240,
+            "example": "66 Berry Street, North Sydney NSW 2060"
+          },
+          "moveOutDate": {
+            "type": "string",
+            "pattern": "/^\\d{4}-\\d{2}-\\d{2}$/",
+            "example": "2026-08-31"
+          },
+          "pageModule": {
+            "type": "string",
+            "maxLength": 80,
+            "example": "properties"
+          },
+          "pageLabel": {
+            "type": "string",
+            "maxLength": 240,
+            "example": "Property Portal · 66 Berry Street"
+          },
+          "propertyChanged": {
+            "type": "boolean",
+            "example": true
+          },
+          "pendingPropertyCandidates": {
+            "maxItems": 12,
+            "description": "Echo back `pendingPropertyCandidates` from the previous response when the user is picking from an ambiguous list.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiPendingPropertyCandidateDto"
+            }
+          },
+          "earlierSummary": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "screenRecord": {
+            "$ref": "#/components/schemas/GiiScreenRecordDto"
+          }
+        }
+      },
+      "GiiChatRequestDto": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiChatMessageDto"
+            }
+          },
+          "context": {
+            "$ref": "#/components/schemas/GiiChatContextDto"
+          }
+        },
+        "required": [
+          "messages"
+        ]
+      },
+      "GiiTermProgressDto": {
+        "type": "object",
+        "properties": {
+          "totalTermDays": {
+            "type": "number",
+            "example": 365
+          },
+          "daysOccupied": {
+            "type": "number",
+            "example": 243
+          },
+          "daysRemaining": {
+            "type": "number",
+            "example": 122
+          },
+          "pctElapsed": {
+            "type": "number",
+            "example": 0.6657534246575343,
+            "description": "Unrounded fraction of the term elapsed. Format for display only."
+          }
+        },
+        "required": [
+          "totalTermDays",
+          "daysOccupied",
+          "daysRemaining",
+          "pctElapsed"
+        ]
+      },
+      "GiiBreakFeeDto": {
+        "type": "object",
+        "properties": {
+          "weeks": {
+            "type": "number",
+            "example": 2
+          },
+          "band": {
+            "type": "string",
+            "example": "50–<75%"
+          },
+          "totalFee": {
+            "type": "number",
+            "example": 2000
+          },
+          "citation": {
+            "type": "string",
+            "example": "Residential Tenancies Regulation 2019 (NSW) cl.10A",
+            "description": "The rule THIS fee comes from. Never cite a rule from elsewhere for it."
+          }
+        },
+        "required": [
+          "weeks",
+          "band",
+          "totalFee",
+          "citation"
+        ]
+      },
+      "GiiNoticeDto": {
+        "type": "object",
+        "properties": {
+          "minDays": {
+            "type": "number",
+            "example": 21,
+            "description": "The NSW minimum notice days for this tenancy."
+          },
+          "noticeDays": {
+            "type": "number",
+            "example": 54
+          },
+          "sufficient": {
+            "type": "boolean",
+            "example": true
+          },
+          "earliestCompliantVacateDate": {
+            "type": "string",
+            "example": "2026-07-29"
+          },
+          "citation": {
+            "type": "string",
+            "example": "Residential Tenancies Act 2010 (NSW) s97",
+            "description": "The rule THIS minimum comes from (s96 fixed term / s97 periodic)."
+          }
+        },
+        "required": [
+          "minDays",
+          "noticeDays",
+          "sufficient",
+          "earliestCompliantVacateDate",
+          "citation"
+        ]
+      },
+      "GiiRentOwedDto": {
+        "type": "object",
+        "properties": {
+          "rentPaidTo": {
+            "type": "string",
+            "example": "2026-08-15"
+          },
+          "daysOwed": {
+            "type": "number",
+            "example": 16
+          },
+          "amountOwed": {
+            "type": "number",
+            "example": 2285.71
+          },
+          "creditDays": {
+            "type": "number",
+            "example": 0,
+            "description": "Days paid beyond the vacate date."
+          },
+          "creditAmount": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "rentPaidTo",
+          "daysOwed",
+          "amountOwed",
+          "creditDays",
+          "creditAmount"
+        ]
+      },
+      "GiiAssessmentDto": {
+        "type": "object",
+        "properties": {
+          "case": {
+            "type": "string",
+            "enum": [
+              "BREAK_LEASE",
+              "FIXED_TERM_NOTICE",
+              "PERIODIC_NOTICE"
+            ],
+            "example": "BREAK_LEASE"
+          },
+          "tenancyKind": {
+            "type": "string",
+            "enum": [
+              "FIXED_TERM",
+              "PERIODIC"
+            ],
+            "example": "FIXED_TERM"
+          },
+          "basis": {
+            "type": "string",
+            "example": "fixed term ends 2026-12-31"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Echo this back as request `context.propertyId` on the next turn so Gii keeps the subject without re-resolving the address."
+          },
+          "propertyLabel": {
+            "type": "string",
+            "example": "66 Berry Street, North Sydney NSW 2060"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Jane Tenant"
+          },
+          "leaseStartDate": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-01-01"
+          },
+          "leaseEndDate": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-12-31"
+          },
+          "moveOutDate": {
+            "type": "string",
+            "example": "2026-08-31"
+          },
+          "weeklyRent": {
+            "type": "number",
+            "nullable": true,
+            "example": 1000
+          },
+          "dailyRent": {
+            "type": "number",
+            "nullable": true,
+            "example": 142.85714285714286
+          },
+          "dailyRentDisplay": {
+            "type": "string",
+            "nullable": true,
+            "example": "142.86",
+            "description": "The daily rate as displayed. Render this verbatim; do not re-round."
+          },
+          "term": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiTermProgressDto"
+              }
+            ]
+          },
+          "breakFee": {
+            "nullable": true,
+            "description": "Null unless this is a genuine breach with a quotable fee.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiBreakFeeDto"
+              }
+            ]
+          },
+          "breakFeeIneligibleReason": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "NOT_A_BREACH",
+              "TERM_OVER_3_YEARS",
+              "PRE_2020_AGREEMENT",
+              "UNKNOWN_LEASE_DATES",
+              "UNKNOWN_RENT"
+            ],
+            "example": null
+          },
+          "notice": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiNoticeDto"
+              }
+            ]
+          },
+          "rent": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiRentOwedDto"
+              }
+            ]
+          },
+          "missing": {
+            "example": [
+              "rentPaidTo"
+            ],
+            "description": "Facts the engine lacked. Gii asks for exactly these rather than guessing.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ruleCitations": {
+            "example": [
+              "Residential Tenancies Regulation 2019 (NSW) cl.10A"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "conflicts": {
+            "example": [],
+            "description": "Lease facts where the tenancy agreement and property registry disagree.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "case",
+          "tenancyKind",
+          "basis",
+          "propertyId",
+          "propertyLabel",
+          "tenantName",
+          "leaseStartDate",
+          "leaseEndDate",
+          "moveOutDate",
+          "weeklyRent",
+          "dailyRent",
+          "dailyRentDisplay",
+          "term",
+          "breakFee",
+          "breakFeeIneligibleReason",
+          "notice",
+          "rent",
+          "missing",
+          "ruleCitations",
+          "conflicts"
+        ]
+      },
+      "GiiLodgedDto": {
+        "type": "object",
+        "properties": {
+          "caseRef": {
+            "type": "string",
+            "example": "VT-1042"
+          }
+        },
+        "required": [
+          "caseRef"
+        ]
+      },
+      "GiiJobCaseLinkDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "description": "The record's id: a maintenance job, rent review, inspection, leasing cycle, End Leasing case (vacating task), inbox conversation or agent notification. For `property` and `arrears` it is the property id."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "maintenance",
+              "rent_review",
+              "inspection",
+              "leasing",
+              "end_leasing",
+              "conversation",
+              "notification",
+              "property",
+              "arrears"
+            ],
+            "example": "maintenance"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "example": "Q20227",
+            "description": "Business reference when one exists (order number / tracking)."
+          },
+          "label": {
+            "type": "string",
+            "example": "Q20227 · Entrance hallway window cannot lock",
+            "description": "Short button label for the chat UI."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "reference",
+          "label"
+        ]
+      },
+      "GiiProposalLineDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "Issue"
+          },
+          "value": {
+            "type": "string",
+            "example": "Plumbing"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ]
+      },
+      "GiiProposalDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Signed proposal. Send it back unchanged to confirm."
+          },
+          "tool": {
+            "type": "string",
+            "example": "create_maintenance_job"
+          },
+          "title": {
+            "type": "string",
+            "example": "Raise a maintenance job"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiProposalLineDto"
+            }
+          },
+          "confirmBy": {
+            "type": "string",
+            "enum": [
+              "voice",
+              "screen"
+            ],
+            "example": "voice",
+            "description": "`voice`: a spoken yes may confirm it (send `byVoice: true`). `screen`: it moves money or is a legal step, so only a tap on Confirm does."
+          },
+          "readBack": {
+            "type": "string",
+            "example": "Raise a maintenance job. Property, 1008/19 Halifax Street. Issue, leaking kitchen tap. Say yes to go ahead, or no to cancel.",
+            "description": "The card as the app reads it back before anything is made, ending with how to confirm it."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T01:30:00.000Z"
+          }
+        },
+        "required": [
+          "token",
+          "tool",
+          "title",
+          "lines",
+          "confirmBy",
+          "readBack",
+          "expiresAt"
+        ]
+      },
+      "GiiChatResponseDto": {
+        "type": "object",
+        "properties": {
+          "reply": {
+            "type": "string",
+            "example": "That is a break lease — 243 of 365 days elapsed (66.6%), so a 2-week fee of $2,000.00 applies."
+          },
+          "spoken": {
+            "type": "string",
+            "example": "The bond is $1,000.00 and $330.00 comes off it. The rest is on your screen.",
+            "description": "The reply as the app reads it aloud: a short reply in full; a long one as its opening sentences, then a pointer to the screen. Dates are written out and lists are never read item by item."
+          },
+          "assessment": {
+            "nullable": true,
+            "description": "The deterministic assessment behind the reply, for rendering. Null when the turn produced no assessment.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiAssessmentDto"
+              }
+            ]
+          },
+          "lodged": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiLodgedDto"
+              }
+            ]
+          },
+          "jobCases": {
+            "description": "Job cases from tools on this turn (maintenance, rent review, inspection) for Open buttons in chat.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiJobCaseLinkDto"
+            }
+          },
+          "pendingPropertyCandidates": {
+            "description": "When find_property was ambiguous this turn, echo these back as `context.pendingPropertyCandidates` so the next reply can pick by number or address fragment.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiPendingPropertyCandidateDto"
+            }
+          },
+          "proposal": {
+            "nullable": true,
+            "description": "The change Cros proposed this turn and is waiting on the officer to confirm. Show it as a Confirm card until the next message is sent.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GiiProposalDto"
+              }
+            ]
+          },
+          "stoppedOn": {
+            "type": "string",
+            "enum": [
+              "end_turn",
+              "max_turns",
+              "max_tokens"
+            ],
+            "example": "end_turn"
+          }
+        },
+        "required": [
+          "reply",
+          "spoken",
+          "assessment",
+          "lodged",
+          "jobCases",
+          "pendingPropertyCandidates",
+          "proposal",
+          "stoppedOn"
         ]
       },
       "TenantTenancyResponseDto": {
@@ -154040,6 +154769,346 @@
           "propertyId",
           "propertyAddress",
           "submittedAt"
+        ]
+      },
+      "GiiComposeDraftRequestDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "message"
+            ],
+            "example": "email"
+          },
+          "instruction": {
+            "type": "string",
+            "maxLength": 1500,
+            "example": "Confirm garage light, pest control and AC are fixed — ask tenant if AC works now",
+            "description": "Officer instructions. May be Chinese; the draft body is always English."
+          },
+          "participantName": {
+            "type": "string",
+            "maxLength": 120,
+            "example": "Ellena Jalloul"
+          },
+          "propertyAddress": {
+            "type": "string",
+            "maxLength": 240,
+            "example": "12 Example St, Sydney NSW 2000"
+          },
+          "lastInboundBody": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "composeMode": {
+            "type": "string",
+            "enum": [
+              "new",
+              "reply",
+              "forward"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "channel"
+        ]
+      },
+      "GiiComposeDraftResponseDto": {
+        "type": "object",
+        "properties": {
+          "bodyText": {
+            "type": "string",
+            "example": "Hi Ellena,\n\nJust confirming the garage light, pest control and air conditioning issues have all been resolved. Could you please let us know if the air conditioning is working normally now?\n\nRegards"
+          }
+        },
+        "required": [
+          "bodyText"
+        ]
+      },
+      "GiiActionableCaseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "maintenance_approval",
+              "rent_review",
+              "inspection_due"
+            ],
+            "example": "maintenance_approval"
+          },
+          "id": {
+            "type": "string",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "description": "Stable case id for UI deep-links. Never shown in chat prose."
+          },
+          "propertyLabel": {
+            "type": "string",
+            "example": "66 Berry Street, North Sydney NSW 2060"
+          },
+          "summary": {
+            "type": "string",
+            "example": "Maintenance quote awaiting your approval (urgent) — Kitchen mixer tap replacement",
+            "description": "Plain-language status. Any figures in it are the DB’s, not the model’s."
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "example": "GII-DEMO-M1",
+            "description": "Business reference (order number) where one exists; null otherwise."
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "propertyLabel",
+          "summary",
+          "reference"
+        ]
+      },
+      "GiiActionableCasesResponseDto": {
+        "type": "object",
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiActionableCaseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 3,
+            "description": "Total cases needing the actor’s attention."
+          }
+        },
+        "required": [
+          "cases",
+          "total"
+        ]
+      },
+      "GiiSummariseRequestDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "messages": {
+            "minItems": 1,
+            "maxItems": 40,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiChatMessageDto"
+            }
+          }
+        },
+        "required": [
+          "messages"
+        ]
+      },
+      "GiiSummariseResponseDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "maxLength": 4000,
+            "description": "The whole chat up to the last folded message. Send it as `context.earlierSummary`."
+          }
+        },
+        "required": [
+          "summary"
+        ]
+      },
+      "GiiConversationSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Raise a job for the leaking tap at 66 Berry Street"
+          },
+          "propertyId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "messageCount": {
+            "type": "number",
+            "example": 6
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "propertyId",
+          "messageCount",
+          "lastMessageAt"
+        ]
+      },
+      "GiiConversationMessageDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "example": "user"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 20000,
+            "example": "Raise a job for the leaking tap at 66 Berry Street"
+          }
+        },
+        "required": [
+          "role",
+          "text"
+        ]
+      },
+      "GiiConversationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Raise a job for the leaking tap at 66 Berry Street"
+          },
+          "propertyId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "messageCount": {
+            "type": "number",
+            "example": 6
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiConversationMessageDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "propertyId",
+          "messageCount",
+          "lastMessageAt",
+          "messages"
+        ]
+      },
+      "GiiConversationSaveDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Raise a job for the leaking tap at 66 Berry Street"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The property the chat is about."
+          },
+          "messages": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GiiConversationMessageDto"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "messages"
+        ]
+      },
+      "GiiVoiceStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether this server can transcribe hold-to-talk audio."
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true,
+            "example": "deepgram",
+            "description": "Which ASR would run; null when none is configured."
+          }
+        },
+        "required": [
+          "available"
+        ]
+      },
+      "GiiTranscribeRequestDto": {
+        "type": "object",
+        "properties": {
+          "audioBase64": {
+            "type": "string",
+            "maxLength": 7000000,
+            "description": "Base64-encoded audio (webm/mp4 from MediaRecorder)"
+          },
+          "mediaType": {
+            "type": "string",
+            "maxLength": 128,
+            "example": "audio/webm"
+          },
+          "languageHint": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "ISO language hint (`en`, `zh`) — omit to auto-detect."
+          }
+        },
+        "required": [
+          "audioBase64",
+          "mediaType"
+        ]
+      },
+      "GiiTranscribeResponseDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Empty when the clip produced no words — see `outcome`."
+          },
+          "provider": {
+            "type": "string",
+            "example": "whisper"
+          },
+          "outcome": {
+            "type": "string",
+            "example": "no_speech",
+            "description": "Why the text is empty: `no_speech` (the provider heard nothing), `provider_failed`, or `empty_audio`. A 200 with no text is a normal outcome; only a 503 means this server cannot transcribe at all."
+          }
+        },
+        "required": [
+          "text"
         ]
       },
       "LandlordPropertyResponseDto": {
@@ -167517,665 +168586,6 @@
           "status"
         ]
       },
-      "GiiChatAttachmentDto": {
-        "type": "object",
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "maxLength": 255,
-            "example": "lease-break-notice.pdf"
-          },
-          "mediaType": {
-            "type": "string",
-            "enum": [
-              "application/pdf",
-              "image/png",
-              "image/jpeg",
-              "image/webp",
-              "image/gif"
-            ],
-            "example": "application/pdf"
-          },
-          "base64": {
-            "type": "string",
-            "maxLength": 10485760
-          }
-        },
-        "required": [
-          "fileName",
-          "mediaType",
-          "base64"
-        ]
-      },
-      "GiiChatMessageDto": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "user",
-              "assistant"
-            ],
-            "example": "user"
-          },
-          "content": {
-            "type": "string",
-            "maxLength": 4000,
-            "example": "66 Berry Street — tenant moving out 31 August 2026"
-          },
-          "attachments": {
-            "maxItems": 5,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiChatAttachmentDto"
-            }
-          }
-        },
-        "required": [
-          "role",
-          "content"
-        ]
-      },
-      "GiiPendingPropertyCandidateDto": {
-        "type": "object",
-        "properties": {
-          "propertyId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 240,
-            "example": "1A Lucy Street, Merrylands West NSW 2160"
-          },
-          "tenantName": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 160
-          }
-        },
-        "required": [
-          "propertyId",
-          "label"
-        ]
-      },
-      "GiiScreenRecordDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "maintenance",
-              "inspection",
-              "leasing",
-              "tenant_selection",
-              "rent_review",
-              "vacating",
-              "tribunal",
-              "message_thread"
-            ],
-            "example": "maintenance"
-          },
-          "id": {
-            "type": "string",
-            "maxLength": 80,
-            "pattern": "GII_SCREEN_RECORD_ID_PATTERN",
-            "description": "The record id as the app routes to it. Untrusted: tools look it up under the caller's scope."
-          }
-        },
-        "required": [
-          "kind",
-          "id"
-        ]
-      },
-      "GiiChatContextDto": {
-        "type": "object",
-        "properties": {
-          "propertyId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "propertyLabel": {
-            "type": "string",
-            "maxLength": 240,
-            "example": "66 Berry Street, North Sydney NSW 2060"
-          },
-          "moveOutDate": {
-            "type": "string",
-            "pattern": "/^\\d{4}-\\d{2}-\\d{2}$/",
-            "example": "2026-08-31"
-          },
-          "pageModule": {
-            "type": "string",
-            "maxLength": 80,
-            "example": "properties"
-          },
-          "pageLabel": {
-            "type": "string",
-            "maxLength": 240,
-            "example": "Property Portal · 66 Berry Street"
-          },
-          "propertyChanged": {
-            "type": "boolean",
-            "example": true
-          },
-          "pendingPropertyCandidates": {
-            "maxItems": 12,
-            "description": "Echo back `pendingPropertyCandidates` from the previous response when the user is picking from an ambiguous list.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiPendingPropertyCandidateDto"
-            }
-          },
-          "earlierSummary": {
-            "type": "string",
-            "maxLength": 4000
-          },
-          "screenRecord": {
-            "$ref": "#/components/schemas/GiiScreenRecordDto"
-          }
-        }
-      },
-      "GiiChatRequestDto": {
-        "type": "object",
-        "properties": {
-          "messages": {
-            "maxItems": 20,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiChatMessageDto"
-            }
-          },
-          "context": {
-            "$ref": "#/components/schemas/GiiChatContextDto"
-          }
-        },
-        "required": [
-          "messages"
-        ]
-      },
-      "GiiTermProgressDto": {
-        "type": "object",
-        "properties": {
-          "totalTermDays": {
-            "type": "number",
-            "example": 365
-          },
-          "daysOccupied": {
-            "type": "number",
-            "example": 243
-          },
-          "daysRemaining": {
-            "type": "number",
-            "example": 122
-          },
-          "pctElapsed": {
-            "type": "number",
-            "example": 0.6657534246575343,
-            "description": "Unrounded fraction of the term elapsed. Format for display only."
-          }
-        },
-        "required": [
-          "totalTermDays",
-          "daysOccupied",
-          "daysRemaining",
-          "pctElapsed"
-        ]
-      },
-      "GiiBreakFeeDto": {
-        "type": "object",
-        "properties": {
-          "weeks": {
-            "type": "number",
-            "example": 2
-          },
-          "band": {
-            "type": "string",
-            "example": "50–<75%"
-          },
-          "totalFee": {
-            "type": "number",
-            "example": 2000
-          },
-          "citation": {
-            "type": "string",
-            "example": "Residential Tenancies Regulation 2019 (NSW) cl.10A",
-            "description": "The rule THIS fee comes from. Never cite a rule from elsewhere for it."
-          }
-        },
-        "required": [
-          "weeks",
-          "band",
-          "totalFee",
-          "citation"
-        ]
-      },
-      "GiiNoticeDto": {
-        "type": "object",
-        "properties": {
-          "minDays": {
-            "type": "number",
-            "example": 21,
-            "description": "The NSW minimum notice days for this tenancy."
-          },
-          "noticeDays": {
-            "type": "number",
-            "example": 54
-          },
-          "sufficient": {
-            "type": "boolean",
-            "example": true
-          },
-          "earliestCompliantVacateDate": {
-            "type": "string",
-            "example": "2026-07-29"
-          },
-          "citation": {
-            "type": "string",
-            "example": "Residential Tenancies Act 2010 (NSW) s97",
-            "description": "The rule THIS minimum comes from (s96 fixed term / s97 periodic)."
-          }
-        },
-        "required": [
-          "minDays",
-          "noticeDays",
-          "sufficient",
-          "earliestCompliantVacateDate",
-          "citation"
-        ]
-      },
-      "GiiRentOwedDto": {
-        "type": "object",
-        "properties": {
-          "rentPaidTo": {
-            "type": "string",
-            "example": "2026-08-15"
-          },
-          "daysOwed": {
-            "type": "number",
-            "example": 16
-          },
-          "amountOwed": {
-            "type": "number",
-            "example": 2285.71
-          },
-          "creditDays": {
-            "type": "number",
-            "example": 0,
-            "description": "Days paid beyond the vacate date."
-          },
-          "creditAmount": {
-            "type": "number",
-            "example": 0
-          }
-        },
-        "required": [
-          "rentPaidTo",
-          "daysOwed",
-          "amountOwed",
-          "creditDays",
-          "creditAmount"
-        ]
-      },
-      "GiiAssessmentDto": {
-        "type": "object",
-        "properties": {
-          "case": {
-            "type": "string",
-            "enum": [
-              "BREAK_LEASE",
-              "FIXED_TERM_NOTICE",
-              "PERIODIC_NOTICE"
-            ],
-            "example": "BREAK_LEASE"
-          },
-          "tenancyKind": {
-            "type": "string",
-            "enum": [
-              "FIXED_TERM",
-              "PERIODIC"
-            ],
-            "example": "FIXED_TERM"
-          },
-          "basis": {
-            "type": "string",
-            "example": "fixed term ends 2026-12-31"
-          },
-          "propertyId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Echo this back as request `context.propertyId` on the next turn so Gii keeps the subject without re-resolving the address."
-          },
-          "propertyLabel": {
-            "type": "string",
-            "example": "66 Berry Street, North Sydney NSW 2060"
-          },
-          "tenantName": {
-            "type": "string",
-            "nullable": true,
-            "example": "Jane Tenant"
-          },
-          "leaseStartDate": {
-            "type": "string",
-            "nullable": true,
-            "example": "2026-01-01"
-          },
-          "leaseEndDate": {
-            "type": "string",
-            "nullable": true,
-            "example": "2026-12-31"
-          },
-          "moveOutDate": {
-            "type": "string",
-            "example": "2026-08-31"
-          },
-          "weeklyRent": {
-            "type": "number",
-            "nullable": true,
-            "example": 1000
-          },
-          "dailyRent": {
-            "type": "number",
-            "nullable": true,
-            "example": 142.85714285714286
-          },
-          "dailyRentDisplay": {
-            "type": "string",
-            "nullable": true,
-            "example": "142.86",
-            "description": "The daily rate as displayed. Render this verbatim; do not re-round."
-          },
-          "term": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiTermProgressDto"
-              }
-            ]
-          },
-          "breakFee": {
-            "nullable": true,
-            "description": "Null unless this is a genuine breach with a quotable fee.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiBreakFeeDto"
-              }
-            ]
-          },
-          "breakFeeIneligibleReason": {
-            "type": "string",
-            "nullable": true,
-            "enum": [
-              "NOT_A_BREACH",
-              "TERM_OVER_3_YEARS",
-              "PRE_2020_AGREEMENT",
-              "UNKNOWN_LEASE_DATES",
-              "UNKNOWN_RENT"
-            ],
-            "example": null
-          },
-          "notice": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiNoticeDto"
-              }
-            ]
-          },
-          "rent": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiRentOwedDto"
-              }
-            ]
-          },
-          "missing": {
-            "example": [
-              "rentPaidTo"
-            ],
-            "description": "Facts the engine lacked. Gii asks for exactly these rather than guessing.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "ruleCitations": {
-            "example": [
-              "Residential Tenancies Regulation 2019 (NSW) cl.10A"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "conflicts": {
-            "example": [],
-            "description": "Lease facts where the tenancy agreement and property registry disagree.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "case",
-          "tenancyKind",
-          "basis",
-          "propertyId",
-          "propertyLabel",
-          "tenantName",
-          "leaseStartDate",
-          "leaseEndDate",
-          "moveOutDate",
-          "weeklyRent",
-          "dailyRent",
-          "dailyRentDisplay",
-          "term",
-          "breakFee",
-          "breakFeeIneligibleReason",
-          "notice",
-          "rent",
-          "missing",
-          "ruleCitations",
-          "conflicts"
-        ]
-      },
-      "GiiLodgedDto": {
-        "type": "object",
-        "properties": {
-          "caseRef": {
-            "type": "string",
-            "example": "VT-1042"
-          }
-        },
-        "required": [
-          "caseRef"
-        ]
-      },
-      "GiiJobCaseLinkDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "description": "The record's id: a maintenance job, rent review, inspection, leasing cycle, End Leasing case (vacating task), inbox conversation or agent notification. For `property` and `arrears` it is the property id."
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "maintenance",
-              "rent_review",
-              "inspection",
-              "leasing",
-              "end_leasing",
-              "conversation",
-              "notification",
-              "property",
-              "arrears"
-            ],
-            "example": "maintenance"
-          },
-          "reference": {
-            "type": "string",
-            "nullable": true,
-            "example": "Q20227",
-            "description": "Business reference when one exists (order number / tracking)."
-          },
-          "label": {
-            "type": "string",
-            "example": "Q20227 · Entrance hallway window cannot lock",
-            "description": "Short button label for the chat UI."
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "reference",
-          "label"
-        ]
-      },
-      "GiiProposalLineDto": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "example": "Issue"
-          },
-          "value": {
-            "type": "string",
-            "example": "Plumbing"
-          }
-        },
-        "required": [
-          "label",
-          "value"
-        ]
-      },
-      "GiiProposalDto": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "description": "Signed proposal. Send it back unchanged to confirm."
-          },
-          "tool": {
-            "type": "string",
-            "example": "create_maintenance_job"
-          },
-          "title": {
-            "type": "string",
-            "example": "Raise a maintenance job"
-          },
-          "lines": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiProposalLineDto"
-            }
-          },
-          "confirmBy": {
-            "type": "string",
-            "enum": [
-              "voice",
-              "screen"
-            ],
-            "example": "voice",
-            "description": "`voice`: a spoken yes may confirm it (send `byVoice: true`). `screen`: it moves money or is a legal step, so only a tap on Confirm does."
-          },
-          "readBack": {
-            "type": "string",
-            "example": "Raise a maintenance job. Property, 1008/19 Halifax Street. Issue, leaking kitchen tap. Say yes to go ahead, or no to cancel.",
-            "description": "The card as the app reads it back before anything is made, ending with how to confirm it."
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-10-26T01:30:00.000Z"
-          }
-        },
-        "required": [
-          "token",
-          "tool",
-          "title",
-          "lines",
-          "confirmBy",
-          "readBack",
-          "expiresAt"
-        ]
-      },
-      "GiiChatResponseDto": {
-        "type": "object",
-        "properties": {
-          "reply": {
-            "type": "string",
-            "example": "That is a break lease — 243 of 365 days elapsed (66.6%), so a 2-week fee of $2,000.00 applies."
-          },
-          "spoken": {
-            "type": "string",
-            "example": "The bond is $1,000.00 and $330.00 comes off it. The rest is on your screen.",
-            "description": "The reply as the app reads it aloud: a short reply in full; a long one as its opening sentences, then a pointer to the screen. Dates are written out and lists are never read item by item."
-          },
-          "assessment": {
-            "nullable": true,
-            "description": "The deterministic assessment behind the reply, for rendering. Null when the turn produced no assessment.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiAssessmentDto"
-              }
-            ]
-          },
-          "lodged": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiLodgedDto"
-              }
-            ]
-          },
-          "jobCases": {
-            "description": "Job cases from tools on this turn (maintenance, rent review, inspection) for Open buttons in chat.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiJobCaseLinkDto"
-            }
-          },
-          "pendingPropertyCandidates": {
-            "description": "When find_property was ambiguous this turn, echo these back as `context.pendingPropertyCandidates` so the next reply can pick by number or address fragment.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiPendingPropertyCandidateDto"
-            }
-          },
-          "proposal": {
-            "nullable": true,
-            "description": "The change Cros proposed this turn and is waiting on the officer to confirm. Show it as a Confirm card until the next message is sent.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GiiProposalDto"
-              }
-            ]
-          },
-          "stoppedOn": {
-            "type": "string",
-            "enum": [
-              "end_turn",
-              "max_turns",
-              "max_tokens"
-            ],
-            "example": "end_turn"
-          }
-        },
-        "required": [
-          "reply",
-          "spoken",
-          "assessment",
-          "lodged",
-          "jobCases",
-          "pendingPropertyCandidates",
-          "proposal",
-          "stoppedOn"
-        ]
-      },
       "AgentGiiBriefingCountDto": {
         "type": "object",
         "properties": {
@@ -168663,162 +169073,6 @@
           "handoffThreadId"
         ]
       },
-      "GiiSummariseRequestDto": {
-        "type": "object",
-        "properties": {
-          "summary": {
-            "type": "string",
-            "maxLength": 4000
-          },
-          "messages": {
-            "minItems": 1,
-            "maxItems": 40,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiChatMessageDto"
-            }
-          }
-        },
-        "required": [
-          "messages"
-        ]
-      },
-      "GiiSummariseResponseDto": {
-        "type": "object",
-        "properties": {
-          "summary": {
-            "type": "string",
-            "maxLength": 4000,
-            "description": "The whole chat up to the last folded message. Send it as `context.earlierSummary`."
-          }
-        },
-        "required": [
-          "summary"
-        ]
-      },
-      "GiiConversationSummaryDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string",
-            "example": "Raise a job for the leaking tap at 66 Berry Street"
-          },
-          "propertyId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid"
-          },
-          "messageCount": {
-            "type": "number",
-            "example": 6
-          },
-          "lastMessageAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "propertyId",
-          "messageCount",
-          "lastMessageAt"
-        ]
-      },
-      "GiiConversationMessageDto": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "user",
-              "assistant"
-            ],
-            "example": "user"
-          },
-          "text": {
-            "type": "string",
-            "maxLength": 20000,
-            "example": "Raise a job for the leaking tap at 66 Berry Street"
-          }
-        },
-        "required": [
-          "role",
-          "text"
-        ]
-      },
-      "GiiConversationDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string",
-            "example": "Raise a job for the leaking tap at 66 Berry Street"
-          },
-          "propertyId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid"
-          },
-          "messageCount": {
-            "type": "number",
-            "example": 6
-          },
-          "lastMessageAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "messages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiConversationMessageDto"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "propertyId",
-          "messageCount",
-          "lastMessageAt",
-          "messages"
-        ]
-      },
-      "GiiConversationSaveDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120,
-            "example": "Raise a job for the leaking tap at 66 Berry Street"
-          },
-          "propertyId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The property the chat is about."
-          },
-          "messages": {
-            "minItems": 1,
-            "maxItems": 200,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiConversationMessageDto"
-            }
-          }
-        },
-        "required": [
-          "title",
-          "messages"
-        ]
-      },
       "GiiChangeDto": {
         "type": "object",
         "properties": {
@@ -168862,69 +169116,6 @@
         },
         "required": [
           "changes"
-        ]
-      },
-      "GiiVoiceStatusResponseDto": {
-        "type": "object",
-        "properties": {
-          "available": {
-            "type": "boolean",
-            "description": "Whether this server can transcribe hold-to-talk audio."
-          },
-          "provider": {
-            "type": "string",
-            "nullable": true,
-            "example": "deepgram",
-            "description": "Which ASR would run; null when none is configured."
-          }
-        },
-        "required": [
-          "available"
-        ]
-      },
-      "GiiTranscribeRequestDto": {
-        "type": "object",
-        "properties": {
-          "audioBase64": {
-            "type": "string",
-            "maxLength": 7000000,
-            "description": "Base64-encoded audio (webm/mp4 from MediaRecorder)"
-          },
-          "mediaType": {
-            "type": "string",
-            "maxLength": 128,
-            "example": "audio/webm"
-          },
-          "languageHint": {
-            "type": "string",
-            "maxLength": 16,
-            "description": "ISO language hint (`en`, `zh`) — omit to auto-detect."
-          }
-        },
-        "required": [
-          "audioBase64",
-          "mediaType"
-        ]
-      },
-      "GiiTranscribeResponseDto": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string",
-            "description": "Empty when the clip produced no words — see `outcome`."
-          },
-          "provider": {
-            "type": "string",
-            "example": "whisper"
-          },
-          "outcome": {
-            "type": "string",
-            "example": "no_speech",
-            "description": "Why the text is empty: `no_speech` (the provider heard nothing), `provider_failed`, or `empty_audio`. A 200 with no text is a normal outcome; only a 503 means this server cannot transcribe at all."
-          }
-        },
-        "required": [
-          "text"
         ]
       },
       "AgentCreateOwnerDecisionDto": {
@@ -172820,127 +173011,6 @@
           "requested",
           "feeExGstAud",
           "feeIncGstAud"
-        ]
-      },
-      "GiiComposeDraftRequestDto": {
-        "type": "object",
-        "properties": {
-          "channel": {
-            "type": "string",
-            "enum": [
-              "email",
-              "message"
-            ],
-            "example": "email"
-          },
-          "instruction": {
-            "type": "string",
-            "maxLength": 1500,
-            "example": "Confirm garage light, pest control and AC are fixed — ask tenant if AC works now",
-            "description": "Officer instructions. May be Chinese; the draft body is always English."
-          },
-          "participantName": {
-            "type": "string",
-            "maxLength": 120,
-            "example": "Ellena Jalloul"
-          },
-          "propertyAddress": {
-            "type": "string",
-            "maxLength": 240,
-            "example": "12 Example St, Sydney NSW 2000"
-          },
-          "lastInboundBody": {
-            "type": "string",
-            "maxLength": 2000
-          },
-          "composeMode": {
-            "type": "string",
-            "enum": [
-              "new",
-              "reply",
-              "forward"
-            ]
-          },
-          "subject": {
-            "type": "string",
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "channel"
-        ]
-      },
-      "GiiComposeDraftResponseDto": {
-        "type": "object",
-        "properties": {
-          "bodyText": {
-            "type": "string",
-            "example": "Hi Ellena,\n\nJust confirming the garage light, pest control and air conditioning issues have all been resolved. Could you please let us know if the air conditioning is working normally now?\n\nRegards"
-          }
-        },
-        "required": [
-          "bodyText"
-        ]
-      },
-      "GiiActionableCaseDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "maintenance_approval",
-              "rent_review",
-              "inspection_due"
-            ],
-            "example": "maintenance_approval"
-          },
-          "id": {
-            "type": "string",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "description": "Stable case id for UI deep-links. Never shown in chat prose."
-          },
-          "propertyLabel": {
-            "type": "string",
-            "example": "66 Berry Street, North Sydney NSW 2060"
-          },
-          "summary": {
-            "type": "string",
-            "example": "Maintenance quote awaiting your approval (urgent) — Kitchen mixer tap replacement",
-            "description": "Plain-language status. Any figures in it are the DB’s, not the model’s."
-          },
-          "reference": {
-            "type": "string",
-            "nullable": true,
-            "example": "GII-DEMO-M1",
-            "description": "Business reference (order number) where one exists; null otherwise."
-          }
-        },
-        "required": [
-          "kind",
-          "id",
-          "propertyLabel",
-          "summary",
-          "reference"
-        ]
-      },
-      "GiiActionableCasesResponseDto": {
-        "type": "object",
-        "properties": {
-          "cases": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GiiActionableCaseDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "example": 3,
-            "description": "Total cases needing the actor’s attention."
-          }
-        },
-        "required": [
-          "cases",
-          "total"
         ]
       },
       "CaseListItemDto": {

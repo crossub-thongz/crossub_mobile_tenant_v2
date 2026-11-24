@@ -506,6 +506,9 @@ export const tenantApi = {
 
   createVoiceSession: () => unwrap(crossub.POST('/tenant/voice/session')),
 
+  askCros: (messages: components['schemas']['GiiChatMessageDto'][]) =>
+    unwrap(crossub.POST('/tenant/gii/chat', { body: { messages } })),
+
   setCleaning: (caseId: string, choice: 'own_arrangement' | 'booked') =>
     unwrap(
       crossub.PATCH('/tenant/vacating-cases/{caseId}/cleaning', {

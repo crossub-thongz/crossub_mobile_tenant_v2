@@ -20,9 +20,12 @@ export default function InboxScreen() {
   return (
     <Screen tab>
       <TabHeader kicker="" title="Inbox" />
-      <Pressable accessibilityRole="button" onPress={() => router.push('/flow/cros')} style={styles.cros}>
-        <Image source={require('@/assets/brand/cros.png')} style={styles.crosIcon} />
-        <Text style={styles.crosText}>ASK CROS ANYTHING!</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Ask Cros" onPress={() => router.push('/flow/cros')} style={styles.cros}>
+        <Image source={require('@/assets/brand/cros-logo.png')} style={styles.crosIcon} />
+        <View style={styles.grow}>
+          <Text style={styles.crosText}>Ask Cros</Text>
+          <Text style={styles.crosHint}>Open the chat</Text>
+        </View>
       </Pressable>
       <Section
         title="Conversations"
@@ -62,9 +65,21 @@ export default function InboxScreen() {
 }
 
 const styles = StyleSheet.create({
-  cros: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#111', borderRadius: 28, paddingVertical: 8, paddingHorizontal: 10 },
-  crosIcon: { width: 42, height: 42, borderRadius: 21 },
-  crosText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.4 },
+  cros: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.greenLine,
+    borderRadius: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  crosIcon: { width: 48, height: 48 },
+  crosText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  crosHint: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  grow: { flex: 1 },
   title: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   subject: { flexGrow: 1, flexShrink: 1, flexBasis: 0, color: colors.ink, fontSize: 15, fontWeight: '700' },
   whenCol: { alignItems: 'flex-end', gap: 6 },

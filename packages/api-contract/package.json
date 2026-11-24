@@ -11,7 +11,9 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "react-native": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./openapi.json": "./openapi.json",
     "./openapi.mobile.json": "./openapi.mobile.json"

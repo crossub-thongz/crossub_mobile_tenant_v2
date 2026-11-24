@@ -1,32 +1,97 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ApiError } from '@/src/api/client';
 import { downloadAuthedPdf, isApiFile } from '@/src/api/files';
-import { CrosCall } from '@/src/flows/cros-call';
+import { tenantApi } from '@/src/api/tenant';
 import { loadNoticePrefs } from '@/src/notifications/preferences';
 import { pickEvidence } from '@/src/api/pick-evidence';
 import type { EvidenceFile } from '@/src/api/tenant';
 import { messageWhen, type Thread } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
-import { BackButton, Button, Card, Field, Input, Notice, RowItem, Screen } from '@/src/ui/ui';
+import { BackButton, Button, Card, Field, Input, Notice, Screen } from '@/src/ui/ui';
 
 const CATEGORIES: Thread['category'][] = ['General', 'Maintenance', 'Inspection', 'Leasing'];
 
+type CrosTurn = { role: 'user' | 'assistant'; content: string };
+
 export function CrosScreen() {
-  const router = useRouter();
+  const [draft, setDraft] = useState('');
+  const [turns, setTurns] = useState<CrosTurn[]>([]);
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function send() {
+    const content = draft.trim();
+    if (!content || pending) return;
+    const history: CrosTurn[] = [...turns, { role: 'user', content }];
+    setDraft('');
+    setNotice(null);
+    setPending(true);
+    setTurns(history);
+    return tenantApi
+      .askCros(history)
+      .then((result) => {
+        setTurns([...history, { role: 'assistant', content: result.reply }]);
+      })
+      .catch((err: unknown) => {
+        setNotice(err instanceof ApiError || err instanceof Error ? err.message : 'Cros could not answer.');
+      })
+      .finally(() => setPending(false));
+  }
+
   return (
-    <Screen>
-      <BackButton />
-      <Text style={styles.h2}>Ask Cros</Text>
-      <CrosCall />
-      <Card>
-        <RowItem icon="construct-outline" title="Report a repair" subtitle="Open the maintenance form" onPress={() => router.push('/flow/report')} />
-        <RowItem icon="clipboard-outline" title="When is my inspection?" subtitle="Open the routine inspection" onPress={() => router.push('/flow/inspection')} />
-        <RowItem icon="chatbubble-outline" title="Message your property manager" subtitle="Opens a new message" onPress={() => router.push('/flow/new-message')} />
-      </Card>
-    </Screen>
+    <SafeAreaView style={styles.chatSafe} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView style={styles.chatFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.chatHeader}>
+          <BackButton />
+          <View style={styles.chatTitleRow}>
+            <Image source={require('@/assets/brand/cros-logo.png')} style={styles.chatAvatar} />
+            <View style={styles.flex}>
+              <Text style={styles.h2}>Ask Cros</Text>
+              <Text style={styles.muted}>Chat</Text>
+            </View>
+          </View>
+        </View>
+        <ScrollView contentContainerStyle={styles.chatMessages} keyboardShouldPersistTaps="handled">
+          {turns.length === 0 ? <Bubble mine={false} text="Ask a question about your tenancy." meta="Cros" /> : null}
+          {turns.map((turn, index) => (
+            <Bubble key={`${turn.role}-${index}`} mine={turn.role === 'user'} text={turn.content} meta={turn.role === 'user' ? 'You' : 'Cros'} />
+          ))}
+          {pending ? <Bubble mine={false} text="Replying" meta="Cros" /> : null}
+        </ScrollView>
+        <View style={styles.chatComposer}>
+          {notice ? <Text style={styles.error}>{notice}</Text> : null}
+          <View style={styles.composer}>
+            <View style={styles.flex}>
+              <Input
+                value={draft}
+                onChangeText={(value) => {
+                  setDraft(value);
+                  if (notice) setNotice(null);
+                }}
+                placeholder="Message Cros"
+                editable={!pending}
+              />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              accessibilityState={{ disabled: pending }}
+              disabled={pending}
+              onPress={send}
+              style={[styles.send, pending && styles.sendBusy]}
+            >
+              <Ionicons name="arrow-up" size={18} color="#fff" />
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -258,4 +323,13 @@ const styles = StyleSheet.create({
   pillTextOn: { color: '#fff' },
   error: { color: colors.danger, fontSize: 13 },
   link: { color: colors.green, fontSize: 13, fontWeight: '700', marginTop: 6 },
+  chatSafe: { flex: 1, backgroundColor: colors.bg },
+  chatFlex: { flex: 1 },
+  chatHeader: { paddingHorizontal: 20, paddingTop: 8, gap: 8 },
+  chatTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  chatAvatar: { width: 48, height: 48 },
+  chatMessages: { padding: 20, gap: 12, flexGrow: 1 },
+  chatComposer: { paddingHorizontal: 20, paddingBottom: 12, gap: 8 },
+  send: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  sendBusy: { opacity: 0.55 },
 });
