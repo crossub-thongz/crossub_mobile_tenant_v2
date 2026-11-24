@@ -167,8 +167,8 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-export function Input(props: TextInputProps) {
-  return <TextInput placeholderTextColor="#8b9b90" style={[styles.input, props.multiline && styles.multiline]} {...props} />;
+export function Input({ style, multiline, ...props }: TextInputProps) {
+  return <TextInput placeholderTextColor="#8b9b90" {...props} multiline={multiline} style={[styles.input, multiline && styles.multiline, style]} />;
 }
 
 export function Choice({

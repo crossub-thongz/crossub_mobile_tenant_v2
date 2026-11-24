@@ -1,12 +1,20 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, Keyboard, Linking, Platform, Pressable, StyleSheet, Text, View, type KeyboardEvent } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { ApiError } from '@/src/api/client';
 import { useAuth } from '@/src/auth/auth-context';
 import { colors } from '@/src/theme';
 import { Input } from '@/src/ui/ui';
+
+function isPasswordError(err: unknown): boolean {
+  if (err instanceof ApiError && err.status === 401) return true;
+  const message = err instanceof Error ? err.message.toLowerCase() : '';
+  return message.includes('password') || message.includes('credential');
+}
 
 const PRIVACY_URL = 'https://www.crossub.com/AU/privacy';
 const TERMS_URL = 'https://www.crossub.com/AU/terms';
@@ -15,6 +23,8 @@ export default function LoginScreen() {
   const { login, status } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submitLock = useRef(false);
@@ -42,10 +52,13 @@ export default function LoginScreen() {
     submitLock.current = true;
     setSubmitting(true);
     setError(null);
+    setPasswordError(null);
     try {
       await login(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed.');
+      const message = err instanceof Error ? err.message : 'Sign in failed.';
+      if (isPasswordError(err)) setPasswordError(message === 'Enter your password.' ? message : 'Invalid password');
+      else setError(message);
     } finally {
       submitLock.current = false;
       setSubmitting(false);
@@ -68,7 +81,37 @@ export default function LoginScreen() {
           <Text style={styles.sub}>Sign in with the account from your tenancy invitation.</Text>
           <View style={styles.card}>
             <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="Email Address" />
-            <Input secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Password" onSubmitEditing={onSubmit} />
+            <View style={styles.passwordGroup}>
+              <View>
+                <Input
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  // iOS treats autoComplete="password" as a new password and reopens the AutoFill bar on every character.
+                  autoComplete="off"
+                  textContentType="oneTimeCode"
+                  secureTextEntry={!passwordVisible}
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    setPasswordError(null);
+                  }}
+                  placeholder="Password"
+                  onSubmitEditing={onSubmit}
+                  style={[styles.passwordInput, passwordError ? styles.passwordInputError : null]}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                  onPress={() => setPasswordVisible((current) => !current)}
+                  hitSlop={8}
+                  style={styles.eye}
+                >
+                  <Ionicons name={passwordVisible ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+                </Pressable>
+              </View>
+              {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
+            </View>
             <Link href="/forgot-password" asChild>
               <Pressable style={styles.forgotHit}>
                 <Text style={styles.forgot}>Forgot Password?</Text>
@@ -113,6 +156,11 @@ const styles = StyleSheet.create({
   title: { color: colors.ink, fontSize: 28, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center' },
   sub: { color: colors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: 8 },
   card: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 16, gap: 10 },
+  passwordGroup: { gap: 6 },
+  passwordInput: { paddingRight: 44 },
+  passwordInputError: { borderColor: colors.danger },
+  eye: { position: 'absolute', right: 4, top: 0, bottom: 0, width: 40, alignItems: 'center', justifyContent: 'center' },
+  fieldError: { color: colors.danger, fontSize: 13 },
   forgotHit: { alignSelf: 'flex-end' },
   forgot: { color: colors.green, fontWeight: '700', fontSize: 13 },
   error: { color: colors.danger, fontSize: 13 },

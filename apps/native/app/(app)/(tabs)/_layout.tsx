@@ -7,7 +7,7 @@ import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 
 const HOME_SIZE = 56;
-const BAR_PADDING_TOP = 8;
+const BAR_PADDING = 12;
 const BAR_BORDER = 1;
 const ORDER = ['activity', 'inbox', 'index', 'payments', 'profile'] as const;
 
@@ -50,8 +50,10 @@ function TenantTabBar({
               style={styles.item}
             >
               {isHome ? (
-                <View style={styles.home}>
-                  <Ionicons name="sync" size={26} color="#fff" />
+                <View style={styles.homeSlot}>
+                  <View style={styles.home}>
+                    <Ionicons name="sync" size={26} color="#fff" />
+                  </View>
                 </View>
               ) : (
                 <View>
@@ -106,23 +108,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 28,
     paddingHorizontal: 8,
-    paddingTop: BAR_PADDING_TOP,
-    paddingBottom: 8,
+    paddingTop: BAR_PADDING,
+    paddingBottom: BAR_PADDING,
     borderWidth: BAR_BORDER,
     borderColor: colors.greenLine,
     overflow: 'visible',
   },
-  item: { flex: 1, alignItems: 'center', gap: 4, minHeight: 52, justifyContent: 'flex-end', overflow: 'visible' },
+  item: { flex: 1, alignItems: 'center', gap: 4, overflow: 'visible' },
+  homeSlot: { height: 22, alignItems: 'center', overflow: 'visible' },
   home: {
     position: 'absolute',
-    alignSelf: 'center',
     width: HOME_SIZE,
     height: HOME_SIZE,
     borderRadius: HOME_SIZE / 2,
     backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
-    top: -(HOME_SIZE / 2) - BAR_PADDING_TOP - BAR_BORDER,
+    top: -(HOME_SIZE / 2) - BAR_PADDING - BAR_BORDER,
   },
   label: { color: '#9aa8a1', fontSize: 11, fontWeight: '600' },
   labelOn: { color: colors.green },

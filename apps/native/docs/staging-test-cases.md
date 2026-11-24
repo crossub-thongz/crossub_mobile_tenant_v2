@@ -12,6 +12,16 @@ Password for every login below: ChangeMe!Now123
 
 These staging logins were checked on 22 Nov 2026. Each service type has three tenant logins and three agent logins. Every tenant in the three service groups is linked to one property. Agent logins are for https://crossub-mobile-agent.onrender.com/login. The tenant app must refuse every agent login.
 
+## Agents and tenants
+
+These nine tenant logins each have a tenancy. The agent logins beside them open those properties.
+
+| Service | Agents | Tenants |
+| --- | --- | --- |
+| Full Service | tony.chan+agent@crossub.com.au. Tony Demo Agency. | tony.chan+tenant@crossub.com.au, 7 Demo Street. qa.charlie.tenant@crossub.com.au, 31 QA Home Street. qa.delta.tenant@crossub.com.au, 32 QA Home Street. |
+| Self-Manage | qa.self.morgan.agent@crossub.com.au, qa.self.parker.agent@crossub.com.au, and qa.self.reese.agent@crossub.com.au. QA Tenant Self-Manage Agency. Each can open all three streets. | qa.self.sam.tenant@crossub.com.au, 41 QA Self Street. qa.self.taylor.tenant@crossub.com.au, 42 QA Self Street. qa.self.jordan.tenant@crossub.com.au, 43 QA Self Street. |
+| Inspection Only | qa.inspect.noel.agent@crossub.com.au, qa.inspect.oakley.agent@crossub.com.au, and qa.inspect.paige.agent@crossub.com.au. QA Tenant Inspection Only Agency. Each can open all three streets. | qa.inspect.rowan.tenant@crossub.com.au, 51 QA Inspect Street. qa.inspect.sage.tenant@crossub.com.au, 52 QA Inspect Street. qa.inspect.vale.tenant@crossub.com.au, 53 QA Inspect Street. |
+
 ## Full Service
 
 Level 2 full management. Rent is in the Crossub trust. Tony's three tenants are on Tony Demo Agency and are managed by tony.chan+agent. Avery and Blair each have their own Full Service agency. Their occupied streets use dummy emails, so use Tony, Casey, and Drew when the tenant app needs a Full Service home.
@@ -51,12 +61,12 @@ Level 1, inspection and tribunal. The agency folio stays Crossub, so the tenant 
 | Agent | Oakley Qaagent | qa.inspect.oakley.agent@crossub.com.au | QA Tenant Inspection Only Agency. Principal, Account Manager. |
 | Agent | Paige Qaagent | qa.inspect.paige.agent@crossub.com.au | QA Tenant Inspection Only Agency. Principal, Account Manager. |
 
-## Logins that are not linked to a property
+## Logins with no tenancy
 
 | Name | Email | What happens |
 | --- | --- | --- |
 | Quinn Qatenant | qa.alpha.tenant@crossub.com.au | Tenant. Signs in. Tenancy list is empty. |
-| Riley Qatenant | qa.bravo.tenant@crossub.com.au | Tenant. Signs in, then tenancies are refused because the user is not linked to a tenant profile. |
+| Riley Qatenant | qa.bravo.tenant@crossub.com.au | Tenant. Signs in. This account has no tenancy. On the admin side that record is a tenancy, and there is none, so the tenancy list is refused. |
 
 Tony's ACTIVE lease, last read 20 Nov 2026: Crossub trust, $850 a week, paid-to date set. The other four are signed, not the home default. One of them is self-managed at $640 a week. Routine inspections on the account: 21 (19 completed, 1 in progress, 1 scheduled). None required the tenant to act. Ledger lines: 0. Move-in checklist on the live API: 404 because the lease is already current.
 
@@ -90,7 +100,7 @@ Tony's ACTIVE lease, last read 20 Nov 2026: Crossub trust, $850 a week, paid-to 
 | Open Tenancy details. | Lease documents, inspections, and repairs open from here. The page does not edit the lease. |
 | Open Help, then FAQ. | FAQ opens. |
 | Open Report a repair. Leave it unsent. | The form is there. Sending it creates a real repair. |
-| Sign in as Quinn. Sign out. Sign in as Riley. | Quinn reaches Home with no property. Riley is signed in, then the tenancy list is refused. |
+| Sign in as Quinn. Sign out. Sign in as Riley. | Quinn reaches Home with no property. Riley signs in with no tenancy, so the tenancy list is refused. |
 | As Quinn, open Profile, then My properties. | There are no properties. |
 | Open Inbox and the repair list. | Threads and repairs load from the account. A repair opened from the list is that repair. Maintenance messages that do not carry a repair id open the repair list. |
 | Sign out, then sign in as Tony again. | Login returns. Home starts again on the ACTIVE lease. |
