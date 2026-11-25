@@ -1,3 +1,5 @@
+import { formatDisplayDate } from '@/src/api/dates';
+
 export type PaymentCycle = 'weekly' | 'fortnightly' | 'monthly';
 
 export function normalizeCycle(raw?: string | null): PaymentCycle {
@@ -49,9 +51,7 @@ export function arrearsFromPaidTo(input: {
   const cycleDays = cycle === 'monthly' ? 30 : cycle === 'fortnightly' ? 14 : 7;
   const periods = Math.max(1, Math.ceil(days / cycleDays));
   const unit = cycleUnit(cycle);
-  const paidToLabel =
-    input.paidToLabel ||
-    paid.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  const paidToLabel = input.paidToLabel || formatDisplayDate(input.rentPaidToIso);
   return {
     outstanding: Math.round(periods * cycleAmount(input.weeklyRent, cycle) * 100) / 100,
     paidToLabel,

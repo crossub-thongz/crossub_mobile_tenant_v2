@@ -3,7 +3,7 @@ import { StyleSheet, Text } from 'react-native';
 
 import { LEASE_DOCUMENTS } from '@/src/demo/tenancy-notices';
 import { colors } from '@/src/theme';
-import { BackButton, Card, Notice, Screen } from '@/src/ui/ui';
+import { BackButton, Card, Screen } from '@/src/ui/ui';
 
 export default function LeaseDocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,7 +28,6 @@ export default function LeaseDocumentScreen() {
       <Card>
         <Text style={styles.body}>{doc.body}</Text>
       </Card>
-      <Notice>The signed file opens from a short-lived link once the tenant account is connected. This screen shows the record, not the PDF.</Notice>
     </Screen>
   );
 }

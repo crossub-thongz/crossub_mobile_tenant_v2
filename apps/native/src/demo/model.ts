@@ -1,3 +1,5 @@
+import { formatDisplayDate, formatDisplayTime } from '@/src/api/dates';
+
 export type ScenarioId = 'crossub' | 'agent-trust' | 'self-accounting';
 export type PropertyId = 'berry' | 'halifax';
 export type ActivityFilter = 'All' | 'Action Required' | 'In Progress' | 'History';
@@ -103,12 +105,12 @@ export type Thread = {
   messages?: { body: string; fromSelf: boolean; at?: string; attachments?: { fileName: string; url: string }[] }[];
 };
 
-/** Inbox timestamp. Today and yesterday keep the day word and always include the clock time. */
+/** Inbox timestamp. Today and yesterday keep the day word. Other days are DD/MM/YYYY. */
 export function messageWhen(value: string | null | undefined): string {
   if (!value) return '';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '';
-  const time = parsed.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+  const time = formatDisplayTime(value);
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const day = new Date(parsed);
@@ -116,8 +118,7 @@ export function messageWhen(value: string | null | undefined): string {
   const diff = Math.round((start.getTime() - day.getTime()) / 86_400_000);
   if (diff === 0) return `Today, ${time}`;
   if (diff === 1) return `Yesterday, ${time}`;
-  const date = parsed.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
-  return `${date}, ${time}`;
+  return `${formatDisplayDate(value)}, ${time}`;
 }
 
 export const SEED_THREADS: Thread[] = [

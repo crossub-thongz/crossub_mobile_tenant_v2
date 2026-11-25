@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { inspectionPath } from '@/src/api/load-account';
+import { formatDisplayDate, routineSelfOpen } from '@/src/api/dates';
+import { inspectionPath, routeRecordId } from '@/src/api/load-account';
 import { captureEvidenceBatch, pickEvidenceMany } from '@/src/api/pick-evidence';
 import { tenantApi, type EvidenceFile } from '@/src/api/tenant';
 import { useDemo } from '@/src/demo/store';
+import { taskMessagePath } from '@/src/flows/messages';
 import { colors } from '@/src/theme';
 import { DatePickerField } from '@/src/ui/date-picker-field';
 import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen, Tag, TaskHeader, Timeline } from '@/src/ui/ui';
@@ -31,15 +33,17 @@ export function InspectionScreen() {
   const router = useRouter();
   const demo = useDemo();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
-  const inspectionId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const inspectionId = routeRecordId(params.id);
   const routines = demo.inspections.filter((item) => item.type === INSPECTION_TYPE.ROUTINE);
   const openedInspection = inspectionId
     ? routines.find((item) => item.id === inspectionId) ?? demo.inspections.find((item) => item.id === inspectionId)
     : undefined;
   const scheduled = inspectionId ? openedInspection : routines.find((item) => !ROUTINE_CLOSED.has(item.status)) ?? routines[0];
-  const inspectionThread = demo.threads.find((item) => item.category === 'Inspection');
-  const closed = scheduled ? ROUTINE_CLOSED.has(scheduled.status) : true;
-  const selfVisit = scheduled?.flow === 'self' && scheduled.actionRequired && !closed;
+  const pendingSelf = routineSelfOpen(demo.routineAction?.status, demo.routineAction?.flow) ? demo.routineAction : null;
+  const selfVisit = scheduled?.flow === 'self'
+    ? routineSelfOpen(scheduled.status, scheduled.flow)
+    : Boolean(!scheduled && pendingSelf);
+  const closed = scheduled ? ROUTINE_CLOSED.has(scheduled.status) : !selfVisit;
   const attending = scheduled?.tenantAttendance === ROUTINE_ATTENDANCE.YES;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,16 +51,24 @@ export function InspectionScreen() {
     <Screen>
       <BackButton />
       {inspectionId && !openedInspection ? <Notice>This inspection is not on the selected property.</Notice> : null}
-      <TaskHeader title={scheduled?.title || 'Routine inspection'} status={scheduled ? statusLabel(scheduled.status) : 'None scheduled'} />
+      <TaskHeader
+        title={scheduled?.title || (selfVisit ? 'Self inspection' : 'Routine inspection')}
+        status={scheduled ? statusLabel(scheduled.status) : selfVisit ? 'Ready to start' : 'None scheduled'}
+      />
       <Card>
-        <Text style={styles.kicker}>{scheduled?.flow === 'self' ? 'SELF INSPECTION' : 'IN-PERSON INSPECTION'}</Text>
-        <Text style={styles.title}>{scheduled?.when || 'No inspection is scheduled'}</Text>
-        <Text style={styles.muted}>{scheduled ? `${scheduled.address || 'This property'} · ${statusLabel(scheduled.status)}` : 'Your property manager has not booked one on this property yet.'}</Text>
+        <Text style={styles.kicker}>{scheduled?.flow === 'self' || selfVisit ? 'SELF INSPECTION' : 'IN-PERSON INSPECTION'}</Text>
+        <Text style={styles.title}>{scheduled?.when || (pendingSelf ? formatDisplayDate(pendingSelf.scheduledAt) : '') || 'No inspection is scheduled'}</Text>
+        <Text style={styles.muted}>{scheduled ? `${scheduled.address || 'This property'} · ${statusLabel(scheduled.status)}` : pendingSelf ? pendingSelf.address || 'This property' : 'None scheduled'}</Text>
         <Text style={styles.body}>Conducted by {demo.scenario.team}</Text>
       </Card>
-      {selfVisit ? <Button label="Complete self-inspection" onPress={() => router.push('/flow/self-inspection')} /> : null}
+      {selfVisit ? (
+        <Button
+          label="Begin self-inspection"
+          onPress={() => router.push(scheduled?.id ? `/flow/self-inspection?id=${scheduled.id}` : pendingSelf ? `/flow/self-inspection?id=${pendingSelf.id}` : '/flow/self-inspection')}
+        />
+      ) : null}
       {!scheduled || closed || selfVisit ? null : attending ? (
-        <Notice>You confirmed you can attend. The appointment time stays until your property manager changes it.</Notice>
+        <Notice>You confirmed you can attend.</Notice>
       ) : (
         <View style={styles.stack}>
           <Button
@@ -78,9 +90,23 @@ export function InspectionScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Timeline status={scheduled ? statusLabel(scheduled.status) : 'None scheduled'} />
       <Button
-        label={inspectionThread ? 'Open conversation' : 'Message your property manager'}
+        label="Message your property manager"
         tone="outline"
-        onPress={() => router.push(inspectionThread?.route ?? '/flow/new-message')}
+        onPress={() => {
+          if (!scheduled?.id) {
+            router.push('/flow/new-message');
+            return;
+          }
+          const subject = scheduled.title || 'Routine inspection';
+          router.push(
+            taskMessagePath({
+              subject,
+              category: 'Inspection',
+              caseType: 'INSPECTION',
+              caseId: scheduled.id,
+            }),
+          );
+        }}
       />
     </Screen>
   );
@@ -104,7 +130,6 @@ export function RescheduleScreen() {
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Request reschedule</Text>
-      <Text style={styles.muted}>The current appointment stays in place until your property manager sets a new time. This sends them a message.</Text>
       {inspectionId && !inspection ? <Notice>This inspection is not on the selected property.</Notice> : null}
       {jobId && !job ? <Notice>This repair is not on your account.</Notice> : null}
       {inspection ? <Text style={styles.body}>{[inspection.title, inspection.address, inspection.when].filter(Boolean).join(' · ')}</Text> : null}
@@ -116,8 +141,8 @@ export function RescheduleScreen() {
         <Field label="Time slot">
           <Choice selected={slot === TIME_SLOT.MORNING} title="Morning Shift" body="9:00–12:00" onPress={() => setSlot(TIME_SLOT.MORNING)} />
           <Choice selected={slot === TIME_SLOT.AFTERNOON} title="Afternoon Shift" body="13:00–16:00" onPress={() => setSlot(TIME_SLOT.AFTERNOON)} />
-          <Choice selected={slot === TIME_SLOT.OTHER} title="Other" body="Type a time" onPress={() => setSlot(TIME_SLOT.OTHER)} />
-          {slot === TIME_SLOT.OTHER ? <Input value={otherTime} onChangeText={setOtherTime} placeholder="For example, 18:30" /> : null}
+          <Choice selected={slot === TIME_SLOT.OTHER} title="Other" onPress={() => setSlot(TIME_SLOT.OTHER)} />
+          {slot === TIME_SLOT.OTHER ? <Input value={otherTime} onChangeText={setOtherTime} /> : null}
         </Field>
         <Field label="Reason">
           <Input multiline value={reason} onChangeText={setReason} placeholder="Tell us why the current time does not work" />
@@ -143,14 +168,14 @@ export function RescheduleScreen() {
             return tenantApi
               .createMessage({
                 subject: job ? `Reschedule repair ${job.tracking || ''}`.trim() : 'Reschedule request',
-                body: `${about}\nPreferred date: ${date.trim()}\nTime: ${slot === TIME_SLOT.OTHER ? `Other (${timeLabel})` : timeLabel}\n${reason.trim()}`,
+                body: `${about}\nPreferred date: ${formatDisplayDate(date.trim())}\nTime: ${slot === TIME_SLOT.OTHER ? `Other (${timeLabel})` : timeLabel}\n${reason.trim()}`,
                 department: job ? 'MAINTENANCE' : 'INSPECTION',
                 ...((job?.propertyId || inspection?.propertyId || demo.propertyUuid)
                   ? { propertyId: job?.propertyId || inspection?.propertyId || demo.propertyUuid || undefined }
                   : {}),
               })
               .then(() => {
-                demo.notify('Reschedule request sent to your property manager');
+                demo.notify('Reschedule request sent.');
                 router.dismissTo(job ? `/flow/maintenance?job=${job.id}` : '/flow/inspection');
               })
               .catch((err) => {
@@ -167,7 +192,7 @@ export function RescheduleScreen() {
 export function InspectionsScreen() {
   const router = useRouter();
   const demo = useDemo();
-  const selfId = demo.routineAction?.flow === 'self' ? demo.routineAction.id : null;
+  const selfId = routineSelfOpen(demo.routineAction?.status, demo.routineAction?.flow) ? demo.routineAction?.id ?? null : null;
   const rows = demo.inspections.map((item) => ({
     key: item.id,
     title: item.title,
@@ -215,7 +240,6 @@ export function OpenInspectionScreen() {
           <Button label="Request change" tone="secondary" onPress={() => router.push(`/flow/reschedule?inspection=${item.id}`)} />
         </Card>
       ))}
-      <Notice>A change request sends a message. It does not move the published time.</Notice>
     </Screen>
   );
 }
@@ -230,6 +254,7 @@ export function ReportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [preview, setPreview] = useState<{ uri: string; index: number; video: boolean } | null>(null);
   const requestKey = useRef(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const properties = demo.tenancies.filter((tenancy, index, all) => {
     if (!tenancy.current || !tenancy.propertyId) return false;
@@ -244,7 +269,7 @@ export function ReportScreen() {
   function addPhotos(open: () => Promise<EvidenceFile[]>, failure: string) {
     if (picking || busy) return;
     if (photos.length >= REPAIR_PHOTO_LIMIT) {
-      demo.notify('10 photos is the maximum.');
+      demo.notify('10 photos or videos is the maximum.');
       return;
     }
     setPicking(true);
@@ -294,7 +319,7 @@ export function ReportScreen() {
         </Field>
         <View style={styles.stack}>
           <Button
-            label={picking ? 'Opening…' : 'Take photos'}
+            label={picking ? 'Opening…' : 'Take photo or video'}
             tone="secondary"
             onPress={() => addPhotos(() => captureEvidenceBatch(REPAIR_PHOTO_LIMIT - photos.length), 'Could not open the camera')}
           />
@@ -305,7 +330,7 @@ export function ReportScreen() {
           />
         </View>
         <Text style={styles.muted}>
-          {photos.length} of {REPAIR_PHOTO_LIMIT}. The camera opens again after each photo until you stop or reach 10.
+          {photos.length} of {REPAIR_PHOTO_LIMIT}. Photos and videos both count. The camera opens again after each photo. A video ends the camera run.
         </Text>
         {photos.length > 0 ? (
           <View style={styles.thumbs}>
@@ -314,25 +339,42 @@ export function ReportScreen() {
               const uri = file.previewUri || (file.contentBase64 ? `data:${file.mimeType};base64,${file.contentBase64}` : '');
               return (
                 <View key={`${file.previewUri ?? file.fileName}-${index}`} style={styles.thumbWrap}>
-                  {video || !uri ? (
-                    <View style={styles.thumb}>
-                      <Ionicons name="videocam" size={22} color={colors.green} />
-                    </View>
-                  ) : (
-                    <Image source={{ uri }} style={styles.thumb} />
-                  )}
+                  <Pressable
+                    accessibilityRole="imagebutton"
+                    accessibilityLabel={`Preview ${file.fileName}`}
+                    onPress={() => {
+                      if (uri) setPreview({ uri, index, video });
+                    }}
+                    style={styles.thumb}
+                  >
+                    {video || !uri ? <Ionicons name="videocam" size={22} color={colors.green} /> : <Image source={{ uri }} style={styles.thumbImage} />}
+                  </Pressable>
                   <Pressable
                     accessibilityLabel={`Remove ${file.fileName}`}
                     onPress={() => setPhotos((current) => current.filter((_, item) => item !== index))}
                     style={styles.thumbRemove}
                   >
-                    <Ionicons name="close" size={12} color="#fff" />
+                    <Ionicons name="close" size={14} color="#fff" />
                   </Pressable>
                 </View>
               );
             })}
           </View>
         ) : null}
+        <MediaPreview
+          uri={preview?.uri ?? null}
+          video={preview?.video}
+          onClose={() => setPreview(null)}
+          onRemove={
+            preview
+              ? () => {
+                  const index = preview.index;
+                  setPhotos((current) => current.filter((_, item) => item !== index));
+                  setPreview(null);
+                }
+              : undefined
+          }
+        />
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: urgent }}
@@ -374,7 +416,7 @@ export function ReportScreen() {
           }}
         />
       </Card>
-      <Notice>If there is immediate danger, contact emergency services. Submitting here does not wait for AI triage.</Notice>
+      <Notice>If there is immediate danger, contact emergency services.</Notice>
     </Screen>
   );
 }
@@ -477,6 +519,81 @@ function RepairDecisions({ job }: { job: ReturnType<typeof useDemo>['maintenance
   );
 }
 
+function isVideoUri(uri: string): boolean {
+  return /\.(mp4|mov|m4v|webm|mkv)(\?|$)/i.test(uri);
+}
+
+function MediaPreview({
+  uri,
+  video = false,
+  onClose,
+  onRemove,
+}: {
+  uri: string | null;
+  video?: boolean;
+  onClose: () => void;
+  onRemove?: () => void;
+}) {
+  const clip = Boolean(video || (uri && isVideoUri(uri)));
+  return (
+    <Modal visible={uri !== null} animationType="fade" transparent onRequestClose={onClose}>
+      <View style={styles.preview}>
+        {uri && !clip ? <Image source={{ uri }} style={styles.previewImage} resizeMode="contain" /> : null}
+        {uri && clip ? (
+          <View style={styles.previewVideo}>
+            <Ionicons name="videocam" size={42} color="#fff" />
+            <Text style={styles.previewVideoText}>Video attached</Text>
+          </View>
+        ) : null}
+        <View style={styles.previewBar}>
+          {onRemove ? (
+            <Pressable accessibilityRole="button" onPress={onRemove} style={styles.previewAction}>
+              <Text style={styles.previewRemove}>Remove</Text>
+            </Pressable>
+          ) : (
+            <View />
+          )}
+          <Pressable accessibilityRole="button" onPress={onClose} style={styles.previewAction}>
+            <Text style={styles.previewClose}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function RepairPhotos({ photos }: { photos: string[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <>
+      <View style={styles.thumbs}>
+        {photos.map((photo) =>
+          /^https?:\/\//i.test(photo) ? (
+            <Pressable
+              key={photo}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="Preview photo"
+              onPress={() => setOpen(photo)}
+              style={styles.thumb}
+            >
+              {isVideoUri(photo) ? (
+                <Ionicons name="videocam" size={22} color={colors.green} />
+              ) : (
+                <Image source={{ uri: photo }} style={styles.thumbImage} />
+              )}
+            </Pressable>
+          ) : (
+            <Text key={photo} style={styles.muted}>
+              {photo}
+            </Text>
+          ),
+        )}
+      </View>
+      <MediaPreview uri={open} onClose={() => setOpen(null)} />
+    </>
+  );
+}
+
 function statusLabel(status: string): string {
   return status
     .replaceAll('_', ' ')
@@ -494,7 +611,7 @@ export function MaintenanceScreen() {
   return (
     <Screen>
       <BackButton />
-      {maintenance.length === 0 ? <Notice>Repairs you submit appear here from your tenancy.</Notice> : null}
+      {maintenance.length === 0 ? <Notice>No repairs.</Notice> : null}
       {!job ? <Button label="Report a repair" onPress={() => router.push('/flow/report')} /> : null}
       {jobId && !opened ? <Notice>This repair is not on your account.</Notice> : null}
       {!jobId ? <Text style={styles.h2}>Repairs</Text> : null}
@@ -512,17 +629,7 @@ export function MaintenanceScreen() {
           <Text style={styles.body}>{job.address || 'Property not recorded on this repair'}</Text>
           <Card>
             <Text style={styles.muted}>{[job.tracking, job.category, job.urgent ? 'Urgent' : ''].filter(Boolean).join(' · ')}</Text>
-            {job.photos.length > 0 ? (
-              <View style={styles.thumbs}>
-                {job.photos.map((photo) =>
-                  /^https?:\/\//i.test(photo) ? (
-                    <Image key={photo} source={{ uri: photo }} style={styles.thumb} />
-                  ) : (
-                    <Text key={photo} style={styles.muted}>{photo}</Text>
-                  ),
-                )}
-              </View>
-            ) : null}
+            {job.photos.length > 0 ? <RepairPhotos photos={job.photos} /> : null}
             <RepairDecisions job={job} />
           </Card>
           <Card>
@@ -539,10 +646,21 @@ export function MaintenanceScreen() {
             {job.strataEmail ? <Button label={job.strataEmail} tone="outline" onPress={() => Linking.openURL(`mailto:${job.strataEmail}`)} /> : null}
           </Card>
           <View style={styles.stack}>
-            <Button label="Message your agent" onPress={() => router.push('/flow/new-message')} />
+            <Button
+              label="Message your agent"
+              onPress={() =>
+                router.push(
+                  taskMessagePath({
+                    subject: job.tracking ? `${job.tracking} — ${job.title}` : job.title,
+                    category: 'Maintenance',
+                    caseType: 'MAINTENANCE',
+                    caseId: job.id,
+                  }),
+                )
+              }
+            />
             {job.scheduleApprovalPending ? <Button label="Respond to proposed time" tone="secondary" onPress={() => router.push(`/flow/appointment?job=${job.id}`)} /> : null}
           </View>
-          <Notice>When the contractor finishes, you confirm whether the issue is resolved. Silence does not close the request.</Notice>
         </>
       ) : null}
     </Screen>
@@ -560,7 +678,7 @@ export function AppointmentScreen() {
       <BackButton />
       <Text style={styles.h2}>Repair appointment</Text>
       <Card>
-        {!job ? <Notice>Open this from the repair it belongs to. A different repair is not shown here.</Notice> : null}
+        {!job ? <Notice>Open this from the repair.</Notice> : null}
         <Tag label="Action Required" tone="amber" />
         <Text style={styles.title}>{job ? job.title : 'Repair appointment'}</Text>
         <Text style={styles.body}>{job?.address || ''}</Text>
@@ -581,7 +699,6 @@ export function AppointmentScreen() {
         />
         <Button label="Request another time" tone="secondary" disabled={!job} onPress={() => { if (job) router.push(`/flow/reschedule?job=${job.id}`); }} />
       </Card>
-      <Notice>Confirming a time does not give unrestricted access. Your access preference stays on the request.</Notice>
     </Screen>
   );
 }
@@ -641,17 +758,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.soft,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  thumbImage: { width: 72, height: 72 },
   thumbRemove: {
     position: 'absolute',
     top: 4,
     right: 4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: 'rgba(20,35,29,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  preview: { flex: 1, backgroundColor: 'rgba(12,24,20,0.94)', justifyContent: 'center' },
+  previewImage: { width: '100%', height: '78%' },
+  previewVideo: { alignItems: 'center', gap: 12 },
+  previewVideoText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  previewBar: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 36,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  previewAction: { paddingVertical: 10, paddingHorizontal: 4 },
+  previewRemove: { color: '#ffb4b4', fontSize: 16, fontWeight: '700' },
+  previewClose: { color: '#fff', fontSize: 16, fontWeight: '700' },
   error: { color: colors.danger, fontSize: 13 },
 });

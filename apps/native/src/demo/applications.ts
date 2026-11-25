@@ -70,14 +70,14 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'deposit',
     title: 'Holding deposit',
-    description: 'Pay the holding deposit and upload proof so leasing can confirm it.',
+    description: 'Pay the holding deposit and upload proof.',
     kind: 'upload',
     amount: 3000,
   },
   {
     id: 'bond',
     title: 'Rental bond',
-    description: 'Lodge the bond as your agent instructs, then upload proof.',
+    description: 'Lodge the bond, then upload proof.',
     kind: 'upload',
     amount: 6000,
   },
@@ -96,13 +96,13 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'account_setup',
     title: 'Account setup',
-    description: 'Confirm the email on this tenancy is the one you will use to sign in.',
+    description: 'Confirm the email on this tenancy.',
     kind: 'confirm',
   },
   {
     id: 'ingoing_report',
     title: 'Ingoing report',
-    description: 'Confirm the ingoing condition report section by section when your agent sends it.',
+    description: 'Confirm the ingoing condition report.',
     kind: 'confirm',
   },
 ];

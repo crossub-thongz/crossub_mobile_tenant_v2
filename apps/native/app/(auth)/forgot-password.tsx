@@ -31,14 +31,13 @@ export default function ForgotPasswordScreen() {
       </Link>
       <Text style={styles.title}>Forgot password?</Text>
       <Text style={styles.body}>
-        Enter the email address your property manager has on file and we'll send you a link. This works whether you have signed in before or have never set a password.
+        Enter the email on your tenancy. We'll send a reset link.
       </Text>
       {sent ? (
         <>
           <Text style={styles.body}>
-            If that address has an account, the link is on its way. Open it soon, then choose a password and come back to sign in.
+            If that address has an account, the link is on its way.
           </Text>
-          <Text style={styles.body}>Nothing after a few minutes? Check your junk folder, and make sure you used the address your lease is under.</Text>
           <Button label="Back to sign in" tone="outline" onPress={() => router.dismissTo('/login')} />
         </>
       ) : (

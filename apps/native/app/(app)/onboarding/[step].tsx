@@ -45,11 +45,8 @@ export default function OnboardingStepScreen() {
         <Card>
           <Text style={styles.kicker}>Amount</Text>
           <Text style={styles.amount}>{money(amount)}</Text>
-          <Text style={styles.body}>Pay this to the account your agent gives you, then upload the receipt. CROSSUB confirms it on the tenancy.</Text>
+          <Text style={styles.body}>Pay this, then upload the receipt.</Text>
         </Card>
-      ) : null}
-      {item.id === 'bond' ? (
-        <Notice>The deposit holds the property. The bond is the security amount, usually lodged with the rental bond authority.</Notice>
       ) : null}
       {item.id === 'lease_signing' ? (
         <Card>
@@ -74,12 +71,10 @@ export default function OnboardingStepScreen() {
       {item.id === 'account_setup' ? (
         <Card>
           <Text style={styles.body}>Email on this account: {user?.email || 'Not on this account'}</Text>
-          <Notice>Your property manager confirms this step. It cannot be marked done from the app.</Notice>
         </Card>
       ) : null}
       {item.id === 'ingoing_report' ? (
         <Card>
-          <Text style={styles.body}>Review the entry condition report section by section when your property manager publishes it.</Text>
           <Button label="Open entry condition report" onPress={() => router.push('/flow/entry')} />
         </Card>
       ) : null}
@@ -98,7 +93,7 @@ export default function OnboardingStepScreen() {
                 .catch((err) => setError(err instanceof Error ? err.message : 'Could not open the photo library'));
             }}
           />
-          {status === 'uploaded' ? <Notice>Proof is with your property manager. This step completes when they confirm it.</Notice> : null}
+          {status === 'uploaded' ? <Notice>Proof uploaded.</Notice> : null}
         </Card>
       ) : null}
     </Screen>

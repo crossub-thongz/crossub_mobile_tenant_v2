@@ -84,7 +84,7 @@ export function FinalScreen() {
       {loading ? <ActivityIndicator color={colors.green} /> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!loading && !report ? (
-        <Notice>No final report has been published on this tenancy yet. It appears here after your property manager schedules the outgoing inspection.</Notice>
+        <Notice>No final report has been published.</Notice>
       ) : null}
       {report ? (
         <>

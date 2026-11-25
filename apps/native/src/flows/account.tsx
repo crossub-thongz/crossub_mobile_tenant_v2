@@ -7,6 +7,7 @@ import { requestPasswordReset } from '@/src/api/auth';
 import { tenantApi } from '@/src/api/tenant';
 import { deviceLockEnabled, disableDeviceLock, enableDeviceLock } from '@/src/auth/device-lock';
 import { NOTICE_TYPE_LABEL, loadNoticePrefs, saveNoticePref, type NoticeTypeId } from '@/src/notifications/preferences';
+import { formatDisplayDateTime } from '@/src/api/dates';
 import { money } from '@/src/demo/model';
 import { useAuth } from '@/src/auth/auth-context';
 import { useDemo } from '@/src/demo/store';
@@ -53,19 +54,20 @@ export function PropertiesScreen() {
           </Card>
         </Pressable>
       ))}
-      {!current && tenancies.length > 0 ? <Notice>This tenancy has ended. You can read what you are still allowed to see.</Notice> : null}
+      {!current && tenancies.length > 0 ? <Notice>This tenancy has ended.</Notice> : null}
     </Screen>
   );
 }
 
 export function TenancyScreen() {
   const router = useRouter();
-  const demo = useDemo();
-  const { property, scenario } = demo;
+  const { property, scenario, vacating, terminationMoveOut } = useDemo();
+  const vacate = vacating?.vacateDate || terminationMoveOut;
   const rows = [
     ['Type', property.type],
     ['Start', property.start],
     ['End', property.end],
+    ['Vacate', vacate],
     ['Rent', property.rent > 0 ? `${money(property.rent)} ${property.frequency.toLowerCase()}` : ''],
     ['Managed by', scenario.team],
   ].filter(([, value]) => value);
@@ -73,7 +75,7 @@ export function TenancyScreen() {
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Tenancy details</Text>
-      <Text style={styles.muted}>{property.title} · Read only</Text>
+      <Text style={styles.muted}>{property.title}</Text>
       <Card>
         {rows.map(([label, value]) => (
           <View key={label} style={styles.between}>
@@ -82,14 +84,6 @@ export function TenancyScreen() {
           </View>
         ))}
       </Card>
-      <Notice>Lease dates, rent and property records are changed by the agency. A correction request goes through Inbox and does not rewrite signed documents.</Notice>
-      <Button label="Lease documents" onPress={() => router.push('/lease')} />
-      <Button label="Inspections" tone="outline" onPress={() => router.push('/flow/inspections')} />
-      <Button label="Repairs" tone="outline" onPress={() => router.push('/flow/maintenance')} />
-      <Button label="Report a repair" tone="outline" onPress={() => router.push('/flow/report')} />
-      {demo.rentReview ? <Button label="Rent review" tone="outline" onPress={() => router.push(`/rent-review/${demo.rentReview!.id}`)} /> : null}
-      {demo.terminationStarted ? <Button label="End of lease" tone="outline" onPress={() => router.push('/termination')} /> : null}
-      {demo.onboardingActive ? <Button label="Move-in checklist" tone="outline" onPress={() => router.push('/onboarding')} /> : null}
       <Button label="Request a correction" tone="outline" onPress={() => router.push('/flow/new-message')} />
     </Screen>
   );
@@ -236,7 +230,6 @@ export function PersonalScreen() {
           }}
         />
       </Card>
-      <Notice>Name and email stay as they are on the account. Only the phone number can be saved here.</Notice>
     </Screen>
   );
 }
@@ -260,7 +253,6 @@ export function NotificationSettingsScreen() {
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Notification preferences</Text>
-      <Notice>These choices stay on this phone. They hide notices in the app. They do not stop email.</Notice>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {(Object.keys(NOTICE_TYPE_LABEL) as NoticeTypeId[]).map((id) => (
         <Card key={id}>
@@ -347,17 +339,13 @@ export function SecurityScreen() {
       <Card>
         <Text style={styles.title}>Authenticator</Text>
         <Text style={styles.muted}>
-          {mfaEnabled
-            ? 'Authenticator is on for this account. Changing it is not available in the app.'
-            : 'Authenticator setup is not available for this account.'}
+          {mfaEnabled ? 'Authenticator is on.' : 'Authenticator is off.'}
         </Text>
       </Card>
       <Card>
         <Text style={styles.title}>Biometrics</Text>
         <Text style={styles.muted}>
-          {deviceLock
-            ? 'This phone asks for Face ID or a fingerprint the next time you open the app.'
-            : 'Unlock this app with Face ID or a fingerprint. It stays on this phone.'}
+          {deviceLock ? 'Device unlock is on.' : 'Device unlock is off.'}
         </Text>
         <Button
           label={deviceLock ? 'Turn off device unlock' : 'Unlock with biometrics'}
@@ -370,7 +358,7 @@ export function SecurityScreen() {
                 return;
               }
               setDeviceLock(!deviceLock);
-              notify(deviceLock ? 'Device unlock is off on this phone' : 'This phone will ask to unlock the app next time you open it');
+              notify(deviceLock ? 'Device unlock is off.' : 'Device unlock is on.');
             });
           }}
         />
@@ -399,9 +387,7 @@ export function SecurityScreen() {
 }
 
 function sessionWhen(iso: string): string {
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) return iso;
-  return parsed.toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return formatDisplayDateTime(iso) || iso;
 }
 
 const styles = StyleSheet.create({

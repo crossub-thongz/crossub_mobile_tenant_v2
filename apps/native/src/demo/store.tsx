@@ -108,6 +108,8 @@ type DemoState = {
   rentReviewMoveOut: string;
   terminationMoveOut: string;
   terminationStarted: boolean;
+  rememberedVacateDate: string;
+  rememberedVacatePropertyId: string | null;
   movingRequested: boolean;
   nextRoutineAt: string | null;
   nextRentReviewAt: string | null;
@@ -119,6 +121,21 @@ type DemoState = {
 const initialCounts = Object.fromEntries(ROOMS.map((room) => [room, 0]));
 const submitLocks = new Set<string>();
 let maintenanceSubmit: Promise<string | null> | null = null;
+
+/** Keep a thread read across a refresh that started before the server had caught up, until a newer message arrives. */
+function applyReadMarks(threads: Thread[], marks: Map<string, number>): Thread[] {
+  if (marks.size === 0) return threads;
+  return threads.map((item) => {
+    const markedAt = marks.get(item.id);
+    if (markedAt == null) return item;
+    const last = item.lastAt ? new Date(item.lastAt).getTime() : 0;
+    if (Number.isFinite(last) && last > markedAt) {
+      marks.delete(item.id);
+      return item;
+    }
+    return item.unread ? { ...item, unread: false } : item;
+  });
+}
 
 function guardSubmit(key: string, run: () => Promise<void>): void {
   if (submitLocks.has(key)) return;
@@ -135,6 +152,22 @@ function existingRequestId(body: unknown): string | null {
     if (typeof nested === 'string') return nested;
   }
   return null;
+}
+
+function duplicateMaintenance(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 409 && /already exists|clientrequestid/i.test(err.message);
+}
+
+/** What the repair form shows. The API sentence is not repeated on screen. */
+function maintenanceFailure(err: unknown): string {
+  if (duplicateMaintenance(err)) return 'Maintenance request already exists.';
+  if (err instanceof ApiError && err.status === 409) return 'This repair could not be filed for this property.';
+  if (err instanceof ApiError && (err.status === 413 || /too large|payload/i.test(err.message))) {
+    return 'That file is too large. Use a shorter video or a smaller photo.';
+  }
+  if (err instanceof ApiError && err.status === 400) return 'Check the description and the photo or video, then try again.';
+  if (err instanceof ApiError && err.status === 0) return err.message;
+  return 'Could not submit the repair.';
 }
 
 const initialState: DemoState = {
@@ -203,6 +236,8 @@ const initialState: DemoState = {
   rentReviewMoveOut: '',
   terminationMoveOut: '',
   terminationStarted: false,
+  rememberedVacateDate: '',
+  rememberedVacatePropertyId: null,
   movingRequested: false,
   nextRoutineAt: null,
   nextRentReviewAt: null,
@@ -245,7 +280,15 @@ type DemoApi = DemoState & {
   requestSettlement: (method: string) => void;
   sendCros: (text: string) => 'ok' | 'escalate' | 'empty';
   sendChat: (threadId: string, text: string, file?: EvidenceFile | null) => Promise<boolean>;
-  createThread: (input: { category: Thread['category']; subject: string; body: string; file?: EvidenceFile | null }) => Promise<string>;
+  rememberVacateDate: (display: string, propertyId: string | null) => void;
+  createThread: (input: {
+    category: Thread['category'];
+    subject: string;
+    body: string;
+    file?: EvidenceFile | null;
+    caseType?: 'MAINTENANCE' | 'INSPECTION' | 'LEASING' | 'RENT_REVIEW';
+    caseId?: string;
+  }) => Promise<string>;
   submitCheckIn: (input: CheckIn) => Promise<string | null>;
   submitApplication: (
     input: Omit<ApplicationRecord, 'id' | 'reference' | 'submittedAt' | 'status' | 'documents' | 'missingDocuments' | 'isRenewal'> & {
@@ -281,6 +324,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DemoState>(initialState);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshLock = useRef(false);
+  const readMarks = useRef(new Map<string, number>());
 
   const notify = useCallback((message: string) => {
     setState((current) => ({ ...current, toast: message }));
@@ -300,7 +344,11 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, accountStatus: current.accountStatus === 'ready' ? 'ready' : 'loading', accountError: null }));
     try {
       const loaded = await loadAccount();
-      setState((current) => ({ ...current, ...loaded }));
+      setState((current) => ({
+        ...current,
+        ...loaded,
+        threads: applyReadMarks(loaded.threads, readMarks.current),
+      }));
     } catch (err) {
       setState((current) => ({
         ...current,
@@ -372,7 +420,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
               department: 'INSPECTION',
               ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
             });
-            notify('Attendance sent to your property manager');
+            notify('Attendance sent.');
           } catch (err) {
             notify(failureMessage(err, 'Could not confirm attendance'));
           }
@@ -450,13 +498,28 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             }
             const filed = state.tenancies.find((item) => item.propertyId === (created.propertyId || propertyId));
             if (filed) patch({ selectedTenancyId: filed.id });
-            await refreshAccount();
+            try {
+              await refreshAccount();
+            } catch {
+              // The ticket is already filed. A failed reload must not look like the report failed.
+            }
             notify(`${created.orderNumber || created.id.slice(0, 8)} issued.`);
             return created.id;
           } catch (err) {
-            const existing = err instanceof ApiError && err.status === 409 ? existingRequestId(err.body) : null;
-            if (existing) return existing;
-            notify(failureMessage(err, 'Could not submit the repair'));
+            if (duplicateMaintenance(err)) {
+              notify('Maintenance request already exists.');
+              const fromBody = existingRequestId(err instanceof ApiError ? err.body : null);
+              if (fromBody) return fromBody;
+              try {
+                const rows = await tenantApi.maintenance();
+                const match = rows.find((row) => (row.description || '').trim() === trimmed);
+                if (match) return match.id;
+              } catch {
+                // The list could not be loaded. The message above is enough.
+              }
+              return null;
+            }
+            notify(maintenanceFailure(err));
             return null;
           } finally {
             maintenanceSubmit = null;
@@ -530,12 +593,23 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         });
       },
       markThreadRead: (id) => {
-        patch({ threads: state.threads.map((item) => (item.id === id ? { ...item, unread: false } : item)) });
+        const thread = state.threads.find((item) => item.id === id);
+        if (thread && !thread.unread) return;
+        readMarks.current.set(id, Date.now());
+        setState((current) => ({
+          ...current,
+          threads: current.threads.map((item) => (item.id === id ? { ...item, unread: false } : item)),
+        }));
         guardSubmit(`thread-read:${id}`, async () => {
           try {
             await tenantApi.markMessageRead(id);
-          } catch {
-            // Reading a thread should not block the conversation.
+          } catch (err) {
+            readMarks.current.delete(id);
+            setState((current) => ({
+              ...current,
+              threads: current.threads.map((item) => (item.id === id ? { ...item, unread: true } : item)),
+            }));
+            notify(failureMessage(err, 'Could not mark that conversation read'));
           }
         });
       },
@@ -624,7 +698,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           submitLocks.delete(key);
         }
       },
-      createThread: async ({ category, subject, body, file }) => {
+      rememberVacateDate: (display, propertyId) => {
+        setState((current) => ({
+          ...current,
+          rememberedVacateDate: display,
+          rememberedVacatePropertyId: propertyId,
+          terminationMoveOut: current.vacating?.vacateDate || display,
+        }));
+      },
+      createThread: async ({ category, subject, body, file, caseType, caseId }) => {
         if (!subject.trim() || (!body.trim() && !file)) {
           notify('Add a subject and a message');
           return '';
@@ -638,6 +720,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             body: body.trim(),
             department: departmentFor(category),
             ...(scoped.propertyUuid ? { propertyId: scoped.propertyUuid } : {}),
+            ...(caseType && caseId ? { caseType, caseId } : {}),
             ...(file ? { attachments: [messageAttachment(file)] } : {}),
           });
           await refreshAccount();
@@ -720,7 +803,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         }
       },
       uploadOnboardingProof: (stepId, file) => {
-        if (stepId !== 'deposit' && stepId !== 'bond') return 'This step does not take a receipt upload.';
+        if (stepId !== 'deposit' && stepId !== 'bond') return 'No receipt on this step.';
         guardSubmit(`proof:${stepId}`, async () => {
           try {
             const uploaded = await tenantApi.uploadProof(stepId, file);
@@ -753,7 +836,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           notify('Add the collection time, location, and a photo');
           return;
         }
-        notify('This step is updated when your property manager confirms it');
+        notify('Not available on this step.');
       },
       submitKeyCollection: (time, location, file) => {
         guardSubmit('key-collection', async () => {
@@ -812,7 +895,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
               expectedVersion: review.version,
             });
             patch({ rentReviewStatus: 'accepted', rentReviewCounter: null });
-            notify('Rent increase accepted. This does not sign the lease.');
+            notify('Rent increase accepted.');
             await refreshAccount();
           } catch (err) {
             notify(failureMessage(err, 'Could not accept the rent review'));
@@ -887,7 +970,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         guardSubmit(`moving:${caseId}`, async () => {
           try {
             await tenantApi.requestMovingReferral(caseId);
-            notify('Moving referral requested. This does not book a mover.');
+            notify('Moving referral requested.');
             await refreshAccount();
           } catch (err) {
             notify(failureMessage(err, 'Could not request a moving referral'));

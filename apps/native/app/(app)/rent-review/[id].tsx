@@ -17,7 +17,6 @@ export default function RentReviewDetailScreen() {
   const [counter, setCounter] = useState('');
   const [moveOut, setMoveOut] = useState(demo.rentReviewMoveOut);
   const [error, setError] = useState<string | null>(null);
-  const [dispute, setDispute] = useState(false);
   const [signing, setSigning] = useState(false);
 
   const review = demo.rentReview;
@@ -40,7 +39,6 @@ export default function RentReviewDetailScreen() {
         <Text style={styles.amount}>{money(review.proposedRent)} / week</Text>
         <Text style={styles.body}>Effective {review.effective || 'the date on the notice'}</Text>
       </Card>
-      <Notice>Accepting records your answer. A fixed-term agreement is signed separately when your property manager sends it.</Notice>
       {review.leaseAgreementSigned ? <Notice>The lease agreement is signed.</Notice> : null}
       {demo.rentReviewStatus === 'accepted' && review.requiresLeaseAgreementSign && !review.leaseAgreementSigned ? (
         <Button
@@ -97,10 +95,6 @@ export default function RentReviewDetailScreen() {
               />
             </Card>
           ) : null}
-          <Button label={dispute ? 'Hide tribunal note' : 'The increase may be excessive'} tone="secondary" onPress={() => setDispute((value) => !value)} />
-          {dispute ? (
-            <Notice>Applying to NCAT is your own step. This app records nothing when you read this note.</Notice>
-          ) : null}
           <Card>
             <Field label="If you are leaving, vacate date">
               <Input value={moveOut} onChangeText={setMoveOut} placeholder="19 Dec 2026" />
@@ -117,12 +111,12 @@ export default function RentReviewDetailScreen() {
           </Card>
         </>
       ) : null}
-      {demo.rentReviewStatus === 'accepted' ? <Notice>Rent increase accepted. Your property manager will send the lease extension when it is ready.</Notice> : null}
+      {demo.rentReviewStatus === 'accepted' ? <Notice>Rent increase accepted.</Notice> : null}
       {demo.rentReviewStatus === 'countered' && demo.rentReviewCounter ? (
-        <Notice>{`Counter-offer of ${money(demo.rentReviewCounter)} / week is with your property manager.`}</Notice>
+        <Notice>{`Counter-offer of ${money(demo.rentReviewCounter)} / week.`}</Notice>
       ) : null}
       {demo.rentReviewStatus === 'vacating' ? (
-        <Notice>{`Notice to vacate recorded for ${demo.rentReviewMoveOut}. Continue with move-out services.`}</Notice>
+        <Notice>{`Notice to vacate recorded for ${demo.rentReviewMoveOut}.`}</Notice>
       ) : null}
     </Screen>
   );

@@ -1,12 +1,8 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ApiError } from '@/src/api/client';
 import { downloadAuthedPdf, isApiFile } from '@/src/api/files';
-import { tenantApi } from '@/src/api/tenant';
 import { loadNoticePrefs } from '@/src/notifications/preferences';
 import { pickEvidence } from '@/src/api/pick-evidence';
 import type { EvidenceFile } from '@/src/api/tenant';
@@ -17,90 +13,52 @@ import { BackButton, Button, Card, Field, Input, Notice, Screen } from '@/src/ui
 
 const CATEGORIES: Thread['category'][] = ['General', 'Maintenance', 'Inspection', 'Leasing'];
 
-type CrosTurn = { role: 'user' | 'assistant'; content: string };
+function firstParam(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw?.trim() ?? '';
+}
 
+/** Compose a message already tied to the task the tenant was looking at. */
+export function taskMessagePath(input: {
+  subject: string;
+  category: Thread['category'];
+  caseType: 'MAINTENANCE' | 'INSPECTION' | 'LEASING' | 'RENT_REVIEW';
+  caseId: string;
+}): string {
+  const params = new URLSearchParams({
+    subject: input.subject,
+    category: input.category,
+    caseType: input.caseType,
+    caseId: input.caseId,
+  });
+  return `/flow/new-message?${params.toString()}`;
+}
+
+/** Tenants do not have CROS AI. A saved link returns to the inbox. */
 export function CrosScreen() {
-  const [draft, setDraft] = useState('');
-  const [turns, setTurns] = useState<CrosTurn[]>([]);
-  const [pending, setPending] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  function send() {
-    const content = draft.trim();
-    if (!content || pending) return;
-    const history: CrosTurn[] = [...turns, { role: 'user', content }];
-    setDraft('');
-    setNotice(null);
-    setPending(true);
-    setTurns(history);
-    return tenantApi
-      .askCros(history)
-      .then((result) => {
-        setTurns([...history, { role: 'assistant', content: result.reply }]);
-      })
-      .catch((err: unknown) => {
-        setNotice(err instanceof ApiError || err instanceof Error ? err.message : 'Cros could not answer.');
-      })
-      .finally(() => setPending(false));
-  }
-
-  return (
-    <SafeAreaView style={styles.chatSafe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={styles.chatFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.chatHeader}>
-          <BackButton />
-          <View style={styles.chatTitleRow}>
-            <Image source={require('@/assets/brand/cros-logo.png')} style={styles.chatAvatar} />
-            <View style={styles.flex}>
-              <Text style={styles.h2}>Ask Cros</Text>
-              <Text style={styles.muted}>Chat</Text>
-            </View>
-          </View>
-        </View>
-        <ScrollView contentContainerStyle={styles.chatMessages} keyboardShouldPersistTaps="handled">
-          {turns.length === 0 ? <Bubble mine={false} text="Ask a question about your tenancy." meta="Cros" /> : null}
-          {turns.map((turn, index) => (
-            <Bubble key={`${turn.role}-${index}`} mine={turn.role === 'user'} text={turn.content} meta={turn.role === 'user' ? 'You' : 'Cros'} />
-          ))}
-          {pending ? <Bubble mine={false} text="Replying" meta="Cros" /> : null}
-        </ScrollView>
-        <View style={styles.chatComposer}>
-          {notice ? <Text style={styles.error}>{notice}</Text> : null}
-          <View style={styles.composer}>
-            <View style={styles.flex}>
-              <Input
-                value={draft}
-                onChangeText={(value) => {
-                  setDraft(value);
-                  if (notice) setNotice(null);
-                }}
-                placeholder="Message Cros"
-                editable={!pending}
-              />
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Send"
-              accessibilityState={{ disabled: pending }}
-              disabled={pending}
-              onPress={send}
-              style={[styles.send, pending && styles.sendBusy]}
-            >
-              <Ionicons name="arrow-up" size={18} color="#fff" />
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/inbox');
+  }, [router]);
+  return null;
 }
 
 export function NewMessageScreen() {
   const router = useRouter();
   const demo = useDemo();
-  const [category, setCategory] = useState<Thread['category']>('General');
-  const [subject, setSubject] = useState('');
+  const params = useLocalSearchParams<{ subject?: string; category?: string; caseType?: string; caseId?: string }>();
+  const presetSubject = firstParam(params.subject);
+  const presetCategory = firstParam(params.category);
+  const caseType = firstParam(params.caseType);
+  const caseId = firstParam(params.caseId);
+  const linkedCategory = (CATEGORIES as string[]).includes(presetCategory) ? (presetCategory as Thread['category']) : 'General';
+  const [category, setCategory] = useState<Thread['category']>(linkedCategory);
+  const [subject, setSubject] = useState(presetSubject);
   const [body, setBody] = useState('');
+  useEffect(() => {
+    if (presetSubject) setSubject(presetSubject);
+    if ((CATEGORIES as string[]).includes(presetCategory)) setCategory(presetCategory as Thread['category']);
+  }, [presetSubject, presetCategory]);
   const [file, setFile] = useState<EvidenceFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   return (
@@ -129,7 +87,11 @@ export function NewMessageScreen() {
         <Button
           label="Send message"
           onPress={() => {
-            return demo.createThread({ category, subject, body, file }).then((id) => {
+            const linked =
+              caseType === 'MAINTENANCE' || caseType === 'INSPECTION' || caseType === 'LEASING' || caseType === 'RENT_REVIEW'
+                ? caseType
+                : undefined;
+            return demo.createThread({ category, subject, body, file, caseType: linked, caseId: linked && caseId ? caseId : undefined }).then((id) => {
               if (id) router.replace(`/flow/conversation?thread=${id}`);
             });
           }}
@@ -145,7 +107,9 @@ export function ConversationScreen() {
   const params = useLocalSearchParams<{ thread?: string }>();
   const threadId = Array.isArray(params.thread) ? params.thread[0] : params.thread;
   useEffect(() => {
-    if (threadId && demo.threads.some((item) => item.id === threadId && item.unread)) demo.markThreadRead(threadId);
+    if (!threadId) return;
+    if (!demo.threads.some((item) => item.id === threadId && item.unread)) return;
+    demo.markThreadRead(threadId);
   }, [demo, threadId]);
   const [text, setText] = useState('');
   const [file, setFile] = useState<EvidenceFile | null>(null);
@@ -180,7 +144,7 @@ export function ConversationScreen() {
       ) : null}
       {reply ? <Bubble mine text={reply} meta="You" /> : null}
       {closed ? (
-        <Notice>This conversation is read only. Start a new enquiry if you need to follow up.</Notice>
+        <Notice>This conversation is read only.</Notice>
       ) : thread ? (
         <View style={styles.composer}>
           <View style={styles.flex}>
@@ -235,7 +199,6 @@ export function CompletedChatScreen() {
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Completed conversation</Text>
-      <Notice>Closed conversations appear in your inbox when your property manager closes them. There is no sample thread on this screen.</Notice>
       <Button label="Start new enquiry" onPress={() => router.push('/flow/new-message')} />
     </Screen>
   );
@@ -260,7 +223,7 @@ export function NotificationsScreen() {
       <Text style={styles.h2}>Notifications</Text>
       <Text style={styles.muted}>{unread === 0 ? 'You are up to date.' : `${unread} unread`}</Text>
       {unread > 0 ? <Button label="Mark all read" tone="secondary" onPress={markAllNoticesRead} /> : null}
-      {visible.length === 0 ? <Notice>No notices are showing. Hidden kinds stay in Notification preferences on this phone.</Notice> : null}
+      {visible.length === 0 ? <Notice>No notices.</Notice> : null}
       {visible.map((item) => (
         <Card
           key={item.id}
@@ -274,7 +237,6 @@ export function NotificationsScreen() {
           <Text style={styles.meta}>{item.read ? 'Read' : 'Unread'}</Text>
         </Card>
       ))}
-      <Notice>Opening a notification marks it read and opens the task.</Notice>
     </Screen>
   );
 }
@@ -323,13 +285,4 @@ const styles = StyleSheet.create({
   pillTextOn: { color: '#fff' },
   error: { color: colors.danger, fontSize: 13 },
   link: { color: colors.green, fontSize: 13, fontWeight: '700', marginTop: 6 },
-  chatSafe: { flex: 1, backgroundColor: colors.bg },
-  chatFlex: { flex: 1 },
-  chatHeader: { paddingHorizontal: 20, paddingTop: 8, gap: 8 },
-  chatTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  chatAvatar: { width: 48, height: 48 },
-  chatMessages: { padding: 20, gap: 12, flexGrow: 1 },
-  chatComposer: { paddingHorizontal: 20, paddingBottom: 12, gap: 8 },
-  send: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
-  sendBusy: { opacity: 0.55 },
 });

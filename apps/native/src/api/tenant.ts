@@ -31,6 +31,7 @@ export type TenancyDto = {
   paymentCycle: string | null;
   rentPaidTo: string | null;
   paymentReference: string | null;
+  vacateDate?: string | null;
   nextRoutineInspectionAt?: string | null;
   nextRentReviewAt?: string | null;
   accounting?: 'crossub_trust' | 'agent_trust' | 'self_managed' | null;
@@ -121,6 +122,7 @@ export type RentReviewDto = {
   negotiationVersion: number;
   currentOffer: { id: string; rentAmount: number } | null;
   propertyId: string | null;
+  emails?: { to?: string | null; toEmail?: string | null }[] | null;
   noticeTerms: {
     rentIncreaseOn: string | null;
     newRentWeekly: number;
@@ -197,7 +199,8 @@ export type RoutineSelfArea = {
 export type RoutineInspectionDetail = RoutineInspectionDto & {
   scheduleId?: string;
   bedrooms?: number | null;
-  sections?: { id: string; room: string; photos: string[] }[];
+  sections?: { id: string; room: string; description?: string; photos: string[]; referencePhotos?: string[] }[];
+  referenceIngoingAreas?: { name: string; photos: string[] }[];
   selfDraft?: { areas: RoutineSelfArea[]; areaIndex?: number; areaOrder?: string[] } | null;
 };
 
@@ -411,8 +414,19 @@ export const tenantApi = {
       }),
     ),
 
-  createMessage: (body: components['schemas']['CreateTenantMessageThreadDto']) =>
-    unwrap(crossub.POST('/tenant/messages', { body })),
+  createMessage: (
+    body: components['schemas']['CreateTenantMessageThreadDto'] & {
+      caseType?: 'MAINTENANCE' | 'INSPECTION' | 'LEASING' | 'RENT_REVIEW';
+      caseId?: string;
+    },
+  ) =>
+    unwrap(
+      crossub.POST('/tenant/messages', {
+        // The published client schema does not list the task link yet. The fields stay on the
+        // object that is sent; the API keeps them only when this thread is about that task.
+        body: body as components['schemas']['CreateTenantMessageThreadDto'],
+      }),
+    ),
 
   replyMessage: (threadId: string, body: components['schemas']['SendTenantMessageDto']) =>
     unwrap(crossub.POST('/tenant/messages/{threadId}/reply', { params: { path: { threadId } }, body })),

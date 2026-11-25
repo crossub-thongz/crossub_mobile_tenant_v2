@@ -2,9 +2,12 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
+import { formatDisplayDate } from '@/src/api/dates';
 import { tenantApi } from '@/src/api/tenant';
 import { useDemo } from '@/src/demo/store';
+import { taskMessagePath } from '@/src/flows/messages';
 import { colors } from '@/src/theme';
+import { DatePickerField } from '@/src/ui/date-picker-field';
 import { BackButton, Button, Card, Field, Input, Screen } from '@/src/ui/ui';
 
 function isoDate(value: string): string | null {
@@ -29,7 +32,7 @@ export default function TerminationScreen() {
     if (!openCase || busy) return;
     const date = isoDate(moveOut);
     if (!date) {
-      setError('Use the date as YYYY-MM-DD.');
+      setError('Choose the date you plan to leave.');
       return;
     }
     setBusy(true);
@@ -37,6 +40,7 @@ export default function TerminationScreen() {
     try {
       await tenantApi.updateVacateDate(openCase.id, date);
       await demo.refreshAccount();
+      demo.rememberVacateDate(formatDisplayDate(date), demo.propertyUuid);
       demo.notify('Vacate date updated');
       setMoveOut('');
     } catch (err) {
@@ -69,15 +73,34 @@ export default function TerminationScreen() {
       <Text style={styles.title}>Termination notice</Text>
       <Card>
         <Text style={styles.address}>{demo.vacating?.address || demo.property.title}</Text>
-        <Text style={styles.body}>{demo.vacating?.reason || 'No termination notice is open. You can still tell CROSSUB the date you plan to leave.'}</Text>
+        <Text style={styles.body}>{demo.vacating?.reason || 'No termination notice is open.'}</Text>
         {demo.vacating?.vacateDate ? <Text style={styles.body}>Vacate date {demo.vacating.vacateDate}</Text> : null}
       </Card>
-      <Button label="Message Crossub" tone="outline" onPress={() => router.push('/flow/new-message')} />
+      <Button
+        label="Message Crossub"
+        tone="outline"
+        onPress={() => {
+          if (!demo.vacating) {
+            router.push('/flow/new-message');
+            return;
+          }
+          const place = demo.vacating.address || demo.property.title;
+          const when = demo.vacating.vacateDate ? ` (${demo.vacating.vacateDate})` : '';
+          router.push(
+            taskMessagePath({
+              subject: `Notice to vacate — ${place}${when}`,
+              category: 'Leasing',
+              caseType: 'LEASING',
+              caseId: demo.vacating.id,
+            }),
+          );
+        }}
+      />
       {openCase ? (
         <Card>
           <Text style={styles.address}>Move-out date {openCase.vacateDate || demo.terminationMoveOut}</Text>
           <Field label="New vacate date">
-            <Input value={moveOut} onChangeText={setMoveOut} placeholder="2026-12-14" />
+            <DatePickerField value={moveOut} onChange={setMoveOut} />
           </Field>
           <Button label="Change vacate date" onPress={() => changeDate()} />
           <Field label="Reason for staying, if you have one">
@@ -90,7 +113,7 @@ export default function TerminationScreen() {
       ) : (
         <Card>
           <Field label="Select move-out date">
-            <Input value={moveOut} onChangeText={setMoveOut} placeholder="2026-12-14" />
+            <DatePickerField value={moveOut} onChange={setMoveOut} />
           </Field>
           <Text style={styles.body}>Confirm when you plan to leave. Moving and cleaning can be arranged after that.</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -99,7 +122,7 @@ export default function TerminationScreen() {
             onPress={() => {
               const date = isoDate(moveOut);
               if (!date) {
-                setError('Use the date as YYYY-MM-DD.');
+                setError('Choose the date you plan to leave.');
                 return;
               }
               if (busy) return;
@@ -112,6 +135,7 @@ export default function TerminationScreen() {
                 })
                 .then(async () => {
                   await demo.refreshAccount();
+                  demo.rememberVacateDate(formatDisplayDate(date), demo.propertyUuid);
                   demo.notify('Vacating case opened');
                   router.push('/move-out-services');
                 })

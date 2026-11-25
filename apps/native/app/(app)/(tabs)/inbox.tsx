@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { messageWhen, type InboxFilter } from '@/src/demo/model';
 import { useDemo } from '@/src/demo/store';
@@ -20,13 +20,6 @@ export default function InboxScreen() {
   return (
     <Screen tab>
       <TabHeader kicker="" title="Inbox" />
-      <Pressable accessibilityRole="button" accessibilityLabel="Ask Cros" onPress={() => router.push('/flow/cros')} style={styles.cros}>
-        <Image source={require('@/assets/brand/cros-logo.png')} style={styles.crosIcon} />
-        <View style={styles.grow}>
-          <Text style={styles.crosText}>Ask Cros</Text>
-          <Text style={styles.crosHint}>Open the chat</Text>
-        </View>
-      </Pressable>
       <Section
         title="Conversations"
         action={
@@ -47,8 +40,17 @@ export default function InboxScreen() {
           </Pressable>
         ))}
       </View>
+      {demo.accountStatus === 'ready' && threads.length === 0 ? (
+        <Text style={styles.muted}>{demo.inboxFilter === 'Unread' ? 'No unread conversations.' : 'No conversations here.'}</Text>
+      ) : null}
       {threads.map((thread) => (
-        <Card key={thread.id} onPress={() => router.push(thread.route)}>
+        <Card
+          key={thread.id}
+          onPress={() => {
+            if (thread.unread) demo.markThreadRead(thread.id);
+            router.push(thread.route);
+          }}
+        >
           <View style={styles.between}>
             <Text style={styles.subject}>{thread.subject}</Text>
             <View style={styles.whenCol}>
@@ -65,21 +67,6 @@ export default function InboxScreen() {
 }
 
 const styles = StyleSheet.create({
-  cros: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.greenLine,
-    borderRadius: 22,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  crosIcon: { width: 48, height: 48 },
-  crosText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  crosHint: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  grow: { flex: 1 },
   title: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   subject: { flexGrow: 1, flexShrink: 1, flexBasis: 0, color: colors.ink, fontSize: 15, fontWeight: '700' },
   whenCol: { alignItems: 'flex-end', gap: 6 },

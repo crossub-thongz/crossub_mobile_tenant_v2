@@ -5,13 +5,7 @@ import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Screen } from '@/src/ui/ui';
 
-const STEPS = [
-  ['Your property', 'After approval, the leased address appears with rent and key dates.'],
-  ['Onboarding checklist', 'Deposit, bond, lease signing, and key collection stay in order.'],
-  ['Upload proofs', 'Send the deposit and bond receipts when they are requested.'],
-  ['Move-in inspection', 'Confirm the ingoing report when your agent schedules it.'],
-  ['Day-to-day tenancy', 'Repairs, accounting, and messages are for after you have moved in.'],
-];
+const STEPS = ['Your property', 'Onboarding checklist', 'Upload proofs', 'Move-in inspection', 'Day-to-day tenancy'];
 
 export default function GuideScreen() {
   const router = useRouter();
@@ -22,15 +16,10 @@ export default function GuideScreen() {
     <Screen>
       <BackButton fallback="/help" />
       <Text style={styles.title}>Welcome to your tenancy</Text>
-      <Text style={styles.body}>
-        {approved
-          ? `You have been approved for ${approved.propertyAddress}. These are the move-in steps.`
-          : 'This is how move-in works once an application is approved.'}
-      </Text>
-      {STEPS.map(([title, body]) => (
+      {approved ? <Text style={styles.body}>{`Approved for ${approved.propertyAddress}.`}</Text> : null}
+      {STEPS.map((title) => (
         <Card key={title}>
           <Text style={styles.item}>{title}</Text>
-          <Text style={styles.body}>{body}</Text>
         </Card>
       ))}
       <Button

@@ -18,19 +18,11 @@ export default function OnboardingScreen() {
       <BackButton fallback="/profile" />
       <Text style={styles.title}>Onboarding</Text>
       {onboardingComplete ? (
-        <Notice>
-          {steps.length > 0
-            ? 'Move-in checklist is already complete for this tenancy. You can review the steps below.'
-            : 'Move-in checklist is already complete for this tenancy.'}
-        </Notice>
+        <Notice>Move-in checklist is complete.</Notice>
       ) : null}
       {!onboardingComplete && !onboardingActive ? <Notice>No move-in checklist is open on this account.</Notice> : null}
-      {onboardingActive ? (
-      <Text style={styles.body}>
-        {approved
-          ? `You have been approved for ${approved.propertyAddress}. Complete the move-in checklist below.`
-          : 'After an application is approved, the deposit, bond, lease, and key steps appear here.'}
-      </Text>
+      {onboardingActive && approved ? (
+      <Text style={styles.body}>{`Approved for ${approved.propertyAddress}.`}</Text>
       ) : null}
       {steps.length > 0 ? (
       <View style={styles.progressTrack}>

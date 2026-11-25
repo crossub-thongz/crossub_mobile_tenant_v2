@@ -25,7 +25,7 @@ const SECTIONS = [
     title: 'Lease, rent, and repairs',
     items: [
       ['Where is my lease?', 'Property and Tenancy details show the address, rent, and dates. Documents lists the agreement once it is on the tenancy.'],
-      ['How do I report a repair?', 'Home has Report issue. Describe the problem and add at least one photo or video. A tracking number is issued when the report is accepted. Leaving the form blank does not create a repair.'],
+      ['How do I report a repair?', 'Home has Report issue. Describe the problem and add at least one photo or video. A tracking number is issued when the report is accepted.'],
     ],
   },
 ] as const;

@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { formatDisplayDate, routineSelfOpen } from '@/src/api/dates';
 import { inspectionPath } from '@/src/api/load-account';
 import { STATUS_LABEL } from '@/src/demo/applications';
 import type { ActivityFilter } from '@/src/demo/model';
@@ -38,7 +39,7 @@ export default function ActivityScreen() {
   const router = useRouter();
   const demo = useDemo();
   const items: ActivityItem[] = [];
-  const selfInspectionId = demo.routineAction?.flow === 'self' && demo.routineAction.actionRequired ? demo.routineAction.id : null;
+  const selfInspectionId = routineSelfOpen(demo.routineAction?.status, demo.routineAction?.flow) ? demo.routineAction?.id : null;
 
   for (const inspection of demo.inspections) {
     if (inspection.status === 'DRAFT') continue;
@@ -59,10 +60,10 @@ export default function ActivityScreen() {
     items.push({
       key: `routine-${demo.routineAction.id}`,
       name: 'Routine inspection',
-      detail: [statusLabel(demo.routineAction.status), demo.routineAction.scheduledAt?.slice(0, 10)].filter(Boolean).join(' · '),
+      detail: [statusLabel(demo.routineAction.status), formatDisplayDate(demo.routineAction.scheduledAt)].filter(Boolean).join(' · '),
       kind: 'Action Required',
       type: 'Inspection',
-      href: demo.routineAction.flow === 'self' && demo.routineAction.actionRequired ? '/flow/self-inspection' : `/flow/inspection?id=${demo.routineAction.id}`,
+      href: routineSelfOpen(demo.routineAction.status, demo.routineAction.flow) ? `/flow/self-inspection?id=${demo.routineAction.id}` : `/flow/inspection?id=${demo.routineAction.id}`,
       currentOnly: true,
     });
   }
@@ -119,12 +120,14 @@ export default function ActivityScreen() {
     });
   }
 
-  if (demo.vacating && demo.terminationStarted) {
-    const settled = demo.vacating.settlementStatus === 'accepted';
+  if (demo.vacating && demo.vacating.status !== 'cancelled') {
+    const settled = demo.vacating.settlementStatus === 'accepted' || demo.vacating.status === 'completed';
     items.push({
       key: `vacating-${demo.vacating.id}`,
-      name: 'Moving out',
-      detail: demo.vacating.vacateDate ? `Vacate ${demo.vacating.vacateDate}` : demo.vacating.reason,
+      name: 'Notice to vacate',
+      detail: [demo.vacating.address, demo.vacating.vacateDate ? `Vacate ${demo.vacating.vacateDate}` : demo.vacating.reason]
+        .filter(Boolean)
+        .join(' · '),
       kind: settled ? 'History' : 'In Progress',
       type: 'Vacating',
       href: '/termination',

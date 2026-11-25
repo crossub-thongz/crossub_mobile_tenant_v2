@@ -8,6 +8,7 @@ import { APPLICATION_DOCUMENT_SLOTS, SUPPORTING_POINTS_MIN } from '@/src/leasing
 import { useAuth } from '@/src/auth/auth-context';
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
+import { DatePickerField } from '@/src/ui/date-picker-field';
 import { BackButton, Button, Card, Field, Input, Notice, Screen } from '@/src/ui/ui';
 
 const STEPS = [
@@ -112,7 +113,7 @@ export default function ApplyScreen() {
       return;
     }
     if (current.id === 'property' && (!form.leaseTerm.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(form.moveInDate.trim()))) {
-      setError('Enter the lease term in months and the move-in date as YYYY-MM-DD.');
+      setError('Enter the lease term in months and choose the move-in date.');
       return;
     }
     if (current.id === 'occupancy' && !form.occupants.trim()) {
@@ -184,7 +185,7 @@ export default function ApplyScreen() {
             <Input value={form.leaseTerm} onChangeText={set('leaseTerm')} />
           </Field>
           <Field label="Move-in date">
-            <Input value={form.moveInDate} onChangeText={set('moveInDate')} placeholder="YYYY-MM-DD" />
+            <DatePickerField value={form.moveInDate} onChange={set('moveInDate')} />
           </Field>
         </Card>
       ) : null}

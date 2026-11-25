@@ -12,7 +12,7 @@ import { BackButton, Button, Card, Notice, Screen } from '@/src/ui/ui';
 export function LedgerScreen() {
   const { scenario, ledger, rentPaidTo, property } = useDemo();
   const [error, setError] = useState<string | null>(null);
-  if (!scenario.ledger) return <Hidden title="Rent ledger" body="Your agent manages this trust account. The rent ledger stays with the agency." />;
+  if (!scenario.ledger) return <Hidden title="Rent ledger" body="No ledger on this account." />;
   const rows = ledger.map((item) => [item.when || 'Undated', item.amount == null ? '—' : money(item.amount), item.detail] as const);
   return (
     <Screen>
@@ -99,7 +99,7 @@ export function InvoicesScreen() {
 
 export function ReceiptsScreen() {
   const { scenario, ledger } = useDemo();
-  if (!scenario.ledger) return <Hidden title="Rent receipts" body="Your agent manages this trust account. Receipts stay with the agency." />;
+  if (!scenario.ledger) return <Hidden title="Rent receipts" body="No receipts on this account." />;
   const receipts = ledger.filter((item) => item.type === LEDGER_TYPE.RENT);
   return (
     <Screen>

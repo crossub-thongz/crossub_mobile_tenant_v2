@@ -1,5 +1,6 @@
 import type { components } from '@crossub-thongz/api-contract';
 
+import { formatDisplayDate, formatDisplayWindow } from '@/src/api/dates';
 import { crossub, unwrap } from '@/src/api/client';
 import { apiJson } from '@/src/api/http';
 import type { Listing } from '@/src/demo/listings';
@@ -11,15 +12,7 @@ function label(type: string): string {
 }
 
 function when(start: string | null, end: string | null): string | undefined {
-  if (!start) return undefined;
-  const opened = new Date(start);
-  if (Number.isNaN(opened.getTime())) return start;
-  const startText = opened.toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-  if (!end) return startText;
-  const closed = new Date(end);
-  if (Number.isNaN(closed.getTime())) return startText;
-  const endText = closed.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
-  return `${startText}–${endText}`;
+  return formatDisplayWindow(start, end);
 }
 
 export function mapListing(dto: PublicListingDto): Listing {
@@ -34,7 +27,7 @@ export function mapListing(dto: PublicListingDto): Listing {
     bedrooms: dto.bedrooms ?? 0,
     bathrooms: dto.bathrooms ?? 0,
     parking: dto.parking ?? undefined,
-    availableFrom: dto.availableFrom ? dto.availableFrom.slice(0, 10) : 'TBC',
+    availableFrom: dto.availableFrom ? formatDisplayDate(dto.availableFrom) : 'TBC',
     leaseTerm: dto.leaseTerm ?? undefined,
     openInspection: when(dto.openInspectionAt ?? null, dto.openInspectionEndAt ?? null),
     features: dto.features ?? [],

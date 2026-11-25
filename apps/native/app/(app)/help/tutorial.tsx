@@ -5,13 +5,7 @@ import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { BackButton, Button, Card, Screen } from '@/src/ui/ui';
 
-const STEPS = [
-  ['Home', 'Summary cards for the property, inspections, repairs, rent, and messages.'],
-  ['Property', 'Your lease address, rent, and key dates.'],
-  ['Repairs', 'Report an issue and follow it until the work is done.'],
-  ['Rent review', 'When a notice arrives, read the proposed rent and respond from the app.'],
-  ['New tenants', 'Apply from a listing, finish onboarding, collect keys, then confirm the ingoing report.'],
-];
+const STEPS = ['Home', 'Property', 'Repairs', 'Rent review', 'New tenants'];
 
 export default function TutorialScreen() {
   const router = useRouter();
@@ -21,13 +15,11 @@ export default function TutorialScreen() {
     <Screen>
       <BackButton fallback="/help" />
       <Text style={styles.title}>How to use the app</Text>
-      <Text style={styles.body}>A short tour for a new registration.</Text>
-      {STEPS.map(([title, body], index) => (
+      {STEPS.map((title, index) => (
         <Card key={title}>
           <Text style={styles.item}>
             {index + 1}. {title}
           </Text>
-          <Text style={styles.body}>{body}</Text>
         </Card>
       ))}
       <Button

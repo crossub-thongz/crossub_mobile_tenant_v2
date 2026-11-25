@@ -70,13 +70,12 @@ export default function PaymentsScreen() {
           <Text style={styles.muted}>
             {arrears ? 'Outstanding amount due' : `Suggested payment — one ${cycleUnit(cycle)} at the current rent`}
           </Text>
-          <Text style={styles.muted}>Reference: {paymentReference || 'Shown on the tenancy'}</Text>
-          <Notice>Card payments are not taken in the app. Pay the agency, then send the proof below. The ledger changes when accounting matches it.</Notice>
+          <Text style={styles.muted}>Reference: {paymentReference}</Text>
         </Card>
       ) : (
         <Card>
           <Text style={styles.title}>Pay rent</Text>
-          <Text style={styles.muted}>Rent payments appear here once an active lease is linked to this account.</Text>
+          <Text style={styles.muted}>No active lease.</Text>
         </Card>
       )}
 
@@ -87,17 +86,17 @@ export default function PaymentsScreen() {
             <Tile label="Ledger lines" value={String(ledger.length)} />
           </View>
           <Card>
-            <RowItem icon="list-outline" title="Rent ledger" subtitle="Periods and part payments stay separate" onPress={() => router.push('/flow/ledger')} />
-            <RowItem icon="document-outline" title="Rent receipts" subtitle="Issued receipts only" onPress={() => router.push('/flow/receipts')} />
-            <RowItem icon="reader-outline" title="Tenant invoices" subtitle="Invoice status is separate from settlement" onPress={() => router.push('/flow/invoices')} />
-            <RowItem icon="document-text-outline" title="Final statement" subtitle="Bond, arrears, and the refund" onPress={() => router.push('/statement')} />
+            <RowItem icon="list-outline" title="Rent ledger" onPress={() => router.push('/flow/ledger')} />
+            <RowItem icon="document-outline" title="Rent receipts" onPress={() => router.push('/flow/receipts')} />
+            <RowItem icon="reader-outline" title="Tenant invoices" onPress={() => router.push('/flow/invoices')} />
+            <RowItem icon="document-text-outline" title="Final statement" onPress={() => router.push('/statement')} />
           </Card>
         </>
       ) : (
         <>
           <Card>
             <RowItem icon="home-outline" title="Tenancy rent details" subtitle={`${money(property.rent)} per week`} onPress={() => router.push('/flow/rent-details')} />
-            <RowItem icon="reader-outline" title="Published invoices" subtitle="No payment status is invented" onPress={() => router.push('/flow/invoices')} />
+            <RowItem icon="reader-outline" title="Published invoices" onPress={() => router.push('/flow/invoices')} />
           </Card>
         </>
       )}
@@ -106,7 +105,7 @@ export default function PaymentsScreen() {
         <Card>
           <Text style={styles.kicker}>I'VE PAID</Text>
           <Text style={styles.title}>Tell accounting which payment you made</Text>
-          <Text style={styles.muted}>Choose the type, then a photo of the receipt or transfer. This does not mark the rent as paid.</Text>
+          <Text style={styles.muted}>Choose the type, then a photo of the receipt or transfer.</Text>
           <View style={styles.pills}>
             {(Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((id) => (
               <Pressable
@@ -163,13 +162,13 @@ export default function PaymentsScreen() {
                   subject: "I've paid",
                   department: 'ACCOUNTING',
                   propertyId: propertyUuid,
-                  body: [`Paid by ${PAYMENT_METHOD_LABEL[method]}.`, referenceLine, amountLine, 'Proof is attached for accounting to match. This does not mark the rent as paid.']
+                  body: [`Paid by ${PAYMENT_METHOD_LABEL[method]}.`, referenceLine, amountLine, 'Proof is attached.']
                     .filter(Boolean)
                     .join(' '),
                   attachments: [messageAttachment(proof)],
                 })
                 .then(async () => {
-                  setSent(`Proof of the ${PAYMENT_METHOD_LABEL[method].toLowerCase()} payment was sent. Accounting matches it before the ledger changes.`);
+                  setSent(`Proof of the ${PAYMENT_METHOD_LABEL[method].toLowerCase()} payment was sent.`);
                   setProof(null);
                   setMethod(null);
                   notify('Payment proof sent');
@@ -186,8 +185,8 @@ export default function PaymentsScreen() {
       <Card>
         <Text style={styles.title}>Bank transfer</Text>
         <Text style={styles.muted}>Use the account on your rent invoice. Quote this reference on the transfer.</Text>
-        <Text style={styles.title}>{paymentReference || 'Reference appears on the tenancy'}</Text>
-        <Button label="Show reference" tone="outline" onPress={() => notify(paymentReference ? `Reference ${paymentReference}` : 'Your payment reference is on the tenancy.')} />
+        <Text style={styles.muted}>Reference</Text>
+        <Text style={styles.title}>{paymentReference}</Text>
       </Card>
     </Screen>
   );

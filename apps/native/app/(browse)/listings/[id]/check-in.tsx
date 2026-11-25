@@ -70,7 +70,7 @@ export default function CheckInScreen() {
       <BackButton fallback={back} />
       <Text style={styles.kicker}>OPEN INSPECTION</Text>
       <Text style={styles.title}>{property.address}</Text>
-      <Text style={styles.body}>Register your attendance at this open inspection. Your agent will see your details on the inspection report.</Text>
+      <Text style={styles.body}>Register your attendance at this open inspection.</Text>
       <Field label="Full name">
         <Input autoComplete="name" value={form.name} onChangeText={set('name')} />
       </Field>

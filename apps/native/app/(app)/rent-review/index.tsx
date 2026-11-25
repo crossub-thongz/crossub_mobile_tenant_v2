@@ -21,7 +21,6 @@ export default function RentReviewListScreen() {
     <Screen>
       <BackButton fallback="/" />
       <Text style={styles.title}>Rent review</Text>
-      <Text style={styles.body}>Notices your property manager has sent. Nothing is here until a notice is issued.</Text>
       {rentReview ? (
         <Card onPress={() => router.push(`/rent-review/${rentReview.id}`)}>
           <Text style={styles.address}>{rentReview.address}</Text>

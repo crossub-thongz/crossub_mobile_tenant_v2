@@ -26,11 +26,11 @@ export default function StatementScreen() {
       <BackButton fallback="/payments" />
       <Text style={styles.title}>Final statement</Text>
       {!scenario.ledger ? (
-        <Notice>Your agent manages this trust account. The app does not calculate a refund from those rent records.</Notice>
+        <Notice>No settlement has been issued yet.</Notice>
       ) : (
         <>
           <Text style={styles.body}>{vacating?.address || property.title}</Text>
-          <Text style={styles.body}>{vacating ? 'Figures come from the vacating settlement on your tenancy.' : 'No settlement has been issued yet.'}</Text>
+          {!vacating ? <Text style={styles.body}>No settlement has been issued yet.</Text> : null}
           <Card>
             {rows.map(([label, value]) => (
               <View key={label} style={styles.row}>

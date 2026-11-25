@@ -29,7 +29,7 @@ export default function ListingsScreen() {
           <Text style={styles.link}>{status === 'authed' ? 'My home' : 'Sign in'}</Text>
         </Pressable>
       </View>
-      <Text style={styles.muted}>Open inspections and vacant homes. You can look without an account.</Text>
+      <Text style={styles.muted}>Open inspections and vacant homes.</Text>
       <View style={styles.filters}>
         {suburbs.map((item) => (
           <Pressable key={item} accessibilityRole="button" onPress={() => setSuburb(item)} style={[styles.chip, suburb === item && styles.chipOn]}>

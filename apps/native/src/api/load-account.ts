@@ -5,6 +5,9 @@ import { emptyOnboarding } from '@/src/demo/applications';
 import type { Property, Thread } from '@/src/demo/model';
 import type { RentReviewStatus } from '@/src/demo/tenancy-notices';
 import { ApiError } from '@/src/api/http';
+import { formatDisplayDate } from '@/src/api/dates';
+import { reviewIsForSignedInTenant, threadIsForSignedInTenant } from '@/src/api/current-household';
+import { toDisplayMessageText } from '@/src/api/message-text';
 import {
   tenantApi,
   type ContactDto,
@@ -77,6 +80,7 @@ export type LiveTenancy = {
   paymentCycle: string | null;
   paymentReference: string;
   contractType: string;
+  vacateDate: string;
 };
 export type LiveReview = {
   id: string;
@@ -196,10 +200,7 @@ export function sameProperty(
 }
 
 function dateLabel(value: string | null | undefined): string {
-  if (!value) return '';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value.slice(0, 10);
-  return parsed.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatDisplayDate(value);
 }
 
 function contact(value: ContactDto | undefined, fallbackName: string) {
@@ -212,12 +213,20 @@ function contact(value: ContactDto | undefined, fallbackName: string) {
 
 const INSPECTION_KIND = { ROUTINE: 'ROUTINE', OPEN: 'OPEN', INGOING: 'INGOING', OUTGOING: 'OUTGOING' } as const;
 
+/** A record id from a flow route. The path segment (`inspection`, `self-inspection`) is not one. */
+export function routeRecordId(value: string | string[] | undefined): string | undefined {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values.find((item) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item));
+}
+
 /** The phone screen for one inspection, matching the tenant website's inspection links. */
 export function inspectionPath(type: string, id: string, selfInspectionId?: string | null): string {
   if (type === INSPECTION_KIND.INGOING) return '/flow/entry';
   if (type === INSPECTION_KIND.OUTGOING) return '/flow/final';
   if (type === INSPECTION_KIND.OPEN) return '/flow/open-inspection';
-  if (type === INSPECTION_KIND.ROUTINE && selfInspectionId && id === selfInspectionId) return '/flow/self-inspection';
+  if (type === INSPECTION_KIND.ROUTINE && selfInspectionId && id === selfInspectionId) {
+    return `/flow/self-inspection?id=${encodeURIComponent(id)}`;
+  }
   return `/flow/inspection?id=${encodeURIComponent(id)}`;
 }
 
@@ -348,6 +357,7 @@ function mapTenancy(tenancy: TenancyDto): LiveTenancy {
     paymentCycle: tenancy.paymentCycle,
     paymentReference: tenancy.paymentReference || '',
     contractType: tenancy.contractType || tenancy.leaseTerm || 'Tenancy',
+    vacateDate: dateLabel(tenancy.vacateDate),
   };
 }
 
@@ -490,6 +500,8 @@ export function scopeAccount(input: {
   ledger: LiveLedgerRow[];
   rentReviews: LiveReview[];
   vacatingCases: LiveVacating[];
+  rememberedVacateDate?: string;
+  rememberedVacatePropertyId?: string | null;
 }) {
   const selected =
     input.tenancies.find((item) => item.id === input.selectedTenancyId) ??
@@ -509,9 +521,11 @@ export function scopeAccount(input: {
     inspections.find((item) => item.type === INSPECTION_KIND.ROUTINE && !ROUTINE_DONE.has(item.status)) ??
     null;
   const review = propertyId ? input.rentReviews.find((item) => item.propertyId === propertyId) ?? null : input.rentReviews[0] ?? null;
+  const vacatingMatches = (item: LiveVacating) =>
+    sameProperty({ propertyId: item.propertyId, address: item.address }, propertyId, propertyAddress);
   const vacating = propertyId
-    ? input.vacatingCases.find((item) => item.propertyId === propertyId && item.status === 'open') ??
-      input.vacatingCases.find((item) => item.propertyId === propertyId) ??
+    ? input.vacatingCases.find((item) => vacatingMatches(item) && item.status === 'open') ??
+      input.vacatingCases.find(vacatingMatches) ??
       null
     : input.vacatingCases.find((item) => item.status === 'open') ?? input.vacatingCases[0] ?? null;
   const accounting = scenarioForAccounting(selected?.accounting);
@@ -534,7 +548,11 @@ export function scopeAccount(input: {
     rentReviewMoveOut: review?.moveOut ?? '',
     vacating,
     terminationStarted: Boolean(vacating && vacating.status !== 'cancelled'),
-    terminationMoveOut: vacating?.vacateDate ?? '',
+    terminationMoveOut:
+      vacating?.vacateDate ||
+      (input.rememberedVacatePropertyId && input.rememberedVacatePropertyId === propertyId ? input.rememberedVacateDate || '' : '') ||
+      selected?.vacateDate ||
+      '',
     keyReturnSubmitted: Boolean(vacating?.submitted),
     keyReturnPhotos: vacating?.photoUrls ?? [],
     routineAction: openRoutine
@@ -583,7 +601,6 @@ export async function loadAccount(): Promise<LoadedAccount> {
   ]);
 
   const tenancy = tenancies.value.find((item) => item.status === 'ACTIVE') ?? tenancies.value[0] ?? null;
-  const review = reviews.value.find((item) => item.waitingFor === 'TENANT') ?? reviews.value[0] ?? null;
   const vacatingCase = vacating.value.find((item) => item.status === 'open') ?? vacating.value[0] ?? null;
   const steps = emptyOnboarding();
   const onboardingAmounts: Partial<Record<OnboardingStepId, number>> = {};
@@ -602,6 +619,10 @@ export async function loadAccount(): Promise<LoadedAccount> {
     .map((part) => part?.trim())
     .filter(Boolean)
     .join(' ');
+  const viewer = { name: tenantName, email: profile.value?.email?.trim() || '' };
+  const ownThreads = messages.value.filter((thread) => threadIsForSignedInTenant(thread, viewer));
+  const ownReviews = reviews.value.filter((item) => reviewIsForSignedInTenant(item, viewer));
+  const review = ownReviews.find((item) => item.waitingFor === 'TENANT') ?? ownReviews[0] ?? null;
 
   return {
     scenarioId: accounting ?? 'crossub',
@@ -616,18 +637,18 @@ export async function loadAccount(): Promise<LoadedAccount> {
     paymentCycle: tenancy?.paymentCycle ?? null,
     paymentReference: tenancy?.paymentReference || '',
     maintenance: maintenance.value.map(mapMaintenance),
-    threads: messages.value.map((item) => ({
+    threads: ownThreads.map((item) => ({
       id: item.id,
       category: threadCategory(item.department),
       subject: item.subject,
-      preview: item.lastMessage || item.messages.at(-1)?.body || '',
+      preview: toDisplayMessageText(item.lastMessage || item.messages.at(-1)?.body || ''),
       status: 'Open',
       route: `/flow/conversation?thread=${item.id}`,
       caseRoute: caseRoute(item.department, review?.id ?? null),
       unread: item.unread > 0,
       lastAt: item.lastAt || item.messages.at(-1)?.at || null,
       messages: item.messages.map((message) => ({
-        body: message.body,
+        body: toDisplayMessageText(message.body),
         fromSelf: message.fromSelf,
         at: message.at,
         attachments: message.attachments?.map((file) => ({ fileName: file.fileName, url: file.url })),
@@ -691,7 +712,7 @@ export async function loadAccount(): Promise<LoadedAccount> {
         tenantAttendance: null,
       })),
     ],
-    rentReviews: reviews.value.map((item) => mapReview(item, tenancy?.propertyAddress || '')),
+    rentReviews: ownReviews.map((item) => mapReview(item, tenancy?.propertyAddress || '')),
     rentReview: review ? mapReview(review, tenancy?.propertyAddress || '') : null,
     rentReviewStatus: review ? reviewStatus(review) : 'pending',
     rentReviewCounter: review?.tenantCounterWeekly ?? null,

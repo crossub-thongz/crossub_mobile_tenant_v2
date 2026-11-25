@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { formatDisplayDate, formatDisplayDateTime, routineSelfOpen } from '@/src/api/dates';
 import { inspectionPath } from '@/src/api/load-account';
 import { cycleAmount, normalizeCycle } from '@/src/api/rent';
 import { useAuth } from '@/src/auth/auth-context';
@@ -56,8 +57,8 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
       id: 'routine',
       icon: 'clipboard-outline',
       title: 'Routine inspection',
-      subtitle: routine.flow === 'self' && routine.actionRequired ? 'Complete your self-inspection' : routine.scheduledAt?.slice(0, 10) || 'Open the visit',
-      href: routine.flow === 'self' && routine.actionRequired ? '/flow/self-inspection' : `/flow/inspection?id=${routine.id}`,
+      subtitle: routineSelfOpen(routine.status, routine.flow) ? 'Begin your self-inspection' : formatDisplayDate(routine.scheduledAt) || 'Open the visit',
+      href: routineSelfOpen(routine.status, routine.flow) ? `/flow/self-inspection?id=${routine.id}` : `/flow/inspection?id=${routine.id}`,
     });
   }
   if (onboardingOpen) {
@@ -97,7 +98,7 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
     });
   }
 
-  const selfInspectionId = demo.routineAction?.flow === 'self' && demo.routineAction.actionRequired ? demo.routineAction.id : null;
+  const selfInspectionId = routineSelfOpen(demo.routineAction?.status, demo.routineAction?.flow) ? demo.routineAction?.id ?? null : null;
   const featuredInspection = (demo.routineAction ? demo.inspections.find((item) => item.id === demo.routineAction?.id) : undefined)
     ?? demo.inspections.find((item) => !['completed', 'cancelled', 'COMPLETED', 'CANCELLED', 'PUBLISHED'].includes(item.status));
   const leasingKeys = demo.onboardingActive && demo.onboardingStepIds.includes('key_pickup');
@@ -131,7 +132,7 @@ export default function PortalHomeScreen({ tab = false }: { tab?: boolean }) {
           id: 'keys',
           icon: 'key-outline' as const,
           title: 'Key handover',
-          subtitle: demo.keyCollection.time.slice(0, 16).replace('T', ' '),
+          subtitle: formatDisplayDateTime(demo.keyCollection.time),
           href: keyHref,
         }]
       : []),

@@ -12,9 +12,9 @@ import { BackButton, Button, Card, Choice, Field, Input, Notice, RowItem, Screen
 export { FinalScreen } from '@/src/flows/outgoing-report';
 
 export const CLEANING: { id: CleaningChoice; body: string }[] = [
-  { id: 'Crossub Cleaning', body: 'Brightness coordinates cleaning. This is a request, not a booked quote.' },
-  { id: "Agent's Cleaner", body: 'Your agent’s preferred supplier. The agent confirms completion.' },
-  { id: 'Tenant Arranged', body: 'Your cleaner, or you. Upload completion photos and the date.' },
+  { id: 'Crossub Cleaning', body: 'Brightness coordinates cleaning.' },
+  { id: "Agent's Cleaner", body: "Your agent's preferred supplier." },
+  { id: 'Tenant Arranged', body: 'Your cleaner, or you.' },
 ];
 
 export function RenewalScreen() {
@@ -26,7 +26,7 @@ export function RenewalScreen() {
       <BackButton />
       <Text style={styles.h2}>Lease renewal</Text>
       {renewals.length === 0 ? (
-        <Notice>No lease renewal offer is on this tenancy. A renewal appears here when an application is marked as a renewal.</Notice>
+        <Notice>No lease renewal offer is on this tenancy.</Notice>
       ) : null}
       {renewals.map((item) => (
         <Card key={item.id} onPress={() => router.push(`/applications/${item.id}`)}>
@@ -53,12 +53,11 @@ export function KeysScreen() {
       <BackButton />
       <Text style={styles.h2}>Key handover</Text>
       {!leasingKeys && !returning ? (
-        <Notice>Key handover is available when this tenancy has an open leasing or vacating task.</Notice>
+        <Notice>No key handover on this tenancy.</Notice>
       ) : null}
       {leasingKeys ? (
         <Card>
           <Text style={styles.title}>Key collection</Text>
-          <Text style={styles.body}>This is the key collection step on the leasing task.</Text>
           <Button label="Open key collection" onPress={() => router.push('/onboarding/key_pickup')} />
         </Card>
       ) : null}
@@ -67,13 +66,13 @@ export function KeysScreen() {
           <Card>
             <Text style={styles.title}>Return keys to</Text>
             <Text style={styles.body}>
-              {demo.vacating?.keysReturnAddress || 'Your property manager will send the key return location shortly.'}
+              {demo.vacating?.keysReturnAddress || 'Not set'}
             </Text>
             {demo.vacating?.keysReturned ? <Notice>Keys are marked returned on this vacating case.</Notice> : null}
           </Card>
           <Card>
             <Text style={styles.title}>Returned keys and access devices</Text>
-            <Text style={styles.muted}>Add a clear photo of the keys, remotes, or cards you returned. Up to 4.</Text>
+            <Text style={styles.muted}>Up to 4 photos.</Text>
             {demo.keyReturnPhotos.map((name) => (
               <Button key={name} label={`Remove ${name}`} tone="outline" onPress={() => demo.removeKeyReturnPhoto(name)} />
             ))}
@@ -100,16 +99,22 @@ export function KeysScreen() {
 
 export function VacatingScreen() {
   const router = useRouter();
-  const { cleaning, vacating } = useDemo();
+  const { cleaning, vacating, terminationMoveOut } = useDemo();
+  const vacateDate = vacating?.vacateDate || terminationMoveOut;
   return (
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Moving out</Text>
       <Text style={styles.muted}>
-        {vacating?.vacateDate ? `Vacating date ${vacating.vacateDate}.` : 'No vacating date is on this account yet.'} Only the steps you can act on are listed.
+        {vacateDate ? `Vacating date ${vacateDate}.` : 'No vacating date is on this account yet.'} Only the steps you can act on are listed.
       </Text>
       <Card>
-        <RowItem icon="checkmark-circle-outline" title="Vacating details" subtitle="Confirmed" onPress={() => router.push('/flow/tenancy')} />
+        <RowItem
+          icon="checkmark-circle-outline"
+          title="Vacating details"
+          subtitle={vacateDate || 'Not set yet'}
+          onPress={() => router.push(vacateDate ? '/flow/tenancy' : '/termination')}
+        />
         <RowItem icon="sparkles-outline" title="Cleaning" subtitle={cleaning ?? 'Choose an arrangement'} onPress={() => router.push('/flow/cleaning')} />
         <RowItem icon="cube-outline" title="Move-out services" subtitle="Cleaning and a moving referral" onPress={() => router.push('/move-out-services')} />
         <RowItem icon="clipboard-outline" title="Final inspection" subtitle="Review findings" onPress={() => router.push('/flow/final')} />
@@ -129,7 +134,6 @@ export function VacatingScreen() {
           onPress={() => router.push('/flow/settlement')}
         />
       </Card>
-      <Notice>Finishing this list does not close the vacating task or the tenancy. Your manager closes those.</Notice>
     </Screen>
   );
 }
@@ -141,7 +145,6 @@ export function CleaningScreen() {
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Move-out cleaning</Text>
-      <Text style={styles.muted}>All three options are available in every service mode.</Text>
       {CLEANING.map((option) => (
         <Choice key={option.id} title={option.id} body={option.body} selected={demo.cleaning === option.id} onPress={() => demo.setCleaning(option.id)} />
       ))}
@@ -152,7 +155,7 @@ export function CleaningScreen() {
             demo.notify('Select an option');
             return;
           }
-          demo.notify('Choice recorded. The vacating task stays open.');
+          demo.notify('Choice recorded.');
           router.dismissTo('/flow/vacating');
         }}
       />
@@ -215,12 +218,11 @@ export function SettlementScreen() {
     <Screen>
       <BackButton />
       <Text style={styles.h2}>Final settlement</Text>
-      {!vacating ? <Notice>No vacating case is open on this tenancy, so there is no settlement to review.</Notice> : null}
-      {vacating && !ready ? <Notice>No settlement figures have been sent for this vacating case yet.</Notice> : null}
+      {!vacating ? <Notice>No vacating case is open.</Notice> : null}
+      {vacating && !ready ? <Notice>No settlement figures yet.</Notice> : null}
       {reviewResponsibilities && vacating ? (
         <Card>
           <Text style={styles.title}>Repair responsibilities</Text>
-          <Text style={styles.muted}>Your property manager listed these items from the outgoing inspection. Confirm them before a quote is prepared.</Text>
           {vacating.responsibilityItems.map((item) => (
             <Text key={`${item.area}-${item.description}`} style={styles.body}>
               {item.area}: {item.description}{item.quote ? ` · ${item.quote}` : ''}{item.bondDeductible ? ' · bond deductible' : ''}
@@ -263,11 +265,10 @@ export function SettlementScreen() {
         </Card>
       ) : null}
       {vacating && vacating.responsibilityStatus === RESPONSIBILITY.ACCEPTED ? <Notice>You acknowledged the repair responsibilities.</Notice> : null}
-      {vacating && vacating.responsibilityStatus === RESPONSIBILITY.DECLINED ? <Notice>You disagreed with the repair responsibilities. Your property manager will send an update.</Notice> : null}
+      {vacating && vacating.responsibilityStatus === RESPONSIBILITY.DECLINED ? <Notice>You disagreed with the repair responsibilities.</Notice> : null}
       {reviewQuote && vacating ? (
         <Card>
           <Text style={styles.title}>Repair quote</Text>
-          <Text style={styles.muted}>These items may be deducted from the bond. Agreeing does not move the money.</Text>
           <Field label="Reason if you disagree">
             <Input multiline value={reason} onChangeText={setReason} placeholder="What should be reviewed?" />
           </Field>
@@ -326,7 +327,6 @@ export function SettlementScreen() {
         </Card>
       ) : null}
       {error && !waiting ? <Text style={styles.error}>{error}</Text> : null}
-      <Notice>Accepting or declining is saved on the vacating case. It does not move money by itself.</Notice>
     </Screen>
   );
 }

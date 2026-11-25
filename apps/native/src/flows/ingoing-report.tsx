@@ -87,7 +87,7 @@ export function EntryScreen() {
       {loading ? <ActivityIndicator color={colors.green} /> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!loading && !report ? (
-        <Notice>No entry report has been published on this tenancy yet. It appears here after your property manager schedules the ingoing inspection.</Notice>
+        <Notice>No entry report has been published.</Notice>
       ) : null}
       {report ? (
         <>

@@ -12,7 +12,7 @@ export const RENT_REVIEW = {
 
 export const TERMINATION = {
   address: '1205 / 88 Berry Street',
-  reason: 'The landlord requires the property for their own housing. This notice gives the date you need to reply and the latest date to vacate.',
+  reason: 'The landlord requires the property for their own housing.',
   respondBy: '5 Dec 2026',
   vacateDeadline: '19 Dec 2026',
 };
@@ -21,7 +21,7 @@ export const ARREARS = {
   stage: 'Reminder',
   outstanding: 700,
   due: '9 Nov 2026',
-  message: 'A $500 part payment is on the account. It does not complete the next rent week, so $700 is still outstanding.',
+  message: 'A $500 part payment is on the account. $700 is still outstanding.',
 };
 
 export const STATEMENT = {
@@ -44,12 +44,12 @@ export const LEASE_DOCUMENTS = [
     id: 'condition',
     name: 'Ingoing condition report',
     uploaded: '13 Nov 2026',
-    body: 'Rooms recorded at the start of the tenancy. Your acknowledgement confirms you received this version. It is not agreement with every line.',
+    body: 'Rooms recorded at the start of the tenancy.',
   },
   {
     id: 'notice',
     name: 'Notice of rent review',
     uploaded: '11 Nov 2026',
-    body: 'Proposed rent $1,260 weekly from 15 Dec 2026. Respond from the rent review screen. Accepting here does not sign a new lease.',
+    body: 'Proposed rent $1,260 weekly from 15 Dec 2026.',
   },
 ] as const;

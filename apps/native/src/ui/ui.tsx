@@ -79,7 +79,7 @@ export function RowItem({
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   tag?: string;
   onPress?: () => void;
 }) {
@@ -90,7 +90,7 @@ export function RowItem({
       </View>
       <View style={styles.grow}>
         <Text style={styles.itemTitle}>{title}</Text>
-        <Text style={styles.itemSub}>{subtitle}</Text>
+        {subtitle ? <Text style={styles.itemSub}>{subtitle}</Text> : null}
       </View>
       {tag ? <Tag label={tag} tone={tag === 'Action Required' ? 'amber' : 'neutral'} /> : null}
       <Ionicons name="chevron-forward" size={16} color="#9bad9f" />
@@ -179,7 +179,7 @@ export function Choice({
 }: {
   selected: boolean;
   title: string;
-  body: string;
+  body?: string;
   onPress: () => void;
 }) {
   return (
@@ -187,7 +187,7 @@ export function Choice({
       <Ionicons name={selected ? 'radio-button-on' : 'radio-button-off'} size={18} color={selected ? colors.green : colors.muted} />
       <View style={styles.grow}>
         <Text style={styles.itemTitle}>{title}</Text>
-        <Text style={styles.itemSub}>{body}</Text>
+        {body ? <Text style={styles.itemSub}>{body}</Text> : null}
       </View>
     </Pressable>
   );
