@@ -2,16 +2,20 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { forwardRef, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDemo } from '@/src/demo/store';
 import { colors } from '@/src/theme';
 import { AppMenuButton } from '@/src/ui/app-menu';
 
 export function Screen({ children, tab = false, background }: { children: ReactNode; tab?: boolean; background?: string }) {
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView style={[styles.safe, background ? { backgroundColor: background } : null]} edges={tab ? ['top'] : ['top', 'bottom']}>
-      <ScrollView contentContainerStyle={[styles.scroll, tab && styles.tabScroll]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.scroll, tab && { paddingBottom: 125 + Math.max(insets.bottom, 10) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {children}
       </ScrollView>
     </SafeAreaView>
@@ -249,7 +253,6 @@ export function ToastHost() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: 20, paddingBottom: 32, gap: 12 },
-  tabScroll: { paddingBottom: 120 },
   top: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   headerTools: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   grow: { flex: 1 },

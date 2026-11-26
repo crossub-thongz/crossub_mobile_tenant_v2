@@ -46,7 +46,7 @@ export default function ProfileScreen() {
         <RowItem icon="search-outline" title="Browse listings" subtitle="Open inspections you can visit without a tenancy" onPress={() => router.push('/listings')} />
         <RowItem icon="document-outline" title="Applications" subtitle="Track what you have submitted" onPress={() => router.push('/applications')} />
         <RowItem icon="checkbox-outline" title="Move-in onboarding" subtitle="Deposit, bond, lease, and keys" onPress={() => router.push('/onboarding')} />
-        <RowItem icon="document-text-outline" title="Tenancy details" subtitle="Read only" onPress={() => router.push('/flow/tenancy')} />
+        <RowItem icon="document-text-outline" title="Tenancy details" onPress={() => router.push('/flow/tenancy')} />
         <RowItem icon="reader-outline" title="Rent review" subtitle="Notice and your response" onPress={() => router.push('/rent-review')} />
         <RowItem icon="alert-circle-outline" title="Termination notice" subtitle="Reply date and move-out" onPress={() => router.push('/termination')} />
         <RowItem icon="folder-outline" title="Documents" subtitle="Newest first" onPress={() => router.push('/flow/documents')} />

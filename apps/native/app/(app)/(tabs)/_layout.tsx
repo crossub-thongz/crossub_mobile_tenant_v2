@@ -46,7 +46,7 @@ function TenantTabBar({
               onPress={() => {
                 if (!focused) navigateToTab(route.key);
               }}
-              hitSlop={isHome ? { top: HOME_SIZE / 2 } : undefined}
+              hitSlop={isHome ? { top: 41 } : undefined}
               style={styles.item}
             >
               {isHome ? (
@@ -82,12 +82,20 @@ function iconName(name: Exclude<(typeof ORDER)[number], 'index'>, focused: boole
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       tabBar={(props) => <TenantTabBar state={props.state} navigateToTab={props.navigateToTab} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { position: 'absolute', backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, height: 92, overflow: 'visible' },
+        tabBarStyle: {
+          position: 'absolute',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 109 + Math.max(insets.bottom, 10),
+          overflow: 'visible',
+        },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
